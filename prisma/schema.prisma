@@ -29,6 +29,10 @@ model User {
 
   // Billing
   stripeCustomerId String?  @unique
+  // Provider-neutral identifier (Lemon Squeezy customer id, or any future
+  // provider that does not use Stripe's customer model). Always nullable
+  // so legacy Stripe-only users remain compatible.
+  lemonCustomerId  String?  @unique
   planId           String?
   plan             Plan?    @relation("UserPlan", fields: [planId], references: [id])
   trialEndsAt      DateTime?
@@ -125,6 +129,11 @@ model Subscription {
   planId               String
   plan                 Plan      @relation(fields: [planId], references: [id])
   stripeSubscriptionId String?   @unique
+  // Provider-neutral subscription id (Lemon Squeezy subscription id).
+  // Always nullable. The internal application logic uses `status` to
+  // decide entitlements — provider-specific id fields are only used to
+  // correlate incoming webhooks with existing rows.
+  lemonSubscriptionId  String?   @unique
   status               String // active | trialing | past_due | canceled | incomplete | unpaid | lifetime
   currentPeriodStart   DateTime?
   currentPeriodEnd     DateTime?
@@ -141,6 +150,8 @@ model Invoice {
   userId          String
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   stripeInvoiceId String   @unique
+  // Provider-neutral order/invoice id (Lemon Squeezy order id).
+  lemonOrderId    String?  @unique
   number          String?
   amountCents     Int
   currency        String   @default("usd")

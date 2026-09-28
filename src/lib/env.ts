@@ -10,6 +10,17 @@ export const env = {
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
   stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "",
 
+  // ---- Lemon Squeezy (production payment provider) ----
+  // The API key + webhook secret are server-only.
+  lemonSqueezyApiKey: process.env.LEMON_SQUEEZY_API_KEY ?? "",
+  lemonSqueezyStoreId: process.env.LEMON_SQUEEZY_STORE_ID ?? "",
+  lemonSqueezyWebhookSecret: process.env.LEMON_SQUEEZY_WEBHOOK_SECRET ?? "",
+  // Variant IDs are NOT secrets but we centralize them so the
+  // application code never has them hard-coded.
+  lemonSqueezyProVariantId: process.env.LEMON_SQUEEZY_PRO_VARIANT_ID ?? "",
+  lemonSqueezyBusinessVariantId: process.env.LEMON_SQUEEZY_BUSINESS_VARIANT_ID ?? "",
+  lemonSqueezyLifetimeVariantId: process.env.LEMON_SQUEEZY_LIFETIME_VARIANT_ID ?? "",
+
   emailProvider: process.env.EMAIL_PROVIDER ?? "console",
   emailFrom: process.env.EMAIL_FROM ?? "AutoEco <no-reply@example.com>",
   smtpHost: process.env.SMTP_HOST ?? "",
@@ -32,6 +43,28 @@ export const env = {
 
 export function stripeConfigured(): boolean {
   return Boolean(env.stripeSecretKey);
+}
+
+/**
+ * Lemon Squeezy is the production payment provider. The application
+ * uses it whenever it is configured (API key + at least one variant).
+ * Stripe is preserved as a legacy/test fallback for development.
+ */
+export function lemonSqueezyConfigured(): boolean {
+  return Boolean(
+    env.lemonSqueezyApiKey &&
+    env.lemonSqueezyStoreId &&
+    (env.lemonSqueezyProVariantId ||
+      env.lemonSqueezyBusinessVariantId ||
+      env.lemonSqueezyLifetimeVariantId)
+  );
+}
+
+// Re-export so other modules can use a single import.
+export { lemonSqueezyConfigured as _lsqConfigured };
+
+export function lemonSqueezyWebhookConfigured(): boolean {
+  return Boolean(env.lemonSqueezyWebhookSecret);
 }
 
 /**

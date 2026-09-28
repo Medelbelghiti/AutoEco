@@ -34,20 +34,23 @@
  *     reject if metadata.userId disagrees.
  */
 import type Stripe from "stripe";
-import { Prisma } from "@prisma/client";
 import crypto from "node:crypto";
 import { db } from "./db";
 import { createNotification } from "./notifications";
 import { sendEmail, tplPaymentSuccess, tplPaymentFailed, tplSubscriptionCanceled } from "./email";
 import { auditLog } from "./audit";
+import { claim, reclaimStale, markProcessed, markFailed, tryClaimSideEffect } from "./webhook-state";
+
+// Re-export so existing tests and callers of stripe-webhook.ts continue
+// to work without modification. The implementations live in webhook-state.ts.
+export { claim, reclaimStale, markProcessed, markFailed, tryClaimSideEffect } from "./webhook-state";
+export type { WebhookStatus } from "./webhook-state";
 
 export type ProcessOutcome =
   | "applied"
   | "skipped-already-processed"
   | "skipped-other-worker"
   | "error";
-
-type WebhookStatus = "RECEIVED" | "PROCESSING" | "PROCESSED" | "FAILED";
 
 const STALE_PROCESSING_MINUTES = 15;
 
@@ -67,108 +70,7 @@ function newProcessingToken(): string {
  *     WHERE eventId=$e AND status IN ('RECEIVED','FAILED')
  * The `WHERE` is the lock — only one of N concurrent calls can affect
  * a row.
- */
-async function claim(eventId: string, type: string): Promise<string | null> {
-  // Step 1: ensure row exists (race-safe via ON CONFLICT DO NOTHING).
-  await db.$executeRaw(
-    Prisma.sql`INSERT INTO "WebhookEvent" ("id","eventId","type","status","attempts","processingToken","createdAt","updatedAt")
-     VALUES (${`wh_${eventId}`}, ${eventId}, ${type}, ${"RECEIVED"}, 0, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-     ON CONFLICT ("eventId") DO NOTHING`
-  ).catch(() => 0);
-
-  // Step 2: claim the event with a fresh token, but only if no worker
-  // is currently processing it. This is one statement — race-safe.
-  const token = newProcessingToken();
-  const result = await db.webhookEvent.updateMany({
-    where: { eventId, status: { in: ["RECEIVED", "FAILED"] } },
-    data: {
-      status: "PROCESSING",
-      processingToken: token,
-      attempts: { increment: 1 },
-    },
-  });
-  return result.count > 0 ? token : null;
-}
-
-/**
- * Stale recovery: if a row has been in PROCESSING for > 15 minutes,
- * it is considered orphaned. Atomically rotate its token to a new
- * value, returning the new token to the caller. The previous worker
- * can no longer finalize.
- */
-async function reclaimStale(eventId: string): Promise<string | null> {
-  const threshold = new Date(Date.now() - STALE_PROCESSING_MINUTES * 60 * 1000);
-  const token = newProcessingToken();
-  // Atomically: only the row currently stale AND still in PROCESSING
-  // can be claimed.
-  const result = await db.webhookEvent.updateMany({
-    where: {
-      eventId,
-      status: "PROCESSING",
-      updatedAt: { lt: threshold },
-    },
-    data: {
-      status: "PROCESSING", // no-op; forces updatedAt via Prisma
-      processingToken: token,
-      attempts: { increment: 1 },
-      error: "stale PROCESSING reclaimed",
-    },
-  });
-  if (result.count === 0) return null;
-  // Force updatedAt via a no-op update — Prisma's @updatedAt increments
-  // on the same call.
-  await db.webhookEvent.update({ where: { eventId }, data: {} }).catch(() => {});
-  return token;
-}
-
-async function markProcessed(eventId: string, token: string): Promise<boolean> {
-  // Only finalize if WE still own the token. A stale worker that lost
-  // ownership to a recovery call has a stale token; this UPDATE
-  // affects 0 rows and returns false.
-  const r = await db.webhookEvent.updateMany({
-    where: { eventId, status: "PROCESSING", processingToken: token },
-    data: { status: "PROCESSED", processedAt: new Date(), error: null },
-  });
-  return r.count > 0;
-}
-
-async function markFailed(eventId: string, token: string, message: string): Promise<boolean> {
-  const r = await db.webhookEvent.updateMany({
-    where: { eventId, status: "PROCESSING", processingToken: token },
-    data: { status: "FAILED", error: message.slice(0, 1000) },
-  });
-  return r.count > 0;
-}
-
-/**
- * Durable side-effect claim. Returns true if THIS call may execute the
- * effect. The unique (eventId, effectType) index guarantees at-most-once
- * execution across retries, concurrent deliveries, stale recovery, and
- * crash recovery.
- */
-export async function tryClaimSideEffect(
-  eventId: string,
-  effectType: string,
-  metadata?: Record<string, unknown>
-): Promise<boolean> {
-  try {
-    await db.webhookSideEffect.create({
-      data: {
-        eventId,
-        effectType,
-        metadata: metadata ? JSON.stringify(metadata) : null,
-      },
-    });
-    return true;
-  } catch (e: any) {
-    // P2002 (unique constraint) → effect already happened.
-    if (e?.code === "P2002" || /Unique constraint/i.test(String(e?.message ?? ""))) {
-      return false;
-    }
-    throw e;
-  }
-}
-
+  */
 export async function handleStripeEvent(event: Stripe.Event): Promise<ProcessOutcome> {
   const eventId = event.id;
   let token = await claim(eventId, event.type);
@@ -385,5 +287,3 @@ async function onChargeRefunded(charge: Stripe.Charge): Promise<void> {
   if (!inv) return;
   await db.invoice.update({ where: { id: inv.id }, data: { status: "refunded" } });
 }
-
-export type { WebhookStatus };

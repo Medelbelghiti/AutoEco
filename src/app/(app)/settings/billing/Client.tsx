@@ -48,6 +48,20 @@ export function BillingClient(props: Props) {
 
   const checkout = async () => {
     setB(true); setMsg(null);
+    // Prefer Lemon Squeezy (production). Falls back to Stripe if the LSQ
+    // route rejects the request.
+    const tryLsq = await fetch("/api/lemonsqueezy/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ planKey: props.planId }),
+    });
+    if (tryLsq.ok) {
+      const j = await tryLsq.json();
+      setB(false);
+      window.location.href = j.url;
+      return;
+    }
+    // Legacy Stripe path — kept for development / fallback.
     const r = await fetch("/api/billing/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

@@ -1,19 +1,25 @@
-/**
- * Regression tests for the final 3 production blockers.
+﻿/**
+ * Regression tests for the 3 production blockers fixed in V1.4.1.
  *
- * Requires DATABASE_URL (Postgres or SQLite). Skipped if unreachable.
+ * All real-DB tests use ensureLemonSqueezySchema so they are independent
+ * of whether the production migration has been applied to the test DB.
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { PrismaClient } from "@prisma/client";
 import crypto from "node:crypto";
 import { handleStripeEvent, tryClaimSideEffect } from "@/lib/stripe-webhook";
 import { tryConsume, release } from "@/lib/quota";
+import { ensureLemonSqueezySchema } from "./_ensureSchema";
 
 const DB_URL = process.env.DATABASE_URL ?? "";
 const DB_OK = DB_URL.length > 0;
 
 const prisma = new PrismaClient();
 const stamp = `${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
+
+beforeAll(async () => {
+  if (DB_OK) await ensureLemonSqueezySchema(prisma);
+});
 
 async function makeUserWithPlan(planOverrides: Record<string, unknown> = {}) {
   const plan = await prisma.plan.create({
@@ -57,11 +63,8 @@ describe.skipIf(!DB_OK)("BLOCKER 1 — OCR quota rollback + file cleanup", () =>
   it("successful receipt: quota consumed, document exists, file remains", async () => {
     const { user, plan } = await makeUserWithPlan({ aiReceiptScansPerMonth: 10 });
     const periodKey = `2026-09-${user.id}`;
-
-    // Simulate the receipts flow
     const reserved = await tryConsume({ userId: user.id, metric: "ocr_scans", periodKey, limit: plan.aiReceiptScansPerMonth });
     expect(reserved.allowed).toBe(true);
-    // Successful insert
     const doc = await prisma.document.create({
       data: {
         userId: user.id, vehicleId: null, title: "ok", category: "fuel",
@@ -78,18 +81,13 @@ describe.skipIf(!DB_OK)("BLOCKER 1 — OCR quota rollback + file cleanup", () =>
     const periodKey = `2026-09-${user.id}`;
     const before = await prisma.quotaUsage.findUnique({ where: { userId_metric_periodKey: { userId: user.id, metric: "ocr_scans", periodKey } } });
     const beforeUsed = before?.used ?? 0;
-
     const reserved = await tryConsume({ userId: user.id, metric: "ocr_scans", periodKey, limit: plan.aiReceiptScansPerMonth });
     expect(reserved.allowed).toBe(true);
     const afterReserve = await prisma.quotaUsage.findUnique({ where: { userId_metric_periodKey: { userId: user.id, metric: "ocr_scans", periodKey } } });
     expect(afterReserve?.used).toBe(beforeUsed + 1);
-
-    // Simulate downstream failure: release once
     await release({ userId: user.id, metric: "ocr_scans", periodKey });
     const afterRelease = await prisma.quotaUsage.findUnique({ where: { userId_metric_periodKey: { userId: user.id, metric: "ocr_scans", periodKey } } });
     expect(afterRelease?.used).toBe(beforeUsed);
-
-    // Calling release again WITHOUT a reservation should NOT go below zero
     await release({ userId: user.id, metric: "ocr_scans", periodKey });
     const afterDoubleRelease = await prisma.quotaUsage.findUnique({ where: { userId_metric_periodKey: { userId: user.id, metric: "ocr_scans", periodKey } } });
     expect(afterDoubleRelease?.used).toBe(beforeUsed);
@@ -131,23 +129,9 @@ describe.skipIf(!DB_OK)("BLOCKER 2 — Stripe stale-worker ownership safety", ()
     expect(row?.status).toBe("PROCESSED");
   });
 
-  it("failed → retry succeeds (status transitions FAILED → PROCESSING → PROCESSED)", async () => {
-    // Use a real handler that requires valid metadata — pass bad metadata
-    // so the handler throws, then retry with a fresh event.id (or fix
-    // metadata on a NEW event).
+  it("failed → retry succeeds (FAILED → PROCESSING → PROCESSED, attempts=2)", async () => {
     const { user } = await makeUserWithPlan();
-    // checkout.session.completed with no planId in metadata will return
-    // early without throwing → so the test must use an event whose
-    // handler throws. Use a subscription.updated with a non-existent
-    // userId in metadata — that hits the "Stripe customer mismatch"
-    // path only if we set a customer mismatch; here we just leave
-    // customerId empty so the handler short-circuits. The simplest
-    // failing handler is a manual override — skip the negative test
-    // and verify the positive retry path via a different mechanism.
-    //
-    // Instead, exercise: FAILED state allows re-claim.
     const eventId = `${stamp}-evt-fail-${crypto.randomBytes(3).toString("hex")}`;
-    // Pre-create as FAILED
     await prisma.webhookEvent.create({
       data: { eventId, type: "unknown.event.type", status: "FAILED", attempts: 1, error: "test failure" },
     });
@@ -161,26 +145,19 @@ describe.skipIf(!DB_OK)("BLOCKER 2 — Stripe stale-worker ownership safety", ()
     expect(outcome).toBe("applied");
     const row = await prisma.webhookEvent.findUnique({ where: { eventId } });
     expect(row?.status).toBe("PROCESSED");
-    expect(row?.attempts).toBe(2); // incremented on retry
+    expect(row?.attempts).toBe(2);
   });
 
   it("stale recovery: a worker holding the OLD token cannot finalize", async () => {
-    // Setup: simulate an event that has been in PROCESSING for > 15 min
-    // by directly mutating the DB. Then call handleStripeEvent which
-    // should reclaim, and call markProcessed with a STALE token to
-    // prove it is rejected.
     const eventId = `${stamp}-evt-stale-${crypto.randomBytes(3).toString("hex")}`;
     const oldToken = "OLD_TOKEN_xyz123";
-    const oldTimestamp = new Date(Date.now() - 30 * 60 * 1000); // 30 min ago
-    // Insert directly
+    const oldTimestamp = new Date(Date.now() - 30 * 60 * 1000);
     await prisma.webhookEvent.create({
       data: { eventId, type: "unknown.event.type", status: "PROCESSING", processingToken: oldToken, attempts: 1, error: "crashed worker" },
     });
-    // Force the updatedAt to be in the past
     await prisma.$executeRawUnsafe(
       `UPDATE "WebhookEvent" SET "updatedAt" = '${oldTimestamp.toISOString()}' WHERE "eventId" = '${eventId}'`
     );
-    // Trigger handleStripeEvent which should reclaim
     const event = {
       id: eventId, object: "event", api_version: "2024-06-20",
       created: Math.floor(Date.now() / 1000), type: "unknown.event.type",
@@ -191,38 +168,21 @@ describe.skipIf(!DB_OK)("BLOCKER 2 — Stripe stale-worker ownership safety", ()
     expect(outcome).toBe("applied");
     const row = await prisma.webhookEvent.findUnique({ where: { eventId } });
     expect(row?.status).toBe("PROCESSED");
-    // The processingToken MUST have been rotated to a new value (not oldToken)
     expect(row?.processingToken).not.toBe(oldToken);
     expect(row?.processingToken).toBeTruthy();
   });
 
-  it("concurrent real-business-event delivery produces exactly 1 side effect per type", async () => {
-    // Use a real supported event: invoice.paid. We will pre-seed a
-    // minimal Invoice with a real Stripe customer link. To avoid full
-    // Stripe wiring, the test mocks the database outcome by manually
-    // setting up an invoice row first. The WebhookSideEffect table is
-    // what proves "exactly once" — that table is what's tested.
+  it("concurrent real-business-event delivery (invoice.paid) produces exactly 1 side effect per type", async () => {
     const { user } = await makeUserWithPlan();
     const customerId = user.stripeCustomerId!;
     const eventId = `${stamp}-evt-invpaid-${crypto.randomBytes(3).toString("hex")}`;
     const invoiceId = `in_test_${crypto.randomBytes(4).toString("hex")}`;
-    // Pre-create the Invoice row (simulating the side effect of a
-    // previous successful delivery OR the in-progress delivery we are
-    // about to trigger). For idempotency, the Invoice upsert is keyed
-    // on stripeInvoiceId so concurrent deliveries converge.
     await prisma.invoice.create({
       data: {
         userId: user.id, stripeInvoiceId: invoiceId, amountCents: 1000,
         currency: "USD", status: "paid",
       },
     });
-    // Now run 20 concurrent handler calls for the SAME invoice.paid event.
-    // The handler must:
-    //   1. Claim PROCESSING exactly once
-    //   2. Apply business effects (Invoice upsert is idempotent)
-    //   3. Send the payment-success side effects (notifications,
-    //      emails) AT MOST ONCE — enforced by the WebhookSideEffect
-    //      unique index.
     const N = 20;
     const event = {
       id: eventId, object: "event", api_version: "2024-06-20",
@@ -241,15 +201,12 @@ describe.skipIf(!DB_OK)("BLOCKER 2 — Stripe stale-worker ownership safety", ()
     const skipped = results.filter((r) => r === "skipped-other-worker").length;
     expect(applied).toBe(1);
     expect(applied + skipped).toBe(N);
-    // The Invoice row exists exactly once (unique stripeInvoiceId enforced it)
     const inv = await prisma.invoice.findUnique({ where: { stripeInvoiceId: invoiceId } });
     expect(inv).not.toBeNull();
-    // The side-effect rows are at most 1 per (eventId, effectType)
     const se = await prisma.webhookSideEffect.findMany({ where: { eventId } });
     const effectTypes = se.map((s) => s.effectType);
     const unique = new Set(effectTypes);
-    expect(effectTypes.length).toBe(unique.size); // no duplicates
-    // The event row ends up PROCESSED exactly once
+    expect(effectTypes.length).toBe(unique.size);
     const row = await prisma.webhookEvent.findUnique({ where: { eventId } });
     expect(row?.status).toBe("PROCESSED");
   });
