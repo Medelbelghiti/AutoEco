@@ -10,6 +10,18 @@ export const env = {
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
   stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "",
 
+  // ---- Paddle (production payment provider) ----
+  // The API key + webhook secret are server-only.
+  paddleApiKey: process.env.PADDLE_API_KEY ?? "",
+  paddleWebhookSecret: process.env.PADDLE_WEBHOOK_SECRET ?? "",
+  paddleSellerId: process.env.PADDLE_SELLER_ID ?? "",
+  paddleProPriceId: process.env.PADDLE_PRO_PRICE_ID ?? "",
+  paddleBusinessPriceId: process.env.PADDLE_BUSINESS_PRICE_ID ?? "",
+  paddleLifetimePriceId: process.env.PADDLE_LIFETIME_PRICE_ID ?? "",
+  // The Paddle.js client-side token (browser). NEXT_PUBLIC_ so it ends up
+  // in the client bundle; do NOT put the API key here.
+  paddleClientToken: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN ?? "",
+
   emailProvider: process.env.EMAIL_PROVIDER ?? "console",
   emailFrom: process.env.EMAIL_FROM ?? "AutoEco <no-reply@example.com>",
   smtpHost: process.env.SMTP_HOST ?? "",
@@ -32,6 +44,33 @@ export const env = {
 
 export function stripeConfigured(): boolean {
   return Boolean(env.stripeSecretKey);
+}
+
+/**
+ * Paddle is configured when the API key, webhook secret, seller id, and
+ * at least one price id are all present. The client token is checked
+ * separately because it lives on the browser side.
+ */
+export function paddleConfigured(): boolean {
+  return Boolean(
+    env.paddleApiKey &&
+      env.paddleWebhookSecret &&
+      env.paddleSellerId &&
+      (env.paddleProPriceId || env.paddleBusinessPriceId || env.paddleLifetimePriceId)
+  );
+}
+
+export function paddleWebhookConfigured(): boolean {
+  return Boolean(env.paddleWebhookSecret);
+}
+
+/**
+ * Live-mode detection. Paddle live keys start with `pdl_live_apikey_`,
+ * sandbox keys start with `pdl_sdbx_apikey_` (newer) or `pdl_test_apikey_`
+ * (older). We only treat live keys as live.
+ */
+export function paddleIsLive(): boolean {
+  return env.paddleApiKey.includes("pdl_live_apikey_");
 }
 
 /**

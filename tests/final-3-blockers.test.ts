@@ -9,7 +9,7 @@ import { PrismaClient } from "@prisma/client";
 import crypto from "node:crypto";
 import { handleStripeEvent, tryClaimSideEffect } from "@/lib/stripe-webhook";
 import { tryConsume, release } from "@/lib/quota";
-import { ensureLemonSqueezySchema } from "./_ensureSchema";
+import { ensureLemonSqueezySchema, ensurePaddleSchema } from "./_ensureSchema";
 
 const DB_URL = process.env.DATABASE_URL ?? "";
 const DB_OK = DB_URL.length > 0;
@@ -18,7 +18,10 @@ const prisma = new PrismaClient();
 const stamp = `${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
 
 beforeAll(async () => {
-  if (DB_OK) await ensureLemonSqueezySchema(prisma);
+  if (DB_OK) {
+    await ensureLemonSqueezySchema(prisma);
+    await ensurePaddleSchema(prisma);
+  }
 });
 
 async function makeUserWithPlan(planOverrides: Record<string, unknown> = {}) {

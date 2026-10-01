@@ -11,7 +11,7 @@ import { PrismaClient } from "@prisma/client";
 import { tryConsume, release, type QuotaMetric } from "@/lib/quota";
 import { getEntitlements } from "@/lib/plans";
 import { handleStripeEvent } from "@/lib/stripe-webhook";
-import { ensureLemonSqueezySchema } from "./_ensureSchema";
+import { ensureLemonSqueezySchema, ensurePaddleSchema } from "./_ensureSchema";
 
 const DB_URL = process.env.DATABASE_URL ?? "";
 const DB_OK = DB_URL.length > 0;
@@ -20,7 +20,10 @@ const prisma = new PrismaClient();
 const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 beforeAll(async () => {
-  if (DB_OK) await ensureLemonSqueezySchema(prisma);
+  if (DB_OK) {
+    await ensureLemonSqueezySchema(prisma);
+    await ensurePaddleSchema(prisma);
+  }
 });
 
 async function makeUserWithPlan(planOverrides: Record<string, unknown> = {}) {

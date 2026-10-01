@@ -3,8 +3,11 @@ import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getEntitlements } from "@/lib/plans";
 import { formatMoney } from "@/lib/finance";
-import { stripeConfigured } from "@/lib/env";
+import { stripeConfigured, paddleConfigured } from "@/lib/env";
+import { getPriceIdFor, type PaddlePlanKey } from "@/lib/paddle";
 import { BillingClient } from "./Client";
+
+const PADDLE_PLAN_KEYS: PaddlePlanKey[] = ["pro", "business", "pro_plus", "lifetime"];
 
 export default async function BillingPage() {
   const user = await requireUser();
@@ -12,7 +15,22 @@ export default async function BillingPage() {
   const sub = await db.subscription.findFirst({ where: { userId: user.id }, orderBy: { createdAt: "desc" } });
   const invoices = await db.invoice.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 50 });
   const plans = await db.plan.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } });
-  const billingEnabled = stripeConfigured();
+  const stripeBillingEnabled = stripeConfigured();
+  const paddleBillingEnabled = paddleConfigured();
+
+  // Resolve Paddle price ids server-side so we never expose them in
+  // source. Only plans that map cleanly to a configured Paddle price id
+  // will be presented as Paddle-enabled in the picker.
+  const paddlePriceIds: Record<string, string> = {};
+  for (const key of PADDLE_PLAN_KEYS) {
+    try {
+      paddlePriceIds[key] = getPriceIdFor(key);
+    } catch {
+      // variant id not configured for this plan
+    }
+  }
+
+  const providerEnabled = paddleBillingEnabled ? "paddle" : stripeBillingEnabled ? "stripe" : null;
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
@@ -21,10 +39,10 @@ export default async function BillingPage() {
         <h1 className="text-2xl font-bold mt-2">Billing</h1>
       </div>
 
-      {!billingEnabled && (
+      {!providerEnabled && (
         <div className="card border-amber-300 bg-amber-50 text-sm">
-          <p className="font-semibold text-amber-800">Stripe billing is not configured on this server.</p>
-          <p className="mt-1 text-amber-700">Set <code>STRIPE_SECRET_KEY</code>, <code>STRIPE_WEBHOOK_SECRET</code> and the Price IDs (<code>STRIPE_PRICE_PRO</code>, <code>STRIPE_PRICE_FAMILY</code>, <code>STRIPE_PRICE_PRO_PLUS</code>) in your environment to enable paid plans.</p>
+          <p className="font-semibold text-amber-800">Billing is not configured on this server.</p>
+          <p className="mt-1 text-amber-700">Set the Paddle environment variables (<code>PADDLE_API_KEY</code>, <code>PADDLE_WEBHOOK_SECRET</code>, <code>PADDLE_SELLER_ID</code>, <code>PADDLE_PRO_PRICE_ID</code>, <code>PADDLE_BUSINESS_PRICE_ID</code>, <code>PADDLE_LIFETIME_PRICE_ID</code>) in your Vercel project to enable paid plans.</p>
         </div>
       )}
 
@@ -35,25 +53,40 @@ export default async function BillingPage() {
         {ent.currentPeriodEnd && !ent.isLifetime && <p className="text-sm text-charcoal-500">Renews: {ent.currentPeriodEnd.toISOString().slice(0, 10)}</p>}
         {ent.isTrial && ent.trialEndsAt && <p className="text-sm text-amber-700">Trial ends {ent.trialEndsAt.toISOString().slice(0, 10)}</p>}
         <BillingClient
-          hasSubscription={Boolean(sub && sub.status !== "lifetime" && sub.stripeSubscriptionId)}
+          hasSubscription={Boolean(sub && sub.status !== "lifetime")}
           subCancelAtEnd={sub?.cancelAtPeriodEnd ?? false}
           isLifetime={ent.isLifetime}
-          hasStripeCustomer={Boolean(user.stripeCustomerId)}
-          billingEnabled={billingEnabled}
+          email={user.email}
         />
       </div>
 
       <div className="card">
         <p className="font-semibold">Available plans</p>
         <div className="grid md:grid-cols-2 gap-3 mt-3">
-          {plans.map((p) => (
-            <div key={p.id} className="border border-charcoal-200 dark:border-charcoal-700 rounded-md p-3 text-sm">
-              <p className="font-bold">{p.name}</p>
-              <p className="text-charcoal-500">{formatMoney(p.priceCents, p.currency)}{p.billingPeriod === "MONTHLY" ? "/mo" : p.billingPeriod === "YEARLY" ? "/yr" : ""}</p>
-              <p className="text-xs text-charcoal-500 mt-1">{p.maxVehicles} vehicles · {p.maxExpensesPerMonth} expenses/mo · {p.aiConversationsPerMonth} AI chats/mo</p>
-              <BillingClient isPlanPicker planId={p.id} planName={p.name} disabled={p.key === ent.planKey} billingEnabled={billingEnabled} />
-            </div>
-          ))}
+          {plans.map((p) => {
+            const paddlePriceId = PADDLE_PLAN_KEYS.includes(p.key as PaddlePlanKey) ? paddlePriceIds[p.key as PaddlePlanKey] : undefined;
+            const usePaddle = paddleBillingEnabled && !!paddlePriceId;
+            return (
+              <div key={p.id} className="border border-charcoal-200 dark:border-charcoal-700 rounded-md p-3 text-sm">
+                <p className="font-bold">{p.name}</p>
+                <p className="text-charcoal-500">{formatMoney(p.priceCents, p.currency)}{p.billingPeriod === "MONTHLY" ? "/mo" : p.billingPeriod === "YEARLY" ? "/yr" : ""}</p>
+                <p className="text-xs text-charcoal-500 mt-1">{p.maxVehicles} vehicles · {p.maxExpensesPerMonth} expenses/mo · {p.aiConversationsPerMonth} AI chats/mo</p>
+                <BillingClient
+                  isPlanPicker
+                  planName={p.name}
+                  planKey={PADDLE_PLAN_KEYS.includes(p.key as PaddlePlanKey) ? (p.key as PaddlePlanKey) : undefined}
+                  priceId={paddlePriceId}
+                  email={user.email}
+                  disabled={p.key === ent.planKey}
+                />
+                {!usePaddle && (
+                  <p className="mt-2 text-[11px] text-charcoal-400">
+                    Configure Paddle price id for this plan.
+                  </p>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 

@@ -14,29 +14,33 @@ datasource db {
 // ----------------------------- Auth & Users -----------------------------
 
 model User {
-  id              String    @id @default(cuid())
-  email           String    @unique
-  passwordHash    String
-  name            String?
-  role            String    @default("USER") // USER | ADMIN
-  locale          String    @default("en")
+  id           String  @id @default(cuid())
+  email        String  @unique
+  passwordHash String
+  name         String?
+  role         String  @default("USER") // USER | ADMIN
+  locale       String  @default("en")
 
   // Preferences
-  country         String?  // ISO-3166 alpha-2
-  currency        String   @default("USD")
-  distanceUnit    String   @default("km") // km | mi
-  fuelUnit        String   @default("L_PER_100KM") // L_PER_100KM | MPG | KM_PER_L
+  country      String? // ISO-3166 alpha-2
+  currency     String  @default("USD")
+  distanceUnit String  @default("km") // km | mi
+  fuelUnit     String  @default("L_PER_100KM") // L_PER_100KM | MPG | KM_PER_L
 
   // Billing
-  stripeCustomerId String?  @unique
+  stripeCustomerId String?   @unique
   // Provider-neutral identifier (Lemon Squeezy customer id, or any future
   // provider that does not use Stripe's customer model). Always nullable
   // so legacy Stripe-only users remain compatible.
-  lemonCustomerId  String?  @unique
+  lemonCustomerId  String?   @unique
+  // Paddle customer id (server-side correlation key for incoming webhooks
+  // and for the Paddle Customer Portal). Always nullable so legacy
+  // Stripe-only users remain compatible.
+  paddleCustomerId String?   @unique
   planId           String?
-  plan             Plan?    @relation("UserPlan", fields: [planId], references: [id])
+  plan             Plan?     @relation("UserPlan", fields: [planId], references: [id])
   trialEndsAt      DateTime?
-  trialUsed        Boolean  @default(false)
+  trialUsed        Boolean   @default(false)
 
   emailVerifiedAt DateTime?
 
@@ -47,22 +51,22 @@ model User {
   signupIp            String?
 
   // Relations
-  vehicles       Vehicle[]
-  expenses       Expense[]
-  fuelEntries    FuelEntry[]
-  documents      Document[]
-  forecasts      Forecast[]
-  scenarios      Scenario[]
-  conversations  Conversation[]
-  achievements   Achievement[]
-  reports        Report[]
-  shareLinks     ShareLink[]
-  notifications  Notification[]
-  tokens         VerificationToken[]
-  auditLogs      AuditLog[]
-  subscriptions  Subscription[]
-  invoices       Invoice[]
-  apiKeys        ApiKey[]
+  vehicles          Vehicle[]
+  expenses          Expense[]
+  fuelEntries       FuelEntry[]
+  documents         Document[]
+  forecasts         Forecast[]
+  scenarios         Scenario[]
+  conversations     Conversation[]
+  achievements      Achievement[]
+  reports           Report[]
+  shareLinks        ShareLink[]
+  notifications     Notification[]
+  tokens            VerificationToken[]
+  auditLogs         AuditLog[]
+  subscriptions     Subscription[]
+  invoices          Invoice[]
+  apiKeys           ApiKey[]
   couponRedemptions CouponRedemption[]
 
   createdAt DateTime  @default(now())
@@ -89,31 +93,31 @@ model VerificationToken {
 // ----------------------------- Plans & Billing -----------------------------
 
 model Plan {
-  id                String  @id @default(cuid())
-  key               String  @unique // free | pro | family | pro_plus
-  name              String
-  description       String?
-  priceCents        Int     @default(0)
-  currency          String  @default("usd")
-  billingPeriod     String  @default("MONTHLY") // FREE | MONTHLY | YEARLY | LIFETIME
+  id            String  @id @default(cuid())
+  key           String  @unique // free | pro | family | pro_plus
+  name          String
+  description   String?
+  priceCents    Int     @default(0)
+  currency      String  @default("usd")
+  billingPeriod String  @default("MONTHLY") // FREE | MONTHLY | YEARLY | LIFETIME
 
   // Limits
-  maxVehicles       Int     @default(1)
-  maxExpensesPerMonth Int  @default(100)
-  aiReceiptScansPerMonth Int @default(0)
-  aiConversationsPerMonth Int @default(0)
-  reportRetentionDays Int   @default(30)
-  forecastHorizonMonths Int @default(12)
+  maxVehicles             Int     @default(1)
+  maxExpensesPerMonth     Int     @default(100)
+  aiReceiptScansPerMonth  Int     @default(0)
+  aiConversationsPerMonth Int     @default(0)
+  reportRetentionDays     Int     @default(30)
+  forecastHorizonMonths   Int     @default(12)
   enableAdvancedScenarios Boolean @default(false)
   enableShareableReports  Boolean @default(false)
   enableFamilySharing     Boolean @default(false)
   enableApiAccess         Boolean @default(false)
 
-  features          String  @default("[]") // JSON array of feature labels
-  stripePriceId     String?
-  stripeProductId   String?
-  active            Boolean @default(true)
-  sortOrder         Int     @default(0)
+  features        String  @default("[]") // JSON array of feature labels
+  stripePriceId   String?
+  stripeProductId String?
+  active          Boolean @default(true)
+  sortOrder       Int     @default(0)
 
   users         User[]         @relation("UserPlan")
   subscriptions Subscription[]
@@ -134,6 +138,8 @@ model Subscription {
   // decide entitlements — provider-specific id fields are only used to
   // correlate incoming webhooks with existing rows.
   lemonSubscriptionId  String?   @unique
+  // Paddle subscription id. Always nullable.
+  paddleSubscriptionId String?   @unique
   status               String // active | trialing | past_due | canceled | incomplete | unpaid | lifetime
   currentPeriodStart   DateTime?
   currentPeriodEnd     DateTime?
@@ -146,43 +152,45 @@ model Subscription {
 }
 
 model Invoice {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  stripeInvoiceId String   @unique
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripeInvoiceId String    @unique
   // Provider-neutral order/invoice id (Lemon Squeezy order id).
-  lemonOrderId    String?  @unique
+  lemonOrderId    String?   @unique
+  // Paddle transaction / order id (server-side correlation key).
+  paddleOrderId   String?   @unique
   number          String?
   amountCents     Int
-  currency        String   @default("usd")
+  currency        String    @default("usd")
   status          String
   planName        String?
   hostedUrl       String?
   pdfUrl          String?
   periodStart     DateTime?
   periodEnd       DateTime?
-  createdAt       DateTime @default(now())
+  createdAt       DateTime  @default(now())
 
   @@index([userId])
 }
 
 model WebhookEvent {
-  id          String    @id @default(cuid())
-  eventId     String    @unique
-  type        String
+  id              String    @id @default(cuid())
+  eventId         String    @unique
+  type            String
   // State machine: RECEIVED → PROCESSING → PROCESSED | FAILED.
   // Default for existing rows: PROCESSED if processedAt is set, else RECEIVED.
-  status      String    @default("RECEIVED")
-  attempts    Int       @default(0)
+  status          String    @default("RECEIVED")
+  attempts        Int       @default(0)
   // Random opaque token that identifies the CURRENT owner of this event.
   // Every claim() generates a new token. markProcessed/markFailed REQUIRE
   // the matching token — a stale worker that lost ownership can no
   // longer finalize the event. The token rotates on each new claim.
   processingToken String?
-  processedAt DateTime?
-  error       String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  processedAt     DateTime?
+  error           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 model Coupon {
@@ -223,33 +231,33 @@ model CouponRedemption {
 // records can be added by the admin with isDemo=true for UI previews.
 
 model VehicleCatalogEntry {
-  id              String   @id @default(cuid())
-  brand           String
-  model           String
-  generation      String?
-  trim            String?
-  yearFrom        Int?
-  yearTo          Int?
-  market          String?  // ISO-3166 alpha-2 or region
-  fuelType        String?  // gasoline | diesel | hybrid | plugin_hybrid | ev | lpg
-  transmission    String?
-  drivetrain      String?
+  id                   String   @id @default(cuid())
+  brand                String
+  model                String
+  generation           String?
+  trim                 String?
+  yearFrom             Int?
+  yearTo               Int?
+  market               String? // ISO-3166 alpha-2 or region
+  fuelType             String? // gasoline | diesel | hybrid | plugin_hybrid | ev | lpg
+  transmission         String?
+  drivetrain           String?
   engineDisplacementCc Int?
-  horsepowerHp    Int?
-  torqueNm        Int?
-  fuelEconomyCombined String? // text e.g. "6.4 L/100km" — explicit unit
-  batteryCapacityKwh Float?
-  evRangeKm       Int?
-  curbWeightKg    Int?
-  msrpCents       Int?
-  source          String?
-  sourceId        String?
-  sourceUrl       String?
-  verified        Boolean  @default(false)
-  isDemo          Boolean  @default(false)
-  notes           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  horsepowerHp         Int?
+  torqueNm             Int?
+  fuelEconomyCombined  String? // text e.g. "6.4 L/100km" — explicit unit
+  batteryCapacityKwh   Float?
+  evRangeKm            Int?
+  curbWeightKg         Int?
+  msrpCents            Int?
+  source               String?
+  sourceId             String?
+  sourceUrl            String?
+  verified             Boolean  @default(false)
+  isDemo               Boolean  @default(false)
+  notes                String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   @@index([brand, model, yearFrom])
   @@index([market])
@@ -258,84 +266,84 @@ model VehicleCatalogEntry {
 // ----------------------------- Vehicles (user-owned) -----------------------------
 
 model Vehicle {
-  id              String   @id @default(cuid())
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Identity
-  nickname        String?  // user-chosen display name
-  brand           String
-  model           String
-  generation      String?
-  trim            String?
-  year            Int
-  market          String?  // user country/market
-  fuelType        String   @default("gasoline")
-  transmission    String?
-  drivetrain      String?
+  nickname             String? // user-chosen display name
+  brand                String
+  model                String
+  generation           String?
+  trim                 String?
+  year                 Int
+  market               String? // user country/market
+  fuelType             String  @default("gasoline")
+  transmission         String?
+  drivetrain           String?
   engineDisplacementCc Int?
-  horsepowerHp    Int?
-  fuelEconomyText String?  // "6.4 L/100km"
+  horsepowerHp         Int?
+  fuelEconomyText      String? // "6.4 L/100km"
 
   // Ownership
-  purchaseDate    DateTime?
-  purchasePriceCents Int?
-  purchaseCurrency String?
-  currentMileage  Int?     // km or mi depending on user.distanceUnit
-  currentMileageUnit String? // km | mi
-  estimatedResaleCents Int?
+  purchaseDate            DateTime?
+  purchasePriceCents      Int?
+  purchaseCurrency        String?
+  currentMileage          Int? // km or mi depending on user.distanceUnit
+  currentMileageUnit      String? // km | mi
+  estimatedResaleCents    Int?
   estimatedResaleCurrency String?
 
   // Misc
-  licensePlate    String?
-  vin             String?
-  isPrimary       Boolean  @default(false)
-  archived        Boolean  @default(false)
-  isDemo          Boolean  @default(false)
-  notes           String?
+  licensePlate String?
+  vin          String?
+  isPrimary    Boolean @default(false)
+  archived     Boolean @default(false)
+  isDemo       Boolean @default(false)
+  notes        String?
 
-  expenses        Expense[]
-  fuelEntries     FuelEntry[]
-  documents       Document[]
-  forecasts       Forecast[]
-  scenarios       Scenario[]
-  reports         Report[]
+  expenses    Expense[]
+  fuelEntries FuelEntry[]
+  documents   Document[]
+  forecasts   Forecast[]
+  scenarios   Scenario[]
+  reports     Report[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@index([userId, archived])
-  @@index([userId, isPrimary])
 
   // Strongly-typed server-side quota rows. Concurrency-safe via UNIQUE
   // (userId, metric, periodKey) + atomic increment (UPDATE ... SET used = used + 1
   // WHERE used < limit). The check + increment happens in a single statement
   // so 100 concurrent AI requests against limit=10 cannot exceed 10.
   // Missing rows are auto-created on first consumption (upsert-style).
+
+  @@index([userId, archived])
+  @@index([userId, isPrimary])
 }
 
 // ----------------------------- Expenses -----------------------------
 
 model Expense {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  vehicleId   String
-  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleId String
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 
-  category    String   // fuel | maintenance | repair | insurance | tax | registration | tires | parking | tolls | cleaning | accessories | financing | charging | other
-  amountCents Int
-  currency    String
-  date        DateTime
-  merchant    String?
-  mileage     Int?
-  mileageUnit String?
-  notes       String?
-  receiptUrl  String?  // signed URL reference
-  recurring   Boolean  @default(false)
-  source      String   @default("manual") // manual | receipt_scan | import
+  category     String // fuel | maintenance | repair | insurance | tax | registration | tires | parking | tolls | cleaning | accessories | financing | charging | other
+  amountCents  Int
+  currency     String
+  date         DateTime
+  merchant     String?
+  mileage      Int?
+  mileageUnit  String?
+  notes        String?
+  receiptUrl   String? // signed URL reference
+  recurring    Boolean  @default(false)
+  source       String   @default("manual") // manual | receipt_scan | import
   aiConfidence Float?
-  isDemo      Boolean  @default(false)
+  isDemo       Boolean  @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -349,25 +357,25 @@ model Expense {
 // Dedicated table for fuel entries to compute consumption precisely.
 
 model FuelEntry {
-  id             String   @id @default(cuid())
-  userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  vehicleId      String
-  vehicle        Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleId String
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 
-  date           DateTime
-  amountCents    Int
-  currency       String
-  liters         Float?   // if fuel
-  kwh            Float?   // if electric
-  pricePerUnit   Float?
-  mileage        Int
-  mileageUnit    String
-  fullTank       Boolean  @default(true)
-  station        String?
-  consumption    Float?   // computed L/100km or km/L
-  notes          String?
-  isDemo         Boolean  @default(false)
+  date         DateTime
+  amountCents  Int
+  currency     String
+  liters       Float? // if fuel
+  kwh          Float? // if electric
+  pricePerUnit Float?
+  mileage      Int
+  mileageUnit  String
+  fullTank     Boolean  @default(true)
+  station      String?
+  consumption  Float? // computed L/100km or km/L
+  notes        String?
+  isDemo       Boolean  @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -379,18 +387,18 @@ model FuelEntry {
 // ----------------------------- Documents -----------------------------
 
 model Document {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  vehicleId   String?
-  vehicle     Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleId String?
+  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
 
-  title       String
-  category    String   // insurance | registration | invoice | receipt | service | purchase | other
-  storageKey  String   // server-side storage path; never expose directly
-  mimeType    String
-  sizeBytes   Int
-  expiryDate  DateTime?
+  title      String
+  category   String // insurance | registration | invoice | receipt | service | purchase | other
+  storageKey String // server-side storage path; never expose directly
+  mimeType   String
+  sizeBytes  Int
+  expiryDate DateTime?
 
   createdAt DateTime @default(now())
 
@@ -401,11 +409,11 @@ model Document {
 // ----------------------------- Forecasts -----------------------------
 
 model Forecast {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  vehicleId   String
-  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleId String
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 
   horizonMonths Int
   // JSON snapshot of inputs/assumptions and outputs
@@ -419,11 +427,11 @@ model Forecast {
 // ----------------------------- Scenarios -----------------------------
 
 model Scenario {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  vehicleId   String?
-  vehicle     Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleId String?
+  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
 
   name        String
   type        String // keep_vs_replace | repair_vs_replace | mileage_change | fuel_price_change
@@ -438,9 +446,9 @@ model Scenario {
 // ----------------------------- AI conversations -----------------------------
 
 model Conversation {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   vehicleId String?
 
   title     String?
@@ -455,7 +463,7 @@ model ConversationMessage {
   id             String       @id @default(cuid())
   conversationId String
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  role           String       // user | assistant | system
+  role           String // user | assistant | system
   content        String
   tokenCount     Int?
   createdAt      DateTime     @default(now())
@@ -466,10 +474,10 @@ model ConversationMessage {
 // ----------------------------- Achievements / savings -----------------------------
 
 model Achievement {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  key       String   // first_expense | first_fuel | 30_day_tracker | first_report | first_forecast | first_comparison
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key        String // first_expense | first_fuel | 30_day_tracker | first_report | first_forecast | first_comparison
   unlockedAt DateTime @default(now())
 
   @@unique([userId, key])
@@ -478,15 +486,15 @@ model Achievement {
 // ----------------------------- Reports -----------------------------
 
 model Report {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   vehicleId String
-  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 
   title     String
-  format    String   // json | pdf | csv
-  payload   String   // JSON content
+  format    String // json | pdf | csv
+  payload   String // JSON content
   createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
@@ -495,14 +503,14 @@ model Report {
 // ----------------------------- Share links -----------------------------
 
 model ShareLink {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  token     String   @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String    @unique
   reportId  String?
   expiresAt DateTime?
   revokedAt DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([userId])
 }
@@ -539,19 +547,19 @@ model Setting {
 }
 
 model ApiKey {
-  id             String    @id @default(cuid())
-  userId         String
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name           String
-  prefix         String
-  keyHash        String    @unique
-  scopes         String    @default("[]")
-  rateLimitPerMin Int     @default(60)
-  monthlyQuota   Int?
-  lastUsedAt     DateTime?
-  revokedAt      DateTime?
-  expiresAt      DateTime?
-  createdAt      DateTime  @default(now())
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  prefix          String
+  keyHash         String    @unique
+  scopes          String    @default("[]")
+  rateLimitPerMin Int       @default(60)
+  monthlyQuota    Int?
+  lastUsedAt      DateTime?
+  revokedAt       DateTime?
+  expiresAt       DateTime?
+  createdAt       DateTime  @default(now())
 
   @@index([userId])
 }
@@ -588,18 +596,18 @@ model AnalyticsEvent {
 // ----------------------------- Savings goals -----------------------------
 
 model SavingsGoal {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   userId      String
   vehicleId   String?
   name        String
-  category    String   // monthly_fuel | monthly_parking | maintenance_fund | replacement_fund | custom
+  category    String // monthly_fuel | monthly_parking | maintenance_fund | replacement_fund | custom
   targetCents Int
-  savedCents  Int      @default(0)
-  currency    String   @default("USD")
+  savedCents  Int       @default(0)
+  currency    String    @default("USD")
   deadline    DateTime?
   achievedAt  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([userId, achievedAt])
 }
@@ -612,8 +620,8 @@ model SavingsGoal {
 model QuotaUsage {
   id        String   @id @default(cuid())
   userId    String
-  metric    String   // "ai_conversations" | "ocr_scans" | "expenses"
-  periodKey String   // "YYYY-MM" (or "trial:<userId>")
+  metric    String // "ai_conversations" | "ocr_scans" | "expenses"
+  periodKey String // "YYYY-MM" (or "trial:<userId>")
   used      Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -629,11 +637,11 @@ model QuotaUsage {
 // stale recovery. The first successful insert owns the side effect;
 // subsequent callers observe P2002 and skip.
 model WebhookSideEffect {
-  id        String   @id @default(cuid())
-  eventId   String
+  id         String   @id @default(cuid())
+  eventId    String
   effectType String
-  metadata  String?  // free-form JSON for debugging
-  createdAt DateTime @default(now())
+  metadata   String? // free-form JSON for debugging
+  createdAt  DateTime @default(now())
 
   @@unique([eventId, effectType])
   @@index([eventId])

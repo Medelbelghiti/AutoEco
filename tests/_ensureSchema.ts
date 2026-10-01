@@ -35,3 +35,26 @@ export async function ensureLemonSqueezySchema(prisma: PrismaClient): Promise<vo
     }
   }
 }
+
+/**
+ * Same idea for the Paddle additive columns. Production migration runs
+ * via `prisma migrate deploy`; this helper keeps the real-DB concurrency
+ * tests self-contained when the migration has not yet been applied.
+ */
+export async function ensurePaddleSchema(prisma: PrismaClient): Promise<void> {
+  const stmts = [
+    `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "paddleCustomerId" TEXT`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "User_paddleCustomerId_key" ON "User"("paddleCustomerId")`,
+    `ALTER TABLE "Subscription" ADD COLUMN IF NOT EXISTS "paddleSubscriptionId" TEXT`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "Subscription_paddleSubscriptionId_key" ON "Subscription"("paddleSubscriptionId")`,
+    `ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "paddleOrderId" TEXT`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "Invoice_paddleOrderId_key" ON "Invoice"("paddleOrderId")`,
+  ];
+  for (const sql of stmts) {
+    try {
+      await prisma.$executeRawUnsafe(sql);
+    } catch {
+      // ignored
+    }
+  }
+}
