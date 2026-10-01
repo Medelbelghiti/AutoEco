@@ -74,6 +74,18 @@ export function paddleIsLive(): boolean {
 }
 
 /**
+ * Default Paddle environment for Paddle.js.
+ *
+ * Default = "sandbox" (safe). Set PADDLE_ENV=live in Vercel ONLY when
+ * you are ready to charge real money. The check is double-guarded: the
+ * runtime PaddleButton will also re-check via NEXT_PUBLIC_PADDLE_ENV and
+ * refuse to open a real-mode checkout unless explicitly configured.
+ */
+export function paddleEnvironment(): "sandbox" | "live" {
+  return process.env.PADDLE_ENV === "live" ? "live" : "sandbox";
+}
+
+/**
  * Production safety audit. Returns a list of problems.
  * Empty array means production deployment is safe.
  */

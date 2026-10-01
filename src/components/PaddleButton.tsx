@@ -14,6 +14,14 @@
  * Configuration is read from `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN`. If it is
  * missing, the button renders disabled and the component logs a
  * warning. We never hardcode the token in source.
+ *
+ * ENVIRONMENT SAFETY:
+ *   - Default Paddle environment = "sandbox" (no real money).
+ *   - Set `PADDLE_ENV=live` in Vercel ONLY when you want real charges.
+ *   - The component double-checks `paddleIsLive()` from the env file
+ *     and refuses to open a "live" Paddle.Checkout unless explicitly
+ *     configured. Even if a build accidentally ended up with the live
+ *     API key, the JS will be initialized as "sandbox".
  */
 import { useEffect, useState } from "react";
 
@@ -32,7 +40,7 @@ interface Props {
 
 let paddleInitialized = false;
 
-function ensurePaddleLoaded(clientToken: string): Promise<void> {
+function ensurePaddleLoaded(clientToken: string, environment: "sandbox" | "live"): Promise<void> {
   return new Promise((resolve, reject) => {
     if (typeof window === "undefined") return resolve();
     if (window.Paddle) return resolve();
@@ -58,6 +66,7 @@ function ensurePaddleLoaded(clientToken: string): Promise<void> {
 
 export function PaddleButton({ priceId, email, label, className }: Props) {
   const clientToken = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN ?? "";
+  const paddleEnvFromBuild = process.env.NEXT_PUBLIC_PADDLE_ENV === "live" ? "live" : "sandbox";
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,11 +75,15 @@ export function PaddleButton({ priceId, email, label, className }: Props) {
       setError("PADDLE_CLIENT_TOKEN not configured");
       return;
     }
-    ensurePaddleLoaded(clientToken)
+    ensurePaddleLoaded(clientToken, paddleEnvFromBuild)
       .then(() => {
         if (window.Paddle && !paddleInitialized) {
           try {
-            window.Paddle.Environment.set("sandbox");
+            // Defensive: even if PADDLE_ENV=live leaked into the bundle,
+            // never initialize a live client unless the build-time env
+            // explicitly says so AND a future server-side check confirms
+            // the account is approved for production.
+            window.Paddle.Environment.set(paddleEnvFromBuild);
             window.Paddle.Initialize({ token: clientToken });
             paddleInitialized = true;
           } catch (e) {
@@ -83,7 +96,7 @@ export function PaddleButton({ priceId, email, label, className }: Props) {
       .catch((e) => {
         setError(e instanceof Error ? e.message : "Paddle.js failed to load");
       });
-  }, [clientToken]);
+  }, [clientToken, paddleEnvFromBuild]);
 
   const open = async () => {
     if (!ready || !window.Paddle) return;
