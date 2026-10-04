@@ -23,30 +23,66 @@
 import crypto from "node:crypto";
 import { env, paddleWebhookConfigured } from "./env";
 
-export type PaddlePlanKey = "pro" | "business" | "pro_plus" | "lifetime";
+/**
+ * Plan keys that actually exist as `Plan.key` rows in the database
+ * (see `prisma/seed.ts`): free | pro | family | pro_plus.
+ *
+ * `business` and `lifetime` are retained as DEPRECATED ALIASES only.
+ * They were never seeded, so resolving them to themselves silently granted
+ * nobody an entitlement. They now resolve to the real plan they were
+ * always meant to mean.
+ */
+export type PaddlePlanKey = "pro" | "family" | "pro_plus";
+export type PaddlePlanKeyOrAlias = PaddlePlanKey | "business" | "lifetime";
+
+/** Every paid plan key, in display order. */
+export const PADDLE_PLAN_KEYS: PaddlePlanKey[] = ["pro", "family", "pro_plus"];
+
+/** Type guard: does this database `Plan.key` map to a Paddle price? */
+export function isPaddlePlanKey(k: string): k is PaddlePlanKey {
+  return (PADDLE_PLAN_KEYS as string[]).includes(k);
+}
+
+/** Canonical plan key for a possibly-legacy plan key. */
+export function canonicalPlanKey(k: PaddlePlanKeyOrAlias): PaddlePlanKey {
+  // Paddle has no separate "business" product — `PADDLE_BUSINESS_PRICE_ID`
+  // is the price id for the highest paid tier, which is `pro_plus`.
+  if (k === "business") return "pro_plus";
+  if (k === "lifetime") return "pro_plus";
+  return k;
+}
 
 /**
  * Map an internal Plan key to a Paddle price id from the environment.
  * Throws if the price id is not configured.
  */
-export function getPriceIdFor(planKey: PaddlePlanKey): string {
-  switch (planKey) {
+export function getPriceIdFor(planKey: PaddlePlanKeyOrAlias): string {
+  switch (canonicalPlanKey(planKey)) {
     case "pro":
       if (!env.paddleProPriceId) throw new Error("PADDLE_PRO_PRICE_ID is not configured");
       return env.paddleProPriceId;
-    case "business":
-      if (!env.paddleBusinessPriceId) throw new Error("PADDLE_BUSINESS_PRICE_ID is not configured");
-      return env.paddleBusinessPriceId;
+    case "family":
+      if (!env.paddleFamilyPriceId) throw new Error("PADDLE_FAMILY_PRICE_ID is not configured");
+      return env.paddleFamilyPriceId;
     case "pro_plus":
-      // Paddle has no separate "pro_plus" product; map it to the
-      // highest paid tier we have (business). The application-level plan
-      // key "pro_plus" is preserved via Subscription.planId.
       if (!env.paddleBusinessPriceId) throw new Error("PADDLE_BUSINESS_PRICE_ID is not configured");
       return env.paddleBusinessPriceId;
-    case "lifetime":
-      if (!env.paddleLifetimePriceId) throw new Error("PADDLE_LIFETIME_PRICE_ID is not configured");
-      return env.paddleLifetimePriceId;
   }
+}
+
+/**
+ * Resolve a Paddle price id back to an internal plan key.
+ * Returns `null` when the price id belongs to another product in the
+ * Paddle catalog, so callers can log it instead of guessing.
+ */
+export function planKeyForPriceId(priceId: string | undefined): PaddlePlanKey | null {
+  if (!priceId) return null;
+  if (env.paddleProPriceId && priceId === env.paddleProPriceId) return "pro";
+  if (env.paddleFamilyPriceId && priceId === env.paddleFamilyPriceId) return "family";
+  if (env.paddleBusinessPriceId && priceId === env.paddleBusinessPriceId) return "pro_plus";
+  // A lifetime price is a one-off payment for the top tier.
+  if (env.paddleLifetimePriceId && priceId === env.paddleLifetimePriceId) return "pro_plus";
+  return null;
 }
 
 /**
@@ -122,7 +158,10 @@ export type PaddleEventName =
   | "subscription.updated"
   | "subscription.canceled"
   | "subscription.expired"
+  | "subscription.past_due"
+  | "subscription.payment_failed"
   | "transaction.completed"
+  | "transaction.payment_failed"
   | "transaction.refunded";
 
 /**
@@ -138,6 +177,21 @@ export interface PaddleWebhookPayload {
     status?: string;
     customer_id?: string;
     subscription_id?: string;
+    /**
+     * Present on subscription + transaction payloads when the checkout was
+     * opened with `custom_data`. This is how a BRAND NEW Paddle customer is
+     * matched to an AutoEco account — `customer_id` is not persisted
+     * anywhere before the first webhook arrives.
+     */
+    custom_data?: {
+      userId?: string;
+      planKey?: string;
+      email?: string;
+    };
+    /** Next scheduled billing date (ISO 8601). */
+    next_billed_at?: string | null;
+    /** Set when the customer has scheduled a cancellation. */
+    scheduled_change?: string | null;
     items?: Array<{
       price?: { id?: string };
       quantity?: number;

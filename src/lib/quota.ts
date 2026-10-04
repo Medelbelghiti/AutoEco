@@ -33,6 +33,7 @@
 
 import { Prisma, type PrismaClient } from "@prisma/client";
 import { db } from "./db";
+import { notifyQuotaLimitReached } from "./notifications";
 
 export type QuotaMetric = "ai_conversations" | "ocr_scans" | "expenses" | "vehicles";
 
@@ -138,6 +139,14 @@ export async function tryConsume(opts: {
   }
 
   const used = await getUsed(client, userId, metric, periodKey);
+
+  // Exactly-once-per-period notification. `used` can only equal the limit on
+  // the single increment that arrives at it — every later attempt is blocked
+  // by the `used < limit` predicate — so no dedupe bookkeeping is required.
+  if (used === limit) {
+    await notifyQuotaLimitReached({ userId, metric, limit });
+  }
+
   return { used, limit, allowed: true };
 }
 

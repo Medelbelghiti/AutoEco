@@ -18,6 +18,7 @@ import { withErrorHandling, ok } from "@/lib/http";
 import { paddleWebhookConfigured, env } from "@/lib/env";
 import {
   verifyWebhookSignature,
+  planKeyForPriceId,
   type PaddleWebhookPayload,
   type PaddlePlanKey,
 } from "@/lib/paddle";
@@ -25,6 +26,7 @@ import { db } from "@/lib/db";
 import { claim, reclaimStale, markProcessed, markFailed, tryClaimSideEffect } from "@/lib/webhook-state";
 import { createNotification } from "@/lib/notifications";
 import { sendEmail, tplPaymentSuccess, tplPaymentFailed, tplSubscriptionCanceled } from "@/lib/email";
+import { trackEvent } from "@/lib/analytics";
 import { auditLog } from "@/lib/audit";
 
 export const POST = withErrorHandling(async (req) => {
@@ -100,6 +102,11 @@ async function applyEvent(payload: PaddleWebhookPayload, eventId: string): Promi
     case "subscription.expired":
       await onSubscriptionEnded(payload, eventId);
       break;
+    case "subscription.past_due":
+    case "subscription.payment_failed":
+    case "transaction.payment_failed":
+      await onPaymentFailed(payload, eventId);
+      break;
     case "transaction.completed":
       await onTransactionCompleted(payload, eventId);
       break;
@@ -113,15 +120,31 @@ async function applyEvent(payload: PaddleWebhookPayload, eventId: string): Promi
 }
 
 /**
- * Resolve the user that owns the resource. The Paddle webhook identifies
- * the customer by `customer_id`. We persist the customer id on the user
- * at first contact; subsequent webhooks can look the user up by that
- * unique key.
+ * Resolve the user that owns the resource.
+ *
+ * Resolution order (first match wins):
+ *   1. `custom_data.userId` — set by `PaddleButton` when the checkout is
+ *      opened. This is the ONLY mechanism that can identify a brand-new
+ *      Paddle customer: `User.paddleCustomerId` is written by this very
+ *      handler, so on the first webhook it is still NULL and a
+ *      customer_id-only lookup fails and silently swallows the payment.
+ *   2. `customer_id` → `User.paddleCustomerId` (persisted on first contact).
+ *   3. `subscription_id` → `Subscription.paddleSubscriptionId`.
+ *
+ * `custom_data.userId` is trusted only because the webhook signature was
+ * already verified against `PADDLE_WEBHOOK_SECRET` above — Paddle echoes
+ * back exactly what our own client sent.
  */
 async function findUser(payload: PaddleWebhookPayload): Promise<{ id: string; email: string; name: string | null; paddleCustomerId: string | null } | null> {
+  const customUserId = payload.data?.custom_data?.userId;
+  if (customUserId) {
+    const u = await db.user.findUnique({ where: { id: customUserId } });
+    // Never grant entitlement to a soft-deleted account.
+    if (u && !u.deletedAt) return { id: u.id, email: u.email, name: u.name, paddleCustomerId: u.paddleCustomerId };
+  }
   if (payload.data?.customer_id) {
     const u = await db.user.findUnique({ where: { paddleCustomerId: payload.data.customer_id } });
-    if (u) return { id: u.id, email: u.email, name: u.name, paddleCustomerId: u.paddleCustomerId };
+    if (u && !u.deletedAt) return { id: u.id, email: u.email, name: u.name, paddleCustomerId: u.paddleCustomerId };
   }
   // Subscription ids are stored on Subscription rows; we walk them.
   if (payload.data?.subscription_id) {
@@ -129,31 +152,43 @@ async function findUser(payload: PaddleWebhookPayload): Promise<{ id: string; em
       where: { paddleSubscriptionId: payload.data.subscription_id },
       include: { user: true },
     });
-    if (sub?.user) return { id: sub.user.id, email: sub.user.email, name: sub.user.name, paddleCustomerId: sub.user.paddleCustomerId };
+    if (sub?.user && !sub.user.deletedAt) return { id: sub.user.id, email: sub.user.email, name: sub.user.name, paddleCustomerId: sub.user.paddleCustomerId };
   }
   return null;
 }
 
 /**
- * Map a Paddle price id to an internal Plan key. If we cannot match the
- * price id, fall back to "pro" so the user is never silently locked out —
- * but log the unrecognised price id in the webhook event metadata for
- * audit.
+ * Map a Paddle price id to an internal Plan key.
+ *
+ * `planKeyForPriceId` returns null for a price id that is not one of ours.
+ * We then fall back to "pro": the customer demonstrably paid us in this
+ * Paddle account and locking them out would be worse than granting the
+ * entry tier. The unmapped price id is recorded in the audit log so the
+ * misconfiguration is visible rather than silent.
  */
 function priceIdToPlanKey(priceId: string | undefined): PaddlePlanKey {
-  if (!priceId) return "pro";
-  if (priceId === env.paddleProPriceId) return "pro";
-  if (priceId === env.paddleBusinessPriceId) return "business";
-  if (priceId === env.paddleLifetimePriceId) return "lifetime";
-  // The current subscription API uses "active" / "canceled" / "trialing"
-  // — we don't have a "pro_plus" product at Paddle; map unknown to pro
-  // so the user gets full access rather than a broken state.
+  const mapped = planKeyForPriceId(priceId);
+  if (mapped) return mapped;
   return "pro";
 }
 
 async function onSubscriptionUpsert(payload: PaddleWebhookPayload, eventId: string): Promise<void> {
   const user = await findUser(payload);
-  if (!user) return;
+  if (!user) {
+    // Unresolvable: the purchase happened but we cannot attribute it to an
+    // account. Throw so Paddle retries and we return 500, rather than
+    // acknowledging a payment we silently discarded.
+    await auditLog({
+      action: "paddle.webhook.unresolved_customer",
+      metadata: {
+        eventId,
+        customerId: payload.data?.customer_id ?? null,
+        subscriptionId: payload.data?.subscription_id ?? null,
+        customData: payload.data?.custom_data ?? null,
+      },
+    });
+    throw new Error("Paddle webhook: could not resolve the AutoEco user for this purchase");
+  }
 
   const data = payload.data ?? {};
   const paddleSubId = data.subscription_id;
@@ -163,16 +198,38 @@ async function onSubscriptionUpsert(payload: PaddleWebhookPayload, eventId: stri
 
   // Determine the plan from the price id of the first item (if any).
   const priceId = data.items?.[0]?.price?.id;
+  if (priceId && !planKeyForPriceId(priceId)) {
+    await auditLog({ action: "paddle.webhook.unmapped_price_id", metadata: { eventId, priceId } });
+  }
   const planKey = priceIdToPlanKey(priceId);
   const plan = await db.plan.findUnique({ where: { key: planKey } });
-  if (!plan) return;
+  if (!plan) {
+    await auditLog({ action: "paddle.webhook.plan_missing", metadata: { eventId, planKey } });
+    throw new Error(`Paddle webhook: plan "${planKey}" is not seeded`);
+  }
 
   const isLifetime = plan.billingPeriod === "LIFETIME";
+
+  // Respect Paddle's real billing schedule instead of assuming 30 days,
+  // and never wipe a customer-scheduled cancellation.
+  const periodStart = new Date();
+  const nextBilled = data.next_billed_at ? new Date(data.next_billed_at) : null;
+  const hasRealNextBill = nextBilled != null && !Number.isNaN(nextBilled.getTime());
+  const periodEnd = isLifetime
+    ? null
+    : hasRealNextBill
+      ? nextBilled
+      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const cancelAtPeriodEnd = data.scheduled_change != null;
 
   await db.user.update({
     where: { id: user.id },
     data: {
       planId: plan.id,
+      // A real purchase retires the trial, so a later cancellation cannot
+      // hand the trial entitlements back (mirrors the Stripe webhook).
+      trialEndsAt: null,
+      trialUsed: true,
       // Persist the Paddle customer id once we know it (do not overwrite).
       ...(paddleCustomerId && !user.paddleCustomerId
         ? { paddleCustomerId: paddleCustomerId }
@@ -187,16 +244,16 @@ async function onSubscriptionUpsert(payload: PaddleWebhookPayload, eventId: stri
       planId: plan.id,
       status: isLifetime ? "lifetime" : status,
       paddleSubscriptionId: paddleSubId,
-      currentPeriodStart: new Date(),
-      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      cancelAtPeriodEnd: false,
+      currentPeriodStart: periodStart,
+      currentPeriodEnd: periodEnd,
+      cancelAtPeriodEnd,
     },
     update: {
       planId: plan.id,
       status: isLifetime ? "lifetime" : status,
-      currentPeriodStart: new Date(),
-      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      cancelAtPeriodEnd: false,
+      currentPeriodStart: periodStart,
+      currentPeriodEnd: periodEnd,
+      cancelAtPeriodEnd,
     },
   });
 
@@ -205,6 +262,13 @@ async function onSubscriptionUpsert(payload: PaddleWebhookPayload, eventId: stri
   }
   if (await tryClaimSideEffect(eventId, "PADDLE_PAYMENT_SUCCESS_EMAIL")) {
     await sendEmail({ ...tplPaymentSuccess(user.name, plan.name), to: user.email });
+  }
+  // The single most important business metric: a paying customer.
+  if (await tryClaimSideEffect(eventId, "PADDLE_SUBSCRIPTION_CREATED_ANALYTICS")) {
+    await trackEvent("subscription_created", {
+      userId: user.id,
+      metadata: { planKey, provider: "paddle", status },
+    });
   }
 }
 
@@ -230,6 +294,52 @@ async function onSubscriptionEnded(payload: PaddleWebhookPayload, eventId: strin
     const sub = await db.subscription.findFirst({ where: { paddleSubscriptionId: paddleSubId } });
     const endDate = sub?.currentPeriodEnd ? sub.currentPeriodEnd.toISOString().slice(0, 10) : "soon";
     await sendEmail({ ...tplSubscriptionCanceled(user.name, endDate), to: user.email });
+  }
+}
+
+/**
+ * A renewal payment failed.
+ *
+ * Paddle keeps retrying the charge, so the subscription enters `past_due`
+ * rather than ending immediately. `getEntitlements()` grants a bounded
+ * `PAST_DUE_GRACE_DAYS` grace period and then falls back to free, so the
+ * customer must be told — otherwise they silently lose paid features the
+ * moment the grace period lapses, with no idea why.
+ *
+ * `planId` on the user is deliberately NOT downgraded here: Paddle may still
+ * recover the payment, and entitlements are computed from the Subscription
+ * row's status, not from `planId`.
+ */
+async function onPaymentFailed(payload: PaddleWebhookPayload, eventId: string): Promise<void> {
+  const user = await findUser(payload);
+  if (!user) return;
+  const paddleSubId = payload.data?.subscription_id;
+  const eventType = payload.event_type ?? "unknown";
+
+  if (paddleSubId) {
+    // Never downgrade a lifetime purchase to past_due.
+    await db.subscription.updateMany({
+      where: { paddleSubscriptionId: paddleSubId, status: { not: "lifetime" } },
+      data: { status: "past_due" },
+    });
+  }
+
+  await auditLog({
+    action: "paddle.payment_failed",
+    metadata: { eventId, eventType, subscriptionId: paddleSubId ?? null, userId: user.id },
+  });
+
+  if (await tryClaimSideEffect(eventId, "PADDLE_PAYMENT_FAILED_NOTIFICATION")) {
+    await createNotification({
+      userId: user.id,
+      type: "PAYMENT_FAILED",
+      title: "Payment failed — action required",
+      body: "We could not process your last payment. Update your billing details to keep your paid features.",
+      link: "/settings/billing",
+    });
+  }
+  if (await tryClaimSideEffect(eventId, "PADDLE_PAYMENT_FAILED_EMAIL")) {
+    await sendEmail({ ...tplPaymentFailed(user.name, env.appUrl), to: user.email });
   }
 }
 

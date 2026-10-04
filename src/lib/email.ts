@@ -105,16 +105,16 @@ export function tplWelcome(name: string | null, appUrl: string): EmailMessage {
   const display = name ?? "there";
   return {
     to: "",
-    subject: "Welcome to LeadGen 2.0",
-    html: `<p>Hi ${escape(display)},</p><p>Welcome to <strong>LeadGen 2.0</strong> — the global business lead discovery platform.</p><p>Get started: <a href="${appUrl}/dashboard">${appUrl}/dashboard</a></p>`,
-    text: `Welcome to LeadGen 2.0. Get started at ${appUrl}/dashboard`,
+    subject: "Welcome to AutoEco",
+    html: `<p>Hi ${escape(display)},</p><p>Welcome to <strong>AutoEco</strong> — the financial operating system for your car.</p><p>Add your vehicle, log fuel and expenses, and AutoEco works out what your car really costs per month and per kilometer.</p><p>Get started: <a href="${appUrl}/dashboard">${appUrl}/dashboard</a></p>`,
+    text: `Welcome to AutoEco. Add your car and start tracking: ${appUrl}/dashboard`,
   };
 }
 
 export function tplEmailVerify(name: string | null, link: string): EmailMessage {
   return {
     to: "",
-    subject: "Verify your LeadGen 2.0 email",
+    subject: "Verify your AutoEco email",
     html: `<p>Hi ${escape(name ?? "there")},</p><p>Please verify your email by clicking the link below:</p><p><a href="${link}">${link}</a></p><p>This link expires in 24 hours.</p>`,
     text: `Verify your email: ${link} (expires in 24 hours)`,
   };
@@ -123,7 +123,7 @@ export function tplEmailVerify(name: string | null, link: string): EmailMessage 
 export function tplPasswordReset(name: string | null, link: string): EmailMessage {
   return {
     to: "",
-    subject: "Reset your LeadGen 2.0 password",
+    subject: "Reset your AutoEco password",
     html: `<p>Hi ${escape(name ?? "there")},</p><p>Use the link below to reset your password:</p><p><a href="${link}">${link}</a></p><p>If you did not request this, you can ignore this email.</p>`,
     text: `Reset your password: ${link}`,
   };
@@ -132,9 +132,9 @@ export function tplPasswordReset(name: string | null, link: string): EmailMessag
 export function tplTrialStarted(name: string | null, appUrl: string, days: number): EmailMessage {
   return {
     to: "",
-    subject: `Your LeadGen 2.0 ${days}-day free trial is active`,
-    html: `<p>Hi ${escape(name ?? "there")},</p><p>Your free trial is now active. <a href="${appUrl}/search">Start a search</a>.</p>`,
-    text: `Your ${days}-day free trial is active. Start a search at ${appUrl}/search`,
+    subject: `Your AutoEco ${days}-day free trial is active`,
+    html: `<p>Hi ${escape(name ?? "there")},</p><p>Your free trial is now active. <a href="${appUrl}/dashboard">Go to your dashboard</a> and add your first vehicle.</p>`,
+    text: `Your ${days}-day free trial is active. Go to ${appUrl}/dashboard`,
   };
 }
 
@@ -142,7 +142,7 @@ export function tplTrialEnding(name: string | null, daysLeft: number, appUrl: st
   return {
     to: "",
     subject: `Your trial ends in ${daysLeft} day(s)`,
-    html: `<p>Hi ${escape(name ?? "there")},</p><p>Your trial ends in ${daysLeft} day(s). <a href="${appUrl}/settings/billing">Upgrade now</a> to keep your leads and exports.</p>`,
+    html: `<p>Hi ${escape(name ?? "there")},</p><p>Your trial ends in ${daysLeft} day(s). <a href="${appUrl}/settings/billing">Upgrade now</a> to keep multi-vehicle tracking, forecasts and Ask Your Car.</p>`,
     text: `Trial ends in ${daysLeft} day(s). Upgrade at ${appUrl}/settings/billing`,
   };
 }
@@ -168,7 +168,7 @@ export function tplPaymentFailed(name: string | null, appUrl: string): EmailMess
 export function tplSubscriptionCanceled(name: string | null, endDate: string): EmailMessage {
   return {
     to: "",
-    subject: "Your LeadGen 2.0 subscription was canceled",
+    subject: "Your AutoEco subscription was canceled",
     html: `<p>Hi ${escape(name ?? "there")},</p><p>Your subscription has been canceled. You will retain access until <strong>${endDate}</strong>.</p>`,
     text: `Subscription canceled. Access until ${endDate}.`,
   };
@@ -183,23 +183,14 @@ export function tplUsageLimitReached(name: string | null, label: string, appUrl:
   };
 }
 
-export function tplReferralConverted(name: string | null, rewardText: string): EmailMessage {
-  return {
-    to: "",
-    subject: "Your referral just converted — reward granted",
-    html: `<p>Hi ${escape(name ?? "there")},</p><p>One of your referrals became a paying customer. Reward: <strong>${escape(rewardText)}</strong>.</p>`,
-    text: `Referral converted. Reward: ${rewardText}`,
-  };
-}
-
-export function tplAffiliatePayout(name: string | null, amount: string): EmailMessage {
-  return {
-    to: "",
-    subject: "Affiliate payout processed",
-    html: `<p>Hi ${escape(name ?? "there")},</p><p>An affiliate payout of <strong>${escape(amount)}</strong> has been processed.</p>`,
-    text: `Affiliate payout processed: ${amount}`,
-  };
-}
+// NOTE: `tplReferralConverted` and `tplAffiliatePayout` were removed on
+// purpose. Their triggering systems are stubs — `referrals.ts` and
+// `affiliates.ts` are documented as "V2 / unavailable" and export no-op
+// functions — so neither email can ever be sent. Keeping unreachable templates
+// is worse than removing them: `scripts/launch-check.mjs` reports templates
+// with no caller, and a template with no caller is usually a sign that someone
+// believes the feature is live. Reinstate them together with the real
+// referral/affiliate implementation.
 
 function escape(s: string): string {
   return s

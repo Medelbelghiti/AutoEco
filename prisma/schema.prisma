@@ -117,6 +117,12 @@ model Plan {
   stripePriceId   String?
   stripeProductId String?
   active          Boolean @default(true)
+  // Marks rows that were created by tests and must NEVER appear in
+  // pricing pages, billing flows, or any other user-facing surface.
+  // Production plans (free / pro / family / lifetime / pro_plus) always
+  // have isDemo=false. The default is false so historical rows remain
+  // unaffected. Tests must explicitly set isDemo=true.
+  isDemo          Boolean @default(false)
   sortOrder       Int     @default(0)
 
   users         User[]         @relation("UserPlan")

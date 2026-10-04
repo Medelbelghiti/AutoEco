@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 
 const prisma = new PrismaClient();
+import { PLANS, planRow } from "./plans.data";
 
 function generateStrongPassword(): string {
   // 24-char base64url password. NEVER reuse a default like "change-me-admin".
@@ -43,18 +44,19 @@ async function main() {
     await prisma.setting.upsert({ where: { key }, create: { key, value }, update: { value } });
   }
 
-  // 3. Plans
-  const plans = [
-    { key: "free", name: "Free", description: "Track one vehicle.", priceCents: 0, billingPeriod: "FREE", maxVehicles: 1, maxExpensesPerMonth: 50, aiReceiptScansPerMonth: 0, aiConversationsPerMonth: 0, reportRetentionDays: 30, forecastHorizonMonths: 12, enableAdvancedScenarios: false, enableShareableReports: false, enableFamilySharing: false, enableApiAccess: false, features: ["1 vehicle", "Expense tracking"], sortOrder: 0 },
-    { key: "pro", name: "Pro", description: "Multi-vehicle + AI.", priceCents: 699, billingPeriod: "MONTHLY", maxVehicles: 5, maxExpensesPerMonth: 1000, aiReceiptScansPerMonth: 50, aiConversationsPerMonth: 100, reportRetentionDays: 365, forecastHorizonMonths: 60, enableAdvancedScenarios: true, enableShareableReports: true, enableFamilySharing: false, enableApiAccess: false, features: ["Up to 5 vehicles", "AI receipt scan", "Financial Twin"], sortOrder: 1 },
-    { key: "family", name: "Family", description: "For households.", priceCents: 1299, billingPeriod: "MONTHLY", maxVehicles: 12, maxExpensesPerMonth: 2500, aiReceiptScansPerMonth: 200, aiConversationsPerMonth: 300, reportRetentionDays: 730, forecastHorizonMonths: 60, enableAdvancedScenarios: true, enableShareableReports: true, enableFamilySharing: true, enableApiAccess: false, features: ["Up to 12 vehicles", "Family sharing"], sortOrder: 2 },
-    { key: "pro_plus", name: "Pro Plus", description: "Power users + API.", priceCents: 1999, billingPeriod: "MONTHLY", maxVehicles: 50, maxExpensesPerMonth: 10000, aiReceiptScansPerMonth: 1000, aiConversationsPerMonth: 1000, reportRetentionDays: 3650, forecastHorizonMonths: 120, enableAdvancedScenarios: true, enableShareableReports: true, enableFamilySharing: true, enableApiAccess: true, features: ["Up to 50 vehicles", "API access"], sortOrder: 3 },
-  ];
-  for (const p of plans) {
+  // 3. Plans — canonical definitions live in `prisma/plans.data.ts` so that
+  // `scripts/seed-plans.ts` can repair the plan table in production without
+  // re-declaring (and eventually contradicting) this matrix.
+  for (const p of PLANS) {
+    const row = planRow(p);
+    const { key, ...fields } = row;
     await prisma.plan.upsert({
-      where: { key: p.key },
-      create: { ...p, features: JSON.stringify(p.features) },
-      update: { name: p.name, description: p.description, priceCents: p.priceCents, billingPeriod: p.billingPeriod, maxVehicles: p.maxVehicles, maxExpensesPerMonth: p.maxExpensesPerMonth, aiReceiptScansPerMonth: p.aiReceiptScansPerMonth, aiConversationsPerMonth: p.aiConversationsPerMonth, reportRetentionDays: p.reportRetentionDays, forecastHorizonMonths: p.forecastHorizonMonths, enableAdvancedScenarios: p.enableAdvancedScenarios, enableShareableReports: p.enableShareableReports, enableFamilySharing: p.enableFamilySharing, enableApiAccess: p.enableApiAccess, features: JSON.stringify(p.features), sortOrder: p.sortOrder },
+      where: { key: key as string },
+      // `isDemo: false` is explicit rather than left to the column default:
+      // this is a real, purchasable plan and must never be filtered out of
+      // pricing by the isDemo guard that hides test fixtures.
+      create: { ...row, isDemo: false } as never,
+      update: { ...fields, isDemo: false } as never,
     });
   }
 
