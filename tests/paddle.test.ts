@@ -14,9 +14,8 @@ import {
   type PaddlePlanKey,
 } from "@/lib/paddle";
 import { ensurePaddleSchema } from "./_ensureSchema";
+import { DB_OK } from "./_dbGuard";
 
-const DB_URL = process.env.DATABASE_URL ?? "";
-const DB_OK = DB_URL.length > 0;
 const prisma = new PrismaClient();
 
 describe("1. Invalid webhook signature → rejected", () => {

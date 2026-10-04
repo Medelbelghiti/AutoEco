@@ -10,3 +10,6 @@ coverage/
 dist/
 .DS_Store
 next-env.d.ts
+
+# TypeScript incremental build cache
+tsconfig.tsbuildinfo

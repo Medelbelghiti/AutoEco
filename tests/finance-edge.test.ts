@@ -1,4 +1,4 @@
-﻿import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vitest";
 import { summarizeExpenses, computeDepreciation, projectCost, trueOwnershipCost } from "@/lib/finance";
 
 describe("financial engine edge cases", () => {

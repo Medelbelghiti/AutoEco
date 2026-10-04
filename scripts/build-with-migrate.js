@@ -35,6 +35,18 @@ function runSafe(cmd, args, opts = {}) {
   });
 }
 
+/**
+ * Transient = the database was unreachable or busy, so the migration will
+ * succeed on a later attempt. Anything else (syntax error, permission
+ * error, conflict) is a real failure and must fail the build.
+ */
+function isTransient(result) {
+  const combined = (result.stdout ?? "") + "\n" + (result.stderr ?? "");
+  return /P1002|advisory lock|timed out|connection|ENOTFOUND|EHOSTUNREACH|getaddrinfo|exited with code 60|P1001/i.test(
+    combined
+  );
+}
+
 async function main() {
   // 1. Prisma generate
   console.log("▶ prisma generate");
@@ -50,9 +62,8 @@ async function main() {
   const mig = await runSafe(isWindows ? "npx.cmd" : "npx", ["prisma", "migrate", "deploy"]);
   const elapsed = Date.now() - start;
 
-  const combined = (mig.stdout ?? "") + "\n" + (mig.stderr ?? "");
-  const transient =
-    /P1002|advisory lock|timed out|connection|ENOTFOUND|EHOSTUNREACH|getaddrinfo|prisma migrate deploy.*timeout|exited with code 60|P1001/i.test(combined);
+  const combined = (mig.stdout ?? "") + "\n" + (mig.stderr ?? "") + "\n" + (mig.error?.message ?? "");
+  const transient = isTransient(mig);
 
   // The historic misnamed "lemon_squeezy" directory was created with a
   // Paddle SQL inside; it recorded a FAILED migration on the live DB.
@@ -81,10 +92,16 @@ async function main() {
       const elapsed2 = Date.now() - start;
       if (retry.status === 0) {
         console.log(`✓ migrate deploy completed (after rollback) in ${elapsed2}ms`);
+      } else if (retry.status !== 0 && isTransient(retry)) {
+        console.warn(`⚠ retry failed transiently: ${(retry.stderr ?? "").slice(0, 500)}`);
+        console.warn(`  Migration will apply on the next deploy.`);
       } else {
-        console.warn(`⚠ retry failed: ${retry.stderr?.slice(0, 500)}`);
+        console.error(`✗ retry failed: ${(retry.stderr ?? "").slice(0, 1000)}`);
+        process.exit(retry.status ?? 1);
       }
-      process.exit(0);
+      // NOTE: deliberately fall through to the build step. Exiting here
+      // would report a successful build on Vercel without ever running
+      // `next build`, deploying a stale or missing output.
     } else {
       console.error(`✗ could not resolve the failed migration: ${resolve.stderr?.slice(0, 500)}`);
       process.exit(1);

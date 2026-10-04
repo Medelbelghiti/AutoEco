@@ -1,4 +1,4 @@
-﻿# AUTOECO — V1.3.1 Final Hardening
+# AUTOECO — V1.3.1 Final Hardening
 
 ## Verification
 

@@ -1,4 +1,4 @@
-﻿import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vitest";
 import { summarizeExpenses, computeDepreciation, projectCost, formatMoney, estimateCO2Kg, trueOwnershipCost, CurrencyMismatchError } from "@/lib/finance";
 
 describe("summarizeExpenses", () => {

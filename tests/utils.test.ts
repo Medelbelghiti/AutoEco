@@ -2,10 +2,10 @@ import { describe, it, expect } from "vitest";
 import { generateReferralCode, csvCell, currentMonthKey, currentDayKey } from "@/lib/utils";
 
 describe("utils", () => {
-  it("generateReferralCode has LEADGEN- prefix", () => {
+  it("generateReferralCode has AUTOECO- prefix", () => {
     const code = generateReferralCode("Alice");
-    expect(code.startsWith("LEADGEN-")).toBe(true);
-    expect(code.length).toBeGreaterThanOrEqual(13);
+    expect(code.startsWith("AUTOECO-")).toBe(true);
+    expect(code.length).toBeGreaterThanOrEqual(14);
   });
 
   it("csvCell handles quotes and commas", () => {

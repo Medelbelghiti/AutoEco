@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Regression tests for the 3 production blockers fixed in V1.4.1.
  *
  * All real-DB tests use ensureLemonSqueezySchema so they are independent
@@ -10,9 +10,7 @@ import crypto from "node:crypto";
 import { handleStripeEvent, tryClaimSideEffect } from "@/lib/stripe-webhook";
 import { tryConsume, release } from "@/lib/quota";
 import { ensureLemonSqueezySchema, ensurePaddleSchema } from "./_ensureSchema";
-
-const DB_URL = process.env.DATABASE_URL ?? "";
-const DB_OK = DB_URL.length > 0;
+import { DB_OK } from "./_dbGuard";
 
 const prisma = new PrismaClient();
 const stamp = `${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;

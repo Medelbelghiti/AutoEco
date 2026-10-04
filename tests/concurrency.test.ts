@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Concurrency regression tests (real DB).
  *
  * The previous version of this file assumed the production schema. The
@@ -12,9 +12,7 @@ import { tryConsume, release, type QuotaMetric } from "@/lib/quota";
 import { getEntitlements } from "@/lib/plans";
 import { handleStripeEvent } from "@/lib/stripe-webhook";
 import { ensureLemonSqueezySchema, ensurePaddleSchema } from "./_ensureSchema";
-
-const DB_URL = process.env.DATABASE_URL ?? "";
-const DB_OK = DB_URL.length > 0;
+import { DB_OK } from "./_dbGuard";
 
 const prisma = new PrismaClient();
 const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
