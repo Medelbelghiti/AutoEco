@@ -1,8 +1,8 @@
 {
-  "name": "leadgen-2",
+  "name": "autoeco",
   "version": "2.0.0",
   "private": true,
-  "description": "LeadGen 2.0 — Global business lead discovery platform (SaaS)",
+  "description": "AutoEco — track fuel, maintenance and expenses to calculate the true cost of car ownership",
   "scripts": {
     "dev": "next dev",
     "build": "node scripts/build-with-migrate.js",
@@ -11,6 +11,9 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "check:launch": "node scripts/launch-check.mjs",
+    "check:launch:db": "node scripts/launch-check.mjs --db",
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run check:launch",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",

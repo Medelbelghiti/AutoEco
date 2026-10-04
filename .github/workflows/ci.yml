@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref instead of queueing them.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Typecheck, lint and unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # `npm ci` runs `postinstall` -> `prisma generate`. DATABASE_URL is
+      # intentionally NOT set: nothing in this job touches a database.
+      - name: Install dependencies
+        run: npm ci
+
+      # Integration tests refuse to run against a remote database unless
+      # ALLOW_TEST_DB_WRITES=1, so they skip themselves here rather than
+      # touching anything. That guard is load-bearing for this workflow.
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm run test
+
+      # `next build` (not `npm run build`): the latter runs
+      # `prisma migrate deploy` against DATABASE_URL, which must never happen
+      # in CI against an unconfigured or wrong database.
+      - name: Build
+        run: npx next build
+        env:
+          # Satisfies the build-time production config audit without claiming a
+          # real deployment is configured.
+          AUTH_SECRET: ci-only-not-a-real-secret-000000000000
+
+  launch-readiness:
+    name: Launch readiness report
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Deliberately NOT gating. This reports pre-launch blockers (legal
+    # placeholders, missing production credentials) that are resolved outside
+    # of the repository, not by code changes. It is surfaced on every run so
+    # they cannot be forgotten, but a red legal placeholder must not block
+    # unrelated pull requests from merging.
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Launch check
+        run: npm run check:launch

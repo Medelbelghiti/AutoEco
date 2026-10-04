@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/cron/trial-ending",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/expire-subscriptions",
+      "schedule": "17 3 * * *"
+    },
+    {
+      "path": "/api/cron/purge-deleted",
+      "schedule": "43 4 * * *"
+    }
+  ]
+}
