@@ -83,8 +83,15 @@ export async function POST(req: Request): Promise<NextResponse> {
     await db.analyticsEvent.create({
       data: { userId: null, event, metadata: JSON.stringify({ path, anonymous: true }) },
     });
-  } catch {
-    // Never surface a tracking failure.
+  } catch (e) {
+    // Never surface a tracking failure to the caller — but DO record it. An
+    // earlier version swallowed this silently, which made a total failure to
+    // persist events invisible: the endpoint returned 204, the funnel looked
+    // instrumented, and nothing was ever written.
+    console.error(
+      `[track] failed to persist ${event}:`,
+      e instanceof Error ? e.message : e
+    );
   }
 
   return new NextResponse(null, { status: 204 });
