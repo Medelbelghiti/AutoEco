@@ -6,6 +6,7 @@ import { verifyPassword, createSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/utils";
 import { auditLog } from "@/lib/audit";
+import { trackEvent } from "@/lib/analytics";
 
 export const POST = withErrorHandling(async (req) => {
   const ip = getClientIp(req);
@@ -46,6 +47,7 @@ export const POST = withErrorHandling(async (req) => {
   });
   await createSession(user.id);
   await auditLog({ userId: user.id, action: "login.success", ip });
+  await trackEvent("login", { userId: user.id });
 
   return ok({ user: { id: user.id, email: user.email, name: user.name, role: user.role } });
 });
