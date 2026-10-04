@@ -61,17 +61,20 @@ async function main() {
   }
 
   // 4. Vehicle catalog (verified=false, manual entry always available)
+  // `VehicleCatalogEntry` names this column `fuelEconomyCombined`; the
+  // user-owned `Vehicle` row uses `fuelEconomyText`. Copying the wrong field
+  // name here made the whole seed abort on the first catalog insert.
   const samples = [
-    { brand: "Toyota", model: "Corolla", yearFrom: 2018, yearTo: 2023, fuelType: "gasoline", fuelEconomyText: "6.0 L/100km" },
-    { brand: "Toyota", model: "RAV4", yearFrom: 2019, yearTo: 2024, fuelType: "hybrid", fuelEconomyText: "5.8 L/100km" },
-    { brand: "Honda", model: "Civic", yearFrom: 2016, yearTo: 2024, fuelType: "gasoline", fuelEconomyText: "6.4 L/100km" },
-    { brand: "BMW", model: "X5", yearFrom: 2019, yearTo: 2024, fuelType: "diesel", fuelEconomyText: "7.5 L/100km" },
-    { brand: "Tesla", model: "Model 3", yearFrom: 2019, yearTo: 2024, fuelType: "ev", fuelEconomyText: "15 kWh/100km", batteryCapacityKwh: 60 },
-    { brand: "Renault", model: "Clio", yearFrom: 2019, yearTo: 2024, fuelType: "gasoline", fuelEconomyText: "5.2 L/100km" },
-    { brand: "Peugeot", model: "208", yearFrom: 2019, yearTo: 2024, fuelType: "gasoline", fuelEconomyText: "4.8 L/100km" },
-    { brand: "Dacia", model: "Duster", yearFrom: 2018, yearTo: 2024, fuelType: "gasoline", fuelEconomyText: "7.1 L/100km" },
-    { brand: "Hyundai", model: "Tucson", yearFrom: 2020, yearTo: 2024, fuelType: "hybrid", fuelEconomyText: "5.6 L/100km" },
-    { brand: "Volkswagen", model: "Golf", yearFrom: 2017, yearTo: 2024, fuelType: "gasoline", fuelEconomyText: "5.5 L/100km" },
+    { brand: "Toyota", model: "Corolla", yearFrom: 2018, yearTo: 2023, fuelType: "gasoline", fuelEconomyCombined: "6.0 L/100km" },
+    { brand: "Toyota", model: "RAV4", yearFrom: 2019, yearTo: 2024, fuelType: "hybrid", fuelEconomyCombined: "5.8 L/100km" },
+    { brand: "Honda", model: "Civic", yearFrom: 2016, yearTo: 2024, fuelType: "gasoline", fuelEconomyCombined: "6.4 L/100km" },
+    { brand: "BMW", model: "X5", yearFrom: 2019, yearTo: 2024, fuelType: "diesel", fuelEconomyCombined: "7.5 L/100km" },
+    { brand: "Tesla", model: "Model 3", yearFrom: 2019, yearTo: 2024, fuelType: "ev", fuelEconomyCombined: "15 kWh/100km", batteryCapacityKwh: 60 },
+    { brand: "Renault", model: "Clio", yearFrom: 2019, yearTo: 2024, fuelType: "gasoline", fuelEconomyCombined: "5.2 L/100km" },
+    { brand: "Peugeot", model: "208", yearFrom: 2019, yearTo: 2024, fuelType: "gasoline", fuelEconomyCombined: "4.8 L/100km" },
+    { brand: "Dacia", model: "Duster", yearFrom: 2018, yearTo: 2024, fuelType: "gasoline", fuelEconomyCombined: "7.1 L/100km" },
+    { brand: "Hyundai", model: "Tucson", yearFrom: 2020, yearTo: 2024, fuelType: "hybrid", fuelEconomyCombined: "5.6 L/100km" },
+    { brand: "Volkswagen", model: "Golf", yearFrom: 2017, yearTo: 2024, fuelType: "gasoline", fuelEconomyCombined: "5.5 L/100km" },
   ];
   for (const s of samples) {
     const exists = await prisma.vehicleCatalogEntry.findFirst({ where: { brand: s.brand, model: s.model } });
