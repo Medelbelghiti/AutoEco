@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { withErrorHandling, parseJson, ok } from "@/lib/http";
 import { requireUser, assertOwnership } from "@/lib/auth";

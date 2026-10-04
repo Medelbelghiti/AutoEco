@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { withErrorHandling, ok } from "@/lib/http";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";

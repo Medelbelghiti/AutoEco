@@ -85,31 +85,33 @@ export default async function InsightsPage() {
 
       <section className="card mt-6">
         <p className="font-semibold">All vehicles</p>
-        <table className="basic mt-3">
-          <thead><tr><th>Vehicle</th><th>Monthly</th><th>Cost/km</th><th>Total spent</th><th>Annual est.</th></tr></thead>
-          <tbody>
-            {data.map(({ v, result }) => {
-              if (!result.ok) {
+        <div className="overflow-x-auto mt-3">
+          <table className="basic">
+            <thead><tr><th>Vehicle</th><th>Monthly</th><th>Cost/km</th><th>Total spent</th><th>Annual est.</th></tr></thead>
+            <tbody>
+              {data.map(({ v, result }) => {
+                if (!result.ok) {
+                  return (
+                    <tr key={v.id}>
+                      <td><Link className="underline" href={`/garage/${v.id}`}>{v.nickname ?? `${v.year} ${v.brand} ${v.model}`}</Link></td>
+                      <td colSpan={4} className="text-amber-700 text-xs">Mixed-currency data — cannot aggregate.</td>
+                    </tr>
+                  );
+                }
+                const s = result.summary;
                 return (
                   <tr key={v.id}>
                     <td><Link className="underline" href={`/garage/${v.id}`}>{v.nickname ?? `${v.year} ${v.brand} ${v.model}`}</Link></td>
-                    <td colSpan={4} className="text-amber-700 text-xs">Mixed-currency data — cannot aggregate.</td>
+                    <td>{formatMoney(s.monthlyAverage, s.baseCurrency)}</td>
+                    <td>{s.costPerKm != null ? formatMoney(s.costPerKm, s.baseCurrency) : "—"}</td>
+                    <td>{formatMoney(s.totalSpent, s.baseCurrency)}</td>
+                    <td>{formatMoney(s.annualEstimate, s.baseCurrency)}</td>
                   </tr>
                 );
-              }
-              const s = result.summary;
-              return (
-                <tr key={v.id}>
-                  <td><Link className="underline" href={`/garage/${v.id}`}>{v.nickname ?? `${v.year} ${v.brand} ${v.model}`}</Link></td>
-                  <td>{formatMoney(s.monthlyAverage, s.baseCurrency)}</td>
-                  <td>{s.costPerKm != null ? formatMoney(s.costPerKm, s.baseCurrency) : "—"}</td>
-                  <td>{formatMoney(s.totalSpent, s.baseCurrency)}</td>
-                  <td>{formatMoney(s.annualEstimate, s.baseCurrency)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              })}
+            </tbody>
+          </table>
+        </div>
       </section>
     </div>
   );

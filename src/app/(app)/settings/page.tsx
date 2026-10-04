@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getEntitlements } from "@/lib/plans";
@@ -31,6 +31,11 @@ export default async function SettingsPage() {
             <Link href="/settings/billing" className="btn btn-primary">Manage billing</Link>
             <Link href="/pricing" className="btn btn-secondary">View plans</Link>
           </div>
+        </div>
+<div className="card">
+          <p className="font-semibold">Your data</p>
+          <p className="text-sm text-charcoal-500 mt-1">Export everything you have entered as CSV.</p>
+          <SettingsForms.ExportData />
         </div>
         <div className="card border-rose-200">
           <p className="font-semibold text-rose-700">Danger zone</p>

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -14,39 +15,79 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    setLoading(false);
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}));
-      setError(j.error || "Login failed");
-      return;
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        setError(typeof j?.error === "string" ? j.error : "Log in failed. Check your email and password.");
+        setLoading(false);
+        return;
+      }
+      router.push("/dashboard");
+      router.refresh();
+    } catch {
+      setError("Could not reach the server. Check your connection and try again.");
+      setLoading(false);
     }
-    router.push("/dashboard");
-    router.refresh();
   };
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-charcoal-50 dark:bg-charcoal-950 p-6">
       <div className="w-full max-w-md">
         <h1 className="text-2xl font-bold text-center">Log in to AutoEco</h1>
+        <p className="text-sm text-center text-charcoal-500 mt-1">
+          Track what your car really costs you.
+        </p>
         <form onSubmit={submit} className="card mt-6 space-y-3">
           <div>
-            <label className="label">Email</label>
-            <input className="input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+            <label htmlFor="email" className="label">Email</label>
+            <input
+              id="email"
+              name="email"
+              className="input"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
           <div>
-            <label className="label">Password</label>
-            <input className="input" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+            <div className="flex items-center justify-between">
+              <label htmlFor="password" className="label">Password</label>
+              <Link href="/forgot-password" className="text-xs text-charcoal-500 underline">
+                Forgot password?
+              </Link>
+            </div>
+            <input
+              id="password"
+              name="password"
+              className="input"
+              type="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </div>
-          {error && <p className="text-sm text-rose-600">{error}</p>}
-          <button className="btn btn-primary w-full" disabled={loading}>{loading ? "…" : "Log in"}</button>
+          {error && <p className="text-sm text-rose-600" role="alert">{error}</p>}
+          <button className="btn btn-primary w-full" disabled={loading}>
+            {loading ? "Logging in…" : "Log in"}
+          </button>
         </form>
         <p className="text-sm mt-4 text-center text-charcoal-500">
-          New here? <a href="/signup" className="underline">Create an account</a>
+          New here? <Link href="/signup" className="underline">Create an account</Link>
+        </p>
+        <p className="text-sm mt-2 text-center text-charcoal-500">
+          Just want an estimate?{" "}
+          <Link href="/calculators/car-cost" className="underline">
+            Use the free car cost calculator
+          </Link>
+          .
         </p>
       </div>
     </main>

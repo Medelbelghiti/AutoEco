@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 
@@ -56,25 +56,27 @@ export default async function ReceiptsPage() {
       <div className="card">
         <p className="font-semibold">Your receipts</p>
         {docs.length === 0 ? <p className="text-sm text-charcoal-500 mt-2">No receipts yet.</p> : (
-          <table className="basic mt-3">
-            <thead><tr><th>Title</th><th>Category</th><th>Size</th><th>Uploaded</th><th></th></tr></thead>
-            <tbody>
-              {docs.map((d) => (
-                <tr key={d.id}>
-                  <td><a className="underline" href={"/api/documents/" + d.id} target="_blank" rel="noopener">{d.title}</a></td>
-                  <td className="capitalize">{d.category}</td>
-                  <td>{(d.sizeBytes / 1024).toFixed(0)} KB</td>
-                  <td>{d.createdAt.toISOString().slice(0, 10)}</td>
-                  <td>
-                    <form action={"/api/documents/" + d.id} method="post" onSubmit={(e) => { if (!confirm("Delete this receipt?")) e.preventDefault(); }}>
-                      <input type="hidden" name="_method" value="DELETE" />
-                      <button type="submit" className="text-rose-600 text-xs underline">Delete</button>
-                    </form>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+<div className="overflow-x-auto mt-3">
+            <table className="basic">
+              <thead><tr><th>Title</th><th>Category</th><th>Size</th><th>Uploaded</th><th></th></tr></thead>
+              <tbody>
+                {docs.map((d) => (
+                  <tr key={d.id}>
+                    <td><a className="underline" href={"/api/documents/" + d.id} target="_blank" rel="noopener">{d.title}</a></td>
+                    <td className="capitalize">{d.category}</td>
+                    <td>{(d.sizeBytes / 1024).toFixed(0)} KB</td>
+                    <td>{d.createdAt.toISOString().slice(0, 10)}</td>
+                    <td>
+                      <form action={"/api/documents/" + d.id} method="post" onSubmit={(e) => { if (!confirm("Delete this receipt?")) e.preventDefault(); }}>
+                        <input type="hidden" name="_method" value="DELETE" />
+                        <button type="submit" className="text-rose-600 text-xs underline">Delete</button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

@@ -6,7 +6,7 @@ export function getStripe(): Stripe | null {
   return new Stripe(env.stripeSecretKey, {
     apiVersion: "2024-06-20",
     typescript: true,
-    appInfo: { name: "LeadGen 2.0" },
+    appInfo: { name: "AutoEco" },
   });
 }
 

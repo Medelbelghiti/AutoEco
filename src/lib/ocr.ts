@@ -1,4 +1,4 @@
-﻿export interface OcrResult {
+export interface OcrResult {
   status: "ok" | "unavailable" | "low_confidence";
   message?: string;
   fields: {

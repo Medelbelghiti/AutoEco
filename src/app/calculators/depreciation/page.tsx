@@ -1,7 +1,12 @@
-﻿import { MarketingShell } from "@/components/MarketingShell";
+import { MarketingShell } from "@/components/MarketingShell";
 import Link from "next/link";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "Car Depreciation Calculator | AutoEco", description: "Estimate how much your car will depreciate over time." };
+export const metadata = pageMeta({
+  title: "Car Depreciation Calculator",
+  description: "Estimate how much your car will depreciate over time.",
+  path: "/calculators/depreciation",
+});
 
 export default function DepreciationPage() {
   return (

@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { MarketingShell } from "@/components/MarketingShell";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = {
-  title: "Docs | AutoEco",
+export const metadata = pageMeta({
+  title: "Documentation",
   description: "Documentation for AutoEco — vehicle cost tracking, scenarios, and the financial engine.",
-};
+  path: "/docs",
+});
 
 const SECTIONS = [
   {

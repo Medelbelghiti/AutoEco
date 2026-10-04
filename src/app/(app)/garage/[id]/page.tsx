@@ -131,21 +131,23 @@ export default async function VehicleDetail({ params }: { params: { id: string }
           {expenses.length === 0 ? (
             <p className="text-sm text-charcoal-500 mt-2">No expenses yet.</p>
           ) : (
-            <table className="basic mt-3">
-              <thead><tr><th>Date</th><th>Category</th><th>Amount</th><th>Mileage</th></tr></thead>
-              <tbody>
-                {expenses.slice(0, 8).map((e) => (
-                  <tr key={e.id}>
-                    <td>{e.date.toISOString().slice(0, 10)}</td>
-                    <td className="capitalize">{e.category}</td>
-                    <td>{formatMoney(e.amountCents, e.currency)}</td>
-                    <td>{e.mileage?.toLocaleString() ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="overflow-x-auto mt-3">
+              <table className="basic">
+                <thead><tr><th>Date</th><th>Category</th><th>Amount</th><th>Mileage</th></tr></thead>
+                <tbody>
+                  {expenses.slice(0, 8).map((e) => (
+                    <tr key={e.id}>
+                      <td>{e.date.toISOString().slice(0, 10)}</td>
+                      <td className="capitalize">{e.category}</td>
+                      <td>{formatMoney(e.amountCents, e.currency)}</td>
+                      <td>{e.mileage?.toLocaleString() ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
-          <Link href="/expenses" className="text-sm text-brand-700 underline mt-2 inline-block">All expenses →</Link>
+          <Link href="/expenses" className="text-sm text-emerald-700 dark:text-emerald-400 underline mt-2 inline-block">All expenses →</Link>
         </section>
 
         <section className="card">
@@ -153,21 +155,23 @@ export default async function VehicleDetail({ params }: { params: { id: string }
           {fuel.length === 0 ? (
             <p className="text-sm text-charcoal-500 mt-2">No fuel entries yet.</p>
           ) : (
-            <table className="basic mt-3">
-              <thead><tr><th>Date</th><th>Liters</th><th>Amount</th><th>Consumption</th></tr></thead>
-              <tbody>
-                {fuel.slice(0, 8).map((f) => (
-                  <tr key={f.id}>
-                    <td>{f.date.toISOString().slice(0, 10)}</td>
-                    <td>{f.liters?.toFixed(2) ?? "—"}</td>
-                    <td>{formatMoney(f.amountCents, f.currency)}</td>
-                    <td>{f.consumption ? `${f.consumption} L/100km` : "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="overflow-x-auto mt-3">
+              <table className="basic">
+                <thead><tr><th>Date</th><th>Liters</th><th>Amount</th><th>Consumption</th></tr></thead>
+                <tbody>
+                  {fuel.slice(0, 8).map((f) => (
+                    <tr key={f.id}>
+                      <td>{f.date.toISOString().slice(0, 10)}</td>
+                      <td>{f.liters?.toFixed(2) ?? "—"}</td>
+                      <td>{formatMoney(f.amountCents, f.currency)}</td>
+                      <td>{f.consumption ? `${f.consumption} L/100km` : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
-          <Link href="/fuel" className="text-sm text-brand-700 underline mt-2 inline-block">All fuel entries →</Link>
+          <Link href="/fuel" className="text-sm text-emerald-700 dark:text-emerald-400 underline mt-2 inline-block">All fuel entries →</Link>
         </section>
       </div>
     </div>

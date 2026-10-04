@@ -73,14 +73,16 @@ export default async function ReportsPage() {
 
       <section className="card">
         <p className="font-semibold">By category</p>
-        <table className="basic mt-3">
-          <thead><tr><th>Category</th><th className="text-right">Amount</th><th className="text-right">%</th></tr></thead>
-          <tbody>
-            {summary.breakdown.map((b) => (
-              <tr key={b.category}><td className="capitalize">{b.category}</td><td className="text-right">{formatMoney(b.amount, currency)}</td><td className="text-right">{b.percent}%</td></tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto mt-3">
+          <table className="basic">
+            <thead><tr><th>Category</th><th className="text-right">Amount</th><th className="text-right">%</th></tr></thead>
+            <tbody>
+              {summary.breakdown.map((b) => (
+                <tr key={b.category}><td className="capitalize">{b.category}</td><td className="text-right">{formatMoney(b.amount, currency)}</td><td className="text-right">{b.percent}%</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section className="card">

@@ -1,83 +1,112 @@
-# LeadGen 2.0 — Frequently Asked Questions
+# AutoEco — Frequently Asked Questions
 
-> **This document is a template placeholder and does not constitute legal advice. Have it reviewed by qualified legal counsel before public launch.**
+> **This document is a template placeholder and does not constitute legal counsel. The user-facing FAQ lives at `/faq`; keep the two consistent.**
 
 **Last updated:** 2026-01-01
 
 ---
 
-### 1. What is LeadGen 2.0?
+### 1. What is AutoEco?
 
-LeadGen 2.0 is a B2B lead discovery platform. Search for businesses in any niche and any country, save the results into a built-in CRM with statuses, notes, and tags, and export your lists as CSV, XLSX, or JSON. It is designed for sales teams, agencies, freelancers, and researchers who need organized, exportable business lead lists.
+AutoEco is a financial tracking and calculation tool for car owners. You record what you actually
+spend on a vehicle — fuel, maintenance, repairs, insurance, tyres, parking, tolls — and AutoEco
+computes your **true cost per month**, your **true cost per kilometer**, a category breakdown, and a
+forecast of what the next 12 months will cost.
 
-### 2. Which niches are supported?
+### 2. Is AutoEco a diagnostic or safety tool?
 
-Any legitimate business niche. You search by keyword or category — from plumbers and dental clinics to marketing agencies and restaurants. If businesses in that niche are listed with our data providers for your chosen area, they can appear in your results.
+No. AutoEco is a financial tool. It does not inspect your vehicle, diagnose faults, or tell you
+whether a car is safe or roadworthy. Maintenance and safety decisions remain entirely your
+responsibility.
 
-### 3. Which countries are covered?
+### 3. How does AutoEco calculate cost per kilometer?
 
-The Service works in all countries covered by our configured data providers. Coverage depth varies by country and region depending on what the providers actually contain — major cities in well-mapped countries tend to return more results than remote or less-documented areas.
+It divides your total cost for a period by the distance you drove in that period. Distance comes
+from the odometer reading you record on each fuel entry. The more complete your fill-up history, the
+more accurate the figure.
 
-### 4. Where does the data come from?
+### 4. How is depreciation treated?
 
-From legitimate third-party data providers — currently including OpenStreetMap and Google Places, with additional providers configurable. We query these providers on your behalf and organize the publicly listed results. We do not operate private data broker networks, and we do not scrape websites in violation of their terms. Provider attribution and license terms (e.g., OpenStreetMap ODbL) apply to the underlying data.
+Where you have recorded a purchase price and a current or estimated resale value, AutoEco treats the
+difference as depreciation over the period you have owned the vehicle. It is shown as its own line so
+you can see how much of your total cost is the car losing value rather than money leaving your
+account.
 
-### 5. Is coverage or the number of results guaranteed?
+### 5. What are forecasts?
 
-No. Results depend on provider availability, provider quotas and rate limits, geographic coverage, and the data providers actually hold for a given niche or region. Some searches may return many results; others may return few or none. We do not promise specific result counts or complete coverage of any market.
+Forecasts extrapolate your own recorded averages over a future period, using the assumptions shown
+next to the result. They are **estimates, not predictions of future market conditions**. Fuel prices,
+insurance rates and repair costs can all change in ways your history cannot anticipate.
 
-### 6. What is demo mode?
+### 6. How accurate is the fuel consumption figure?
 
-Demo mode lets you explore the product using **clearly labeled synthetic (fictional) data**. It exists so you can evaluate the workflow — searching, the CRM, exports — without touching live provider data. Synthetic leads are not real businesses and must not be used for outreach. Demo content is always marked as such inside the product.
+Consumption is computed from full-tank entries: the distance between two fill-ups divided by the
+litres added at the later fill-up. Partial fills and missed entries reduce accuracy. AutoEco marks
+entries it could not use rather than silently estimating.
 
-### 7. What export formats are available?
+### 7. What is Ask Your Car?
 
-You can export your saved leads as **CSV, XLSX, and JSON**. Exports include the business fields shown in the product (name, address, phone, website, category, coordinates where available, data quality score) plus your CRM fields (status, notes, tags).
+A feature that answers questions about **your own figures** — cost per kilometer, average monthly
+cost, totals for a category, which category is largest, the 12-month forecast, and fuel price
+scenarios. If AutoEco does not have enough of your data to answer, it tells you instead of inventing
+a number. It is included from the Pro plan and is available during a free trial.
 
-### 8. Is there a free trial?
+### 8. What export formats are available?
 
-Yes. Paid plans include a free trial period, as shown at sign-up. If payment details are required, you are not charged until the trial ends — and only if you haven't cancelled before then. Otherwise your account simply falls back to the Free plan. One trial per person or organization.
+**CSV**, available directly in the product at Settings → Your data, or via
+`GET /api/export?dataset=all|vehicles|fuel|expenses`. The export contains your vehicles, expenses
+and fuel entries. Receipt images are not included — only their references. Rows flagged
+`isDemo=true` are sample data seeded into your account, not entries you typed.
 
-### 9. What plans are available?
+### 9. Is there a free trial?
 
-- **Free** — a no-cost plan with limited usage for getting started.
-- **Pro** — higher limits for individuals and freelancers.
-- **Business** — the highest limits and team-oriented features for companies.
-- **Lifetime** — a one-time payment for ongoing access (see below).
+Paid plans may include a free trial, as shown at sign-up. You are not charged unless payment details
+were provided and you did not cancel before the trial ends; otherwise your account falls back to the
+Free plan. One trial per person.
 
-Current limits and pricing are always shown on the pricing page and in the product.
+### 10. What plans are available?
 
-### 10. How does the Lifetime plan work?
+- **Free** — one vehicle, expense tracking.
+- **Pro** — up to 5 vehicles, AI receipt scan, Financial Twin, advanced scenarios.
+- **Family** — up to 12 vehicles, family sharing.
+- **Pro Plus** — up to 50 vehicles and API access.
 
-Lifetime is a **one-time payment** granting ongoing access for as long as the Service is offered. It includes generous **fair-use limits** on searches, exports, and storage — it is not an unlimited plan. Fair-use limits exist to keep the plan sustainable and prevent abuse, and they comfortably cover typical business usage. Current limits are listed on the pricing page.
+Current prices and limits are always shown on the pricing page and in the product.
 
 ### 11. Can I cancel my subscription?
 
-Yes, any time, from your account settings. Cancellation takes effect at the end of the current billing period — you keep access until then, and you won't be charged again.
+Yes, any time, from Settings → Subscription. Cancellation takes effect at the end of the current
+billing period — you keep access until then and are not charged again.
 
 ### 12. What is the refund policy?
 
-Subscriptions can be cancelled anytime; prorated refunds are not issued by default but may be considered case-by-case (e.g., duplicate charges or a verified service failure). The Lifetime plan has a **14-day refund window**, provided your usage stays below the evaluation threshold. Trials are not charged until they end. Full details are in our [Refund Policy](refund-policy.md).
+Subscriptions can be cancelled any time. Prorated refunds are not issued by default but may be
+considered case by case (for example a duplicate charge or a verified service failure). One-time
+purchases have a refund window as stated in our [Refund Policy](refund-policy.md). Trials are not
+charged until they end.
 
-### 13. What does the data quality score mean?
+### 13. Is API access available?
 
-The data quality score reflects **field completeness** — how many of the typical fields (phone, website, address, etc.) are populated for that listing. A higher score means a more complete record. It does **not** measure the quality of the business itself, its reputation, or how likely it is to convert.
+Yes, on the Pro Plus plan. API keys are hashed at rest, revocable, and rate limited. Check the
+pricing page or contact `[CONTACT EMAIL]` for documentation.
 
-### 14. Is there API access?
+### 14. Can I delete my account and my data?
 
-API access is available on select plans for integrating lead discovery and exports into your own workflows, subject to the same rate limits and acceptable-use rules as the app. Check the pricing page or contact [contact@example.com] for current availability and documentation.
+Yes, from Settings → Danger zone. Your name and email address are permanently erased and all API
+keys are revoked, and access ends immediately. Anonymized billing and expense records are retained
+because tax and accounting law requires it; they are no longer linked to you. See our
+[Privacy Policy](privacy.md).
 
-### 15. Are team accounts supported?
+### 15. Do you sell my data?
 
-Yes. The Business plan supports multiple team members working in a shared workspace, with shared lead lists and per-member activity. Seat counts and limits are shown on the pricing page.
+No. We do not sell personal data and we do not run advertising or ad tracking. See our
+[Privacy Policy](privacy.md).
 
 ### 16. Do you offer referral or affiliate programs?
 
-Yes, both:
-
-- **Referral program** — invite other users and earn account credits or rewards, as described in the referral section of your dashboard.
-- **Affiliate program** — earn commissions on qualifying purchases made through your unique link. Commission rates and cookie duration are configurable and always shown in the affiliate dashboard. See the [Affiliate Program Terms](affiliate-terms.md) for rules, payout thresholds, and prohibited promotion methods.
+Referral rewards may be offered in the product. The affiliate program is not currently open for
+applications — see the [Affiliate Program Terms](affiliate-terms.md).
 
 ---
 
-Still have questions? Contact us at [contact@example.com].
+Still have questions? Contact us at `[CONTACT EMAIL]`.

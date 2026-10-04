@@ -1,10 +1,14 @@
 # Affiliate Program Terms
 
+> **Program status: not currently open for applications.** These terms describe the program that
+> will apply if and when it is launched. Nothing here is an offer to enter into a program, and no
+> commissions are payable today.
+
 > **This document is a template placeholder and does not constitute legal advice. Have it reviewed by qualified legal counsel before public launch.**
 
 **Last updated:** 2026-01-01
 
-These Affiliate Program Terms ("Affiliate Terms") govern participation in the LeadGen 2.0 Affiliate Program (the "Program"), operated by [Company Name]. They supplement our [Terms of Service](terms.md). By joining the Program, you ("Affiliate", "you") agree to these Affiliate Terms.
+These Affiliate Program Terms ("Affiliate Terms") govern participation in the AutoEco Affiliate Program (the "Program"), operated by `[LEGAL ENTITY NAME]`. They supplement our [Terms of Service](terms.md). By joining the Program, you ("Affiliate", "you") agree to these Affiliate Terms.
 
 ## 1. Enrollment
 
@@ -41,8 +45,8 @@ These Affiliate Program Terms ("Affiliate Terms") govern participation in the Le
 You must not promote your referral link through:
 
 - **Spam:** unsolicited bulk emails, messages, comments, or posts, or any promotion violating anti-spam laws (CAN-SPAM, GDPR/ePrivacy, CASL, or similar);
-- **Trademark bidding:** purchasing ads on "LeadGen 2.0", our brand name, misspellings, or confusingly similar terms in search engines or ad networks, or using our trademarks in ad copy in a misleading way;
-- **Misleading claims:** false or unsupported statements about the Service (e.g., "unlimited data", "every business in the world", guaranteed coverage or result counts), fake discounts, or fake scarcity;
+- **Trademark bidding:** purchasing ads on "AutoEco", our brand name, misspellings, or confusingly similar terms in search engines or ad networks, or using our trademarks in ad copy in a misleading way;
+- **Misleading claims:** false or unsupported statements about the Service (e.g., "free money", "guaranteed savings", "predicts future market prices"), fake discounts, or fake scarcity. In particular, do not claim AutoEco can tell a user whether a vehicle is safe or mechanically sound — it cannot;
 - Cookie stuffing, forced clicks, iframes, pop-unders, or other deceptive tracking techniques;
 - Incentivized sign-ups that result in fraudulent or low-quality accounts, or paying users to sign up through your link where not expressly permitted;
 - Promotion on sites or channels containing illegal, hateful, or adult content, or that otherwise could damage our brand.
@@ -59,8 +63,8 @@ We may modify commission rates, cookie duration, thresholds, payout schedules, o
 
 ## 9. Relationship
 
-Affiliates are independent contractors. Nothing in these Affiliate Terms creates an employment, agency, partnership, or joint venture relationship. You have no authority to bind [Company Name] or make commitments on our behalf.
+Affiliates are independent contractors. Nothing in these Affiliate Terms creates an employment, agency, partnership, or joint venture relationship. You have no authority to bind `[LEGAL ENTITY NAME]` or make commitments on our behalf.
 
 ## 10. Contact
 
-Affiliate program questions: [affiliates@example.com]
+Affiliate program questions: `[AFFILIATE EMAIL]`

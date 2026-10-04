@@ -1,7 +1,12 @@
-﻿import { MarketingShell } from "@/components/MarketingShell";
+import { MarketingShell } from "@/components/MarketingShell";
 import Link from "next/link";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "Fuel Cost Calculator | AutoEco", description: "Estimate how much you spend on fuel per month and year." };
+export const metadata = pageMeta({
+  title: "Fuel Cost Calculator",
+  description: "Estimate how much you spend on fuel per month and year.",
+  path: "/calculators/fuel-cost",
+});
 
 export default function FuelCostPage() {
   return (

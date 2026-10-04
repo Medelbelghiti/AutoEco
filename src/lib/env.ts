@@ -16,6 +16,7 @@ export const env = {
   paddleWebhookSecret: process.env.PADDLE_WEBHOOK_SECRET ?? "",
   paddleSellerId: process.env.PADDLE_SELLER_ID ?? "",
   paddleProPriceId: process.env.PADDLE_PRO_PRICE_ID ?? "",
+  paddleFamilyPriceId: process.env.PADDLE_FAMILY_PRICE_ID ?? "",
   paddleBusinessPriceId: process.env.PADDLE_BUSINESS_PRICE_ID ?? "",
   paddleLifetimePriceId: process.env.PADDLE_LIFETIME_PRICE_ID ?? "",
   // The Paddle.js client-side token (browser). NEXT_PUBLIC_ so it ends up
@@ -56,7 +57,7 @@ export function paddleConfigured(): boolean {
     env.paddleApiKey &&
       env.paddleWebhookSecret &&
       env.paddleSellerId &&
-      (env.paddleProPriceId || env.paddleBusinessPriceId || env.paddleLifetimePriceId)
+      (env.paddleProPriceId || env.paddleFamilyPriceId || env.paddleBusinessPriceId || env.paddleLifetimePriceId)
   );
 }
 
@@ -86,8 +87,60 @@ export function paddleEnvironment(): "sandbox" | "live" {
 }
 
 /**
+ * Email is considered configured only when a real transport is selected AND
+ * reachable. Anything else silently degrades to ConsoleProvider, which
+ * "sends" by writing to the server log — meaning verification and password
+ * reset emails reach nobody while the UI reports success.
+ */
+export function emailConfigured(): boolean {
+  return env.emailProvider === "smtp" && Boolean(env.smtpHost);
+}
+
+/**
+ * Soft production misconfigurations. These must NOT crash the app — a
+ * missing SMTP host should degrade visibility, not take the whole site
+ * down — but they are surfaced on /api/health, the admin dashboard and the
+ * boot log so they cannot go unnoticed.
+ */
+export function prodWarnings(): string[] {
+  const w: string[] = [];
+  if (!env.isProd) return w;
+
+  if (!emailConfigured()) {
+    w.push(
+      `EMAIL_PROVIDER="${env.emailProvider}" with SMTP_HOST="${env.smtpHost ? "set" : "empty"}" — ` +
+        "transactional email (verification, password reset, billing) will NOT be delivered. " +
+        "Set EMAIL_PROVIDER=smtp and SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASS."
+    );
+  }
+  if (/@example\.com/i.test(env.emailFrom)) {
+    w.push(
+      `EMAIL_FROM="${env.emailFrom}" still points at example.com — transactional email will be rejected or undeliverable.`
+    );
+  }
+  if (paddleConfigured() && env.paddleClientToken === "") {
+    w.push(
+      "NEXT_PUBLIC_PADDLE_CLIENT_TOKEN is empty — the Paddle.js checkout cannot open in the browser even though the server is configured."
+    );
+  }
+  if (paddleEnvironment() === "sandbox" && paddleConfigured()) {
+    w.push(
+      "PADDLE_ENV is not \"live\" — checkouts run against Paddle sandbox and no real money is charged."
+    );
+  }
+  if (!env.captchaProvider) {
+    w.push(
+      "CAPTCHA_PROVIDER is not configured — signup/login are protected only by IP rate limiting."
+    );
+  }
+  return w;
+}
+
+/**
  * Production safety audit. Returns a list of problems.
  * Empty array means production deployment is safe.
+ *
+ * These are HARD failures (missing/weak secrets) — unlike `prodWarnings()`.
  */
 export function assertProdSafety(): string[] {
   const problems: string[] = [];
@@ -112,12 +165,22 @@ export function assertProdSafety(): string[] {
 
 /**
  * Throws on boot in production if required secrets are missing.
- * Safe to call from middleware or any module-level init.
+ * Safe to call from `instrumentation.ts` or any module-level init.
+ *
+ * Soft misconfigurations (email, Paddle sandbox mode, CAPTCHA) are logged
+ * via `prodWarnings()` but never throw — they must not take the site down.
  */
 let _asserted = false;
 export function assertProdOnBoot(): void {
   if (_asserted) return;
   _asserted = true;
+
+  const warnings = prodWarnings();
+  if (warnings.length > 0) {
+    // eslint-disable-next-line no-console
+    console.warn("[AutoEco] Production configuration warnings:\n  - " + warnings.join("\n  - "));
+  }
+
   const problems = assertProdSafety();
   if (problems.length > 0) {
     // eslint-disable-next-line no-console

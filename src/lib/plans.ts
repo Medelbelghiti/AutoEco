@@ -33,6 +33,14 @@ export async function getFreePlan(): Promise<Plan | null> {
   return db.plan.findFirst({ where: { key: "free", active: true } });
 }
 
+/**
+ * Grace period for a `past_due` subscription (failed renewal payment).
+ * Paddle/Stripe will keep retrying; we keep access during dunning but not
+ * indefinitely. Without a bound, a permanently failed card would grant paid
+ * access forever.
+ */
+const PAST_DUE_GRACE_DAYS = 14;
+
 export async function getEntitlements(user: User): Promise<Entitlements> {
   const now = new Date();
 
@@ -52,7 +60,12 @@ export async function getEntitlements(user: User): Promise<Entitlements> {
 
   if (subscription && (subscription.status === "active" || subscription.status === "trialing")) {
     const periodEnd = subscription.currentPeriodEnd;
-    if (!periodEnd || periodEnd > now || subscription.cancelAtPeriodEnd === false) {
+    // `cancelAtPeriodEnd` does NOT extend access past `currentPeriodEnd` —
+    // it means "the customer asked us to stop at the end of the period they
+    // already paid for". Access therefore requires an unexpired period.
+    // (The previous `|| cancelAtPeriodEnd === false` disjunct made this check
+    // a no-op, so an expired subscription kept granting paid entitlements.)
+    if (!periodEnd || periodEnd > now) {
       return planEntitlements(subscription.plan, {
         subscriptionStatus: subscription.status,
         currentPeriodEnd: periodEnd,
@@ -61,8 +74,20 @@ export async function getEntitlements(user: User): Promise<Entitlements> {
     }
   }
 
+  if (subscription && subscription.status === "past_due") {
+    const periodEnd = subscription.currentPeriodEnd;
+    const graceEnd = new Date(now.getTime() + PAST_DUE_GRACE_DAYS * 24 * 60 * 60 * 1000);
+    if (!periodEnd || periodEnd > graceEnd) {
+      return planEntitlements(subscription.plan, {
+        subscriptionStatus: "past_due",
+        currentPeriodEnd: periodEnd,
+        trialEndsAt: null,
+      });
+    }
+  }
+
   const trial = await getTrialSettings();
-  if (trial.trial_enabled && user.trialEndsAt && user.trialEndsAt > now) {
+  if (trial.trial_enabled && !user.trialUsed && user.trialEndsAt && user.trialEndsAt > now) {
     const free = await getFreePlan();
     const base = free ?? (await db.plan.findFirst({ where: { key: "free" } }));
     if (base) {
@@ -84,9 +109,15 @@ export async function getEntitlements(user: User): Promise<Entitlements> {
     }
   }
 
-  const free = user.planId
+  // Fallback. `User.planId` alone must NEVER grant paid entitlements: if a
+  // subscription lapses, the webhook resets planId — but if it did not run
+  // (delivery failure, manual DB edit, provider outage) the stale pointer
+  // would silently keep paid limits alive. Only a genuinely free plan is
+  // honoured here; anything paid falls back to the free plan.
+  const fallback = user.planId
     ? await db.plan.findUnique({ where: { id: user.planId } })
     : await getFreePlan();
+  const free = fallback && fallback.priceCents === 0 ? fallback : await getFreePlan();
   if (free) {
     return planEntitlements(free, {
       subscriptionStatus: "free",

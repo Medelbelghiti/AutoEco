@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
 
 export default function FuelCostCalculatorAlias() {
-  redirect("/calculators/fuel-cost");
+  permanentRedirect("/calculators/fuel-cost");
 }

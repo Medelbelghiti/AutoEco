@@ -1,61 +1,111 @@
 # Privacy Policy
 
-> **This document is a template placeholder and does not constitute legal advice. Have it reviewed by qualified legal counsel before public launch.**
+> **This document is a template placeholder and does not constitute legal advice. Have it reviewed by qualified legal counsel before public launch. Every `[SQUARE_BRACKET]` value below must be replaced before launch.**
 
 **Last updated:** 2026-01-01
 
-This Privacy Policy explains how [Company Name] ("we", "us", "our") collects, uses, and protects personal data when you use LeadGen 2.0 (the "Service"). This policy is drafted with the EU General Data Protection Regulation (GDPR) and similar privacy laws in mind.
+This Privacy Policy explains how `[LEGAL ENTITY NAME]` ("we", "us", "our") collects, uses, and
+protects personal data when you use AutoEco (the "Service"). This policy is drafted with the EU
+General Data Protection Regulation (GDPR) and similar privacy laws in mind.
+
+AutoEco is a financial record-keeping and calculation tool for vehicle ownership. It is **not** a
+vehicle diagnostic or safety service.
 
 ## 1. Data We Collect
 
-**Account data.** When you register, we collect your name, email address, password (stored hashed), billing information (processed by our payment processor — we do not store full card numbers), and account preferences.
+**Account data.** When you register we collect your email address, a hashed password, an optional
+name, your locale, and your preferences (currency, distance unit, fuel unit). We never store your
+password in plain text.
 
-**Usage data.** We collect information about how you use the Service, such as searches performed (keywords, regions), feature usage, plan and quota consumption, log data (IP address, browser type, timestamps), and diagnostic data used to operate and secure the Service.
+**Vehicle and cost data you enter.** This is the core of the Service, and it belongs to you:
 
-**Lead data you collect.** The Service lets you save publicly listed business information (business names, addresses, phone numbers, websites, categories) into your CRM, along with your own notes, tags, and statuses. This lead data is stored in your account and is accessible to you for organization and export. You are the controller of the lead data you collect; you are responsible for having a lawful basis for any further use of it (e.g., outreach).
+- Vehicles you add (make, model, year, trim, engine, drivetrain, mileage, optional license plate
+  and VIN, optional notes);
+- Fuel entries (date, amount, currency, litres or kWh, price per unit, odomometer reading, station,
+  computed consumption);
+- Expenses (date, category, amount, currency, merchant, mileage, notes, recurrence flag);
+- Receipt images you upload for scanning;
+- Generated reports, forecasts and scenarios.
 
-**Communications.** If you contact us or subscribe to updates, we collect the content of those communications and your contact details.
+**Billing data.** Paid plans are processed by our payment processor (Paddle, and Stripe for
+historical subscriptions). They receive your payment details and return subscription status,
+invoices and transaction identifiers. **We do not store full card numbers.**
+
+**Technical data.** IP address, user agent, request timestamps, authentication events, failed login
+attempts, and audit logs used to operate, secure and debug the Service.
+
+**Analytics events.** We record product events (signup, login, checkout started, subscription
+changed, export created) internally. Event metadata is filtered to strip anything that could
+contain personal data such as email addresses, names or vehicle identifiers. External analytics
+forwarding is not enabled by default.
 
 ## 2. How We Use Data
 
 We use collected data to:
 
-- Provide, operate, and maintain the Service (including executing searches via configured data providers on your behalf);
-- Manage accounts, subscriptions, billing, trials, coupons, referral and affiliate programs;
-- Enforce quotas, fair-use limits, and our Acceptable Use Policy; prevent fraud and abuse;
-- Improve and develop the Service, including through aggregated or de-identified analytics;
-- Communicate with you about your account, service updates, and (with your consent where required) marketing — you can opt out at any time;
-- Comply with legal obligations.
+- Provide, operate and maintain the Service (calculating cost per month, cost per kilometer and
+  forecasts from the data you enter);
+- Manage accounts, subscriptions, trials, invoices, referrals and plan limits;
+- Answer your questions in **Ask Your Car**, using figures computed from your own records;
+- Enforce quotas and our Acceptable Use Policy, and prevent fraud and abuse;
+- Improve the Service through internal, de-identified analytics;
+- Communicate with you about your account and service changes;
+- Comply with legal, tax and accounting obligations.
 
-Legal bases under GDPR include: performance of a contract (providing the Service), legitimate interests (security, improvement, fraud prevention), consent (where required, e.g., certain cookies/marketing), and legal obligation.
+Legal bases under GDPR include: performance of a contract (providing the Service), legitimate
+interests (security, fraud prevention, service improvement), consent (where required), and legal
+obligation.
+
+### Ask Your Car and AI
+
+Ask Your Car answers questions using figures **computed from your own recorded expenses, fuel
+entries and distance**. When no LLM key is configured, answers are produced by a deterministic
+engine that only performs arithmetic on your data. If an LLM is configured, it receives the same
+verified figures to phrase the response; it is not given your raw records and it is not permitted
+to invent numbers. If AutoEco does not have enough of your data to answer, it says so.
 
 ## 3. Cookies
 
-We use the following categories of cookies and similar technologies:
+We use a deliberately small set of cookies:
 
-- **Essential cookies** — required for the Service to function (authentication, session management, security, load balancing). These cannot be disabled.
-- **Analytics cookies** — help us understand how the Service is used so we can improve it (e.g., aggregated usage statistics). Set only with your consent where required by law.
-- **Marketing cookies** — used for campaign attribution, referral/affiliate tracking, and measuring marketing effectiveness. Set only with your consent where required by law.
-
-You can manage cookie preferences through our cookie banner and your browser settings. Disabling non-essential cookies does not affect core functionality.
+- **Essential — always on.** Session authentication (`lg_session`), your locale preference
+  (`lg_locale`), and referral attribution (`lg_aff`). These cannot be disabled because the Service
+  cannot function without them.
+- **Analytics — optional.** Where required by law, aggregate usage measurement is only enabled with
+  consent. You can decline without losing any functionality.
 
 ## 4. Third Parties
 
-We share data with trusted third parties only as needed to operate the Service:
+We share data only as needed to operate the Service:
 
-- **Payment processing:** Stripe — processes payments and billing; receives the data necessary to complete transactions.
-- **Email provider:** [Email Provider Name] — sends transactional and (with consent) marketing emails.
-- **Data providers:** OpenStreetMap, Google Places, and other configured providers — receive your search queries (e.g., niche and location) to return business listings. Queries are sent in accordance with each provider's terms.
-- **Infrastructure/analytics providers:** hosting, monitoring, and analytics services acting as processors under data processing agreements where applicable.
+- **Payment processing:** Paddle (and Stripe for historical subscriptions) — processes payments and
+  returns subscription and invoice status.
+- **Email delivery:** our SMTP provider, for transactional email such as password reset and
+  billing notices.
+- **Infrastructure:** database hosting, application hosting and email delivery, acting as
+  processors.
+- **Optional AI:** if configured, an LLM provider receives computed financial figures in order to
+  phrase an answer.
 
-We do not sell your personal data. We may disclose data if required by law or to protect rights, safety, and security.
+We do **not** sell your personal data and we do not run advertising or ad tracking.
 
-## 5. Data Retention
+## 5. Data Retention and Export
 
-- **Account data** is retained while your account is active and for a limited period after closure as needed for legal, tax, and dispute-resolution purposes.
-- **Usage and log data** is retained for a limited period (typically [e.g., 12] months) and then deleted or anonymized.
-- **Lead data you save** is retained until you delete it or close your account.
-- **Affiliate/referral records** are retained as needed to administer the programs and meet accounting obligations.
+**Export.** You can download everything you have entered as CSV at any time from
+**Settings → Your data**, or via `GET /api/export`. The export includes vehicles, expenses and fuel
+entries. Receipt images are not included in the CSV — only their references. Rows marked
+`isDemo=true` are sample data seeded into your account, not entries you typed.
+
+**Deletion.** You can delete your account from **Settings → Danger zone**. When you do:
+
+- your name and email address are permanently erased (the email address is replaced with a
+  non-routable placeholder);
+- all of your API keys are immediately revoked;
+- your session is terminated and you lose access to the Service immediately.
+
+**Retained records.** Anonymized billing records and expense rows are retained after deletion
+because tax and accounting law requires us to retain financial records. These retained rows are
+no longer linked to your email address, name or account.
 
 ## 6. Your Rights
 
@@ -63,31 +113,40 @@ Subject to applicable law (including GDPR), you have the right to:
 
 - **Access** the personal data we hold about you;
 - **Rectify** inaccurate data;
-- **Export** your data in a portable format (account and CRM exports are available in the product);
-- **Delete** your data ("right to be forgotten"), including deleting your account;
-- **Restrict or object** to certain processing, and withdraw consent where processing is based on consent;
+- **Export** your data in a portable format — available directly in the product as CSV;
+- **Delete** your account and data, available directly in the product;
+- **Restrict or object** to certain processing, and withdraw consent where processing relies on it;
 - **Lodge a complaint** with your local data protection authority.
 
-To exercise these rights, contact [privacy@example.com]. We may need to verify your identity before acting on a request.
+To exercise these rights, use the in-product export and delete features, or contact
+`[PRIVACY EMAIL]`. We may need to verify your identity before acting on a request.
 
 ## 7. Security Measures
 
-We apply technical and organizational measures appropriate to the risk, including encryption in transit (TLS), hashed password storage, access controls on a need-to-know basis, and monitoring for abuse and vulnerabilities. No method of transmission or storage is 100% secure; if a breach affecting your data occurs, we will notify you and authorities as required by law.
+We apply technical and organizational measures appropriate to the risk, including encryption in
+transit (TLS), hashed password storage, hashed API keys, access controls on a need-to-know basis,
+per-account authorization checks on every request, rate limiting, and monitoring for abuse. No
+method of transmission or storage is 100% secure; if a breach affecting your data occurs, we will
+notify you and authorities as required by law.
 
 ## 8. International Transfers
 
-Your data may be processed in countries other than your own, including where our providers operate. Where personal data is transferred outside the EEA/UK, we rely on appropriate safeguards such as Standard Contractual Clauses or adequacy decisions, as required by applicable law.
+Your data may be processed in countries other than your own, including where our providers operate.
+Where personal data is transferred outside the EEA/UK, we rely on appropriate safeguards such as
+Standard Contractual Clauses or adequacy decisions, as required by applicable law.
 
 ## 9. Children
 
-The Service is not directed at children, and we do not knowingly collect personal data from anyone under 18.
+The Service is not directed at children, and we do not knowingly collect personal data from anyone
+under 18.
 
 ## 10. Changes to This Policy
 
-We may update this policy from time to time. Material changes will be announced via the Service or email with reasonable advance notice. The "Last updated" date reflects the latest revision.
+We may update this policy from time to time. Material changes will be announced via the Service or
+email with reasonable advance notice. The "Last updated" date reflects the latest revision.
 
 ## 11. Contact
 
-Privacy questions and data requests: [privacy@example.com]
+Privacy questions and data requests: `[PRIVACY EMAIL]`
 
-Data Controller: [Company Name] — [Street Address], [City], [Country]
+Data Controller: `[LEGAL ENTITY NAME]` — `[REGISTERED ADDRESS]`

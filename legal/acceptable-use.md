@@ -1,47 +1,72 @@
 # Acceptable Use Policy
 
-> **This document is a template placeholder and does not constitute legal advice. Have it reviewed by qualified legal counsel before public launch.**
+> **This document is a template placeholder and does not constitute legal advice. Have it reviewed by qualified legal counsel before public launch. Every `[SQUARE_BRACKET]` value below must be replaced before launch.**
 
 **Last updated:** 2026-01-01
 
-This Acceptable Use Policy ("AUP") defines what is and is not allowed when using LeadGen 2.0 (the "Service"), operated by [Company Name]. It forms part of our [Terms of Service](terms.md). By using the Service, you agree to this AUP.
+This Acceptable Use Policy ("AUP") defines what is and is not allowed when using AutoEco (the
+"Service"), operated by `[LEGAL ENTITY NAME]`. It forms part of our
+[Terms of Service](terms.md). By using the Service, you agree to this AUP.
 
 ## 1. Purpose
 
-The Service helps users discover publicly listed businesses through legitimate data providers and organize them for lawful B2B purposes. This AUP protects our users, data providers, email ecosystems, and the integrity of the Service.
+The Service helps users keep an honest financial record of what their vehicles cost them. This AUP
+protects the integrity of the Service, the accuracy of the data our users rely on, and the fairness
+of the plans we offer.
 
 ## 2. Prohibited Conduct
 
 You must not use the Service to:
 
-### 2.1 Illegal spam and unsolicited communications
-- Send spam or bulk unsolicited messages, or build lists primarily for that purpose.
-- Violate applicable anti-spam and marketing laws, including but not limited to **CAN-SPAM** (US), **GDPR** and ePrivacy rules (EU/EEA/UK), and **CASL** (Canada), or equivalent laws in any jurisdiction you target. You are solely responsible for knowing and following the rules that apply to your outreach (consent requirements, identification, opt-out mechanisms, etc.).
+### 2.1 Mechanical and safety misuse
 
-### 2.2 Provider terms violations
-- Resell, redistribute, or publish raw provider data in violation of the applicable provider's terms (e.g., OpenStreetMap ODbL, Google Places terms).
-- Remove or obscure required provider attribution.
-- Use the Service to create a competing database or service in violation of provider terms.
+- Treat any output of the Service as a mechanical diagnosis, inspection result, safety assessment, or
+  advice on whether a vehicle is roadworthy;
+- Skip, delay, or avoid required maintenance, inspection, or repair because a figure in the Service
+  suggests the cost is acceptable.
+
+### 2.2 False or misleading records
+
+- Enter fabricated, estimated-as-actual, or knowingly inaccurate fuel, mileage, expense, or vehicle
+  data in order to manipulate your own reports or those of another user;
+- Upload receipts or documents that are not yours.
 
 ### 2.3 Technical abuse
-- Scrape, crawl, or bulk-extract data from the Service or from data providers outside the features and limits we provide.
-- Bypass or attempt to bypass rate limits, quotas, CAPTCHAs, access controls, or other technical protections.
-- Probe, scan, or test the vulnerability of the Service, or interfere with its operation (e.g., denial-of-service activity).
-- Use automated tools or scripts to access the Service in ways inconsistent with normal product usage.
+
+- Scrape, crawl, or bulk-extract data from the Service outside the features and limits we provide;
+- Bypass or attempt to bypass rate limits, quotas, API key restrictions, access controls, or other
+  technical protections;
+- Probe, scan, or test the vulnerability of the Service, or interfere with its operation (e.g.,
+  denial-of-service activity);
+- Use automated tools or scripts to access the Service in ways inconsistent with normal product
+  usage, except using the documented API within your plan's limits.
 
 ### 2.4 Account and platform abuse
-- Create or use multiple accounts to obtain repeated free trials, exceed plan limits, or evade enforcement actions.
-- Abuse coupons, referral rewards, or affiliate commissions (including self-referrals and fraudulent sign-ups).
-- Share account credentials or resell access to the Service.
 
-### 2.5 Deception and unlawful use
-- Misrepresent your identity, affiliation, or the purpose of your data collection.
-- Use the Service for any unlawful purpose, including harassment, discrimination, or targeting individuals rather than businesses.
-- Collect or use data in ways that violate applicable privacy, data protection, or consumer protection laws.
+- Create or use multiple accounts to obtain repeated free trials, exceed plan limits, or evade
+  enforcement actions;
+- Abuse coupons, referral rewards, or affiliate commissions (including self-referrals and
+  fraudulent sign-ups);
+- Share account credentials or resell access to the Service;
+- Use the Service on behalf of another person without their authorization.
 
-## 3. Your Responsibility for Lead Data
+### 2.5 Unlawful use
 
-You are the controller of the lead data you collect and export. Before contacting any business or individual whose details you obtained through the Service, ensure you have a lawful basis and comply with all applicable marketing and privacy laws. Where required, honor opt-outs promptly and maintain suppression lists.
+- Use the Service for any unlawful purpose;
+- Collect or use data in ways that violate applicable privacy, data protection, or consumer
+  protection laws.
+
+### 2.6 Reverse engineering and intellectual property
+
+- Copy, reproduce, or create derivative works of the Service, its design, or its branding, except
+  as permitted by law;
+- Remove or obscure proprietary notices, or use our trademarks in a misleading way.
+
+## 3. Your Responsibility for Your Data
+
+You are responsible for the accuracy of the data you enter and for keeping it lawful to store and
+process in your jurisdiction. We treat your records as your own; we do not verify the truth of the
+figures you enter.
 
 ## 4. Enforcement and Consequences
 
@@ -54,12 +79,14 @@ We may investigate suspected violations. Depending on severity and history, we m
 - Withhold or reverse referral/affiliate rewards obtained through abuse;
 - Report unlawful conduct to relevant authorities.
 
-We reserve the right to act immediately and without prior notice where necessary to protect the Service, providers, or third parties.
+We reserve the right to act immediately and without prior notice where necessary to protect the
+Service or other users.
 
 ## 5. Reporting Violations
 
-To report abuse of the Service, contact [abuse@example.com] with relevant details.
+To report abuse of the Service, contact `[ABUSE EMAIL]` with relevant details.
 
 ## 6. Changes to This Policy
 
-We may update this AUP from time to time. Material changes will be announced with reasonable advance notice. Continued use after the effective date constitutes acceptance.
+We may update this AUP from time to time. Material changes will be announced with reasonable advance
+notice. Continued use after the effective date constitutes acceptance.

@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { MarketingShell } from "@/components/MarketingShell";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "Compare cars | AutoEco", description: "Compare two vehicles by monthly cost, annual cost, and 3-year ownership cost." };
+export const metadata = pageMeta({
+  title: "Compare Cars",
+  description: "Compare two vehicles by monthly cost, annual cost, and 3-year ownership cost.",
+  path: "/car-comparison",
+});
 
 export default function CarComparisonPage() {
   return (

@@ -39,6 +39,7 @@ import { db } from "./db";
 import { createNotification } from "./notifications";
 import { sendEmail, tplPaymentSuccess, tplPaymentFailed, tplSubscriptionCanceled } from "./email";
 import { auditLog } from "./audit";
+import { env } from "./env";
 import { claim, reclaimStale, markProcessed, markFailed, tryClaimSideEffect } from "./webhook-state";
 
 // Re-export so existing tests and callers of stripe-webhook.ts continue
@@ -276,7 +277,7 @@ async function onInvoicePaymentFailed(invoice: Stripe.Invoice, eventId: string):
     await createNotification({ userId, type: "PAYMENT_FAILED", title: "Payment failed", link: "/settings/billing" });
   }
   if (await tryClaimSideEffect(eventId, "PAYMENT_FAILED_EMAIL")) {
-    await sendEmail({ ...tplPaymentFailed(user.name, "/settings/billing"), to: user.email });
+    await sendEmail({ ...tplPaymentFailed(user.name, env.appUrl), to: user.email });
   }
 }
 

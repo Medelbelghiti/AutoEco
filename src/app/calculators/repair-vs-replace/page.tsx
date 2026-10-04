@@ -1,7 +1,12 @@
-﻿import { MarketingShell } from "@/components/MarketingShell";
+import { MarketingShell } from "@/components/MarketingShell";
 import Link from "next/link";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "Repair vs Replace | AutoEco", description: "Financial comparison only. Not mechanical advice." };
+export const metadata = pageMeta({
+  title: "Repair vs Replace Calculator",
+  description: "Financial comparison only. Not mechanical advice.",
+  path: "/calculators/repair-vs-replace",
+});
 
 export default function RepairVsReplacePage() {
   return (

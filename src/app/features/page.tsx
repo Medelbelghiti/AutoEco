@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { MarketingShell } from "@/components/MarketingShell";
 import { Car, Fuel, Receipt, LineChart, FileText, Sparkles, ShieldCheck, Calculator, GitCompare, Wrench } from "lucide-react";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = {
-  title: "Features | AutoEco",
+export const metadata = pageMeta({
+  title: "Features",
   description: "Everything AutoEco does to help you understand what your car really costs.",
-};
+  path: "/features",
+});
 
 const FEATURES = [
   { icon: Car, title: "Garage", desc: "Track one or many vehicles. Manual entry, no external lookup required." },

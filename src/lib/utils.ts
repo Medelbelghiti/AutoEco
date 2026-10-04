@@ -19,7 +19,7 @@ export function generateReferralCode(name?: string | null): string {
     .toUpperCase()
     .padEnd(3, "X");
   const suffix = crypto.randomBytes(3).toString("hex").toUpperCase();
-  return `LEADGEN-${base}${suffix}`;
+  return `AUTOECO-${base}${suffix}`;
 }
 
 export function currentMonthKey(d = new Date()): string {

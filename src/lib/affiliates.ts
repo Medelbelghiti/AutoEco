@@ -12,6 +12,14 @@ export async function recordAffiliateClick(): Promise<void> {}
 export async function attributeAffiliateOnSignup(): Promise<void> {}
 export async function processAffiliateCommission(): Promise<void> {}
 export async function markAffiliatePaid(): Promise<void> {}
+/**
+ * Build a shareable referral/affiliate link.
+ *
+ * The affiliate programme is not enabled yet (`affiliate_enabled` is off
+ * and every affiliate stub is a no-op), so this builder must not emit a URL
+ * that 404s. `referrals.ts` already uses the working `/signup?ref=` form;
+ * do the same here so wiring the programme up later cannot ship a dead link.
+ */
 export function buildAffiliateLink(appUrl: string, code: string): string {
-  return `${appUrl}/r/${encodeURIComponent(code)}`;
+  return `${appUrl}/signup?ref=${encodeURIComponent(code)}`;
 }

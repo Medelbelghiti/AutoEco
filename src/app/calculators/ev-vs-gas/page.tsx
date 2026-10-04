@@ -1,7 +1,12 @@
-﻿import { MarketingShell } from "@/components/MarketingShell";
+import { MarketingShell } from "@/components/MarketingShell";
 import Link from "next/link";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "EV vs Gas | AutoEco", description: "Quick comparison of EV vs gasoline running cost." };
+export const metadata = pageMeta({
+  title: "EV vs Gas Calculator",
+  description: "Quick comparison of EV vs gasoline running cost.",
+  path: "/calculators/ev-vs-gas",
+});
 
 export default function EvVsGasPage() {
   return (

@@ -82,7 +82,10 @@ html, body {
 }
 
 .progress { height: 6px; background: rgb(var(--border)); border-radius: 999px; overflow: hidden; }
-.progress > span { display: block; height: 100%; background: rgb(var(--accent)); transition: width 200ms ease; }
+.progress > span { display: block; height: 100%; transition: width 200ms ease; }
+.progress > span:not([class]) { background: rgb(var(--accent)); }
+
+.shadow-elevated { @apply shadow-lg shadow-charcoal-900/5 dark:shadow-black/40; }
 
 table.basic { width: 100%; border-collapse: collapse; }
 table.basic th, table.basic td {

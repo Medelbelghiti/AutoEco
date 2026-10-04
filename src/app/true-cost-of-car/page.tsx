@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
 
 export default function TrueCostOfCarAlias() {
-  redirect("/calculators/car-cost");
+  permanentRedirect("/calculators/car-cost");
 }

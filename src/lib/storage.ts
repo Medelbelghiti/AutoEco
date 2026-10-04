@@ -1,4 +1,4 @@
-﻿import { randomToken } from "./utils";
+import { randomToken } from "./utils";
 import fs from "node:fs/promises";
 import path from "node:path";
 
