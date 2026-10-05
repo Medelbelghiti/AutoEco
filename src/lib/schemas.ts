@@ -6,6 +6,7 @@ export const SignupSchema = z.object({
   name: z.string().min(1).max(80).optional(),
   ref: z.string().max(40).optional(),
   locale: z.enum(["en", "fr", "ar"]).optional(),
+  captchaToken: z.string().max(4096).optional(),
 });
 
 export const LoginSchema = z.object({

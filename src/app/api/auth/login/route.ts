@@ -45,7 +45,7 @@ export const POST = withErrorHandling(async (req) => {
     where: { id: user.id },
     data: { failedLoginAttempts: 0, lockedUntil: null, lastLoginAt: new Date() },
   });
-  await createSession(user.id);
+  await createSession(user.id, user.sessionVersion);
   await auditLog({ userId: user.id, action: "login.success", ip });
   await trackEvent("login", { userId: user.id });
 

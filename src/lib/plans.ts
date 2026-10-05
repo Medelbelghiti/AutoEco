@@ -4,6 +4,20 @@ import { safeJsonParse } from "./utils";
 import { currentMonthKey } from "./utils";
 import type { Plan, User } from "@prisma/client";
 
+/**
+ * Features that are modelled in the database (limits, flags) but NOT built
+ * yet. They must never be sold as available. Remove an entry here the day
+ * the feature actually ships.
+ */
+export const COMING_SOON_FEATURES = {
+  receiptScanning: true, // OCR provider is not wired (DefaultOcrProvider is "disabled")
+  familySharing: true, // no invite / shared-household code exists
+  apiAccess: true, // API-key auth exists in lib/api-keys.ts but no route uses it
+} as const;
+
+/** Plans whose headline feature is not built; hidden from pricing and checkout. */
+export const UNAVAILABLE_PLAN_KEYS: string[] = ["family"];
+
 export interface Entitlements {
   planKey: string;
   planName: string;
@@ -39,7 +53,8 @@ export async function getFreePlan(): Promise<Plan | null> {
  * indefinitely. Without a bound, a permanently failed card would grant paid
  * access forever.
  */
-const PAST_DUE_GRACE_DAYS = 14;
+export { isPastDueGraceActive, PAST_DUE_GRACE_DAYS } from "./grace";
+import { isPastDueGraceActive } from "./grace";
 
 export async function getEntitlements(user: User): Promise<Entitlements> {
   const now = new Date();
@@ -75,19 +90,23 @@ export async function getEntitlements(user: User): Promise<Entitlements> {
   }
 
   if (subscription && subscription.status === "past_due") {
-    const periodEnd = subscription.currentPeriodEnd;
-    const graceEnd = new Date(now.getTime() + PAST_DUE_GRACE_DAYS * 24 * 60 * 60 * 1000);
-    if (!periodEnd || periodEnd > graceEnd) {
+    // Grace is measured FROM the end of the paid period (or from the moment
+    // the subscription was last updated if no period end is known). The old
+    // check compared periodEnd against now+14d, which revoked access the
+    // moment a renewal failed.
+    if (isPastDueGraceActive(subscription.currentPeriodEnd, subscription.updatedAt, now)) {
       return planEntitlements(subscription.plan, {
         subscriptionStatus: "past_due",
-        currentPeriodEnd: periodEnd,
+        currentPeriodEnd: subscription.currentPeriodEnd,
         trialEndsAt: null,
       });
     }
   }
 
   const trial = await getTrialSettings();
-  if (trial.trial_enabled && !user.trialUsed && user.trialEndsAt && user.trialEndsAt > now) {
+  if (trial.trial_enabled && !user.trialUsed && user.trialEndsAt && user.trialEndsAt > now && user.emailVerifiedAt) {
+    // Trial entitlements (AI/OCR quotas, extra vehicles) require a verified
+    // email, otherwise throwaway signups farm free AI usage.
     const free = await getFreePlan();
     const base = free ?? (await db.plan.findFirst({ where: { key: "free" } }));
     if (base) {

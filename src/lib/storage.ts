@@ -54,3 +54,28 @@ export function validateUpload(file: File): string | null {
   if (file.size <= 0) return "Empty file";
   return null;
 }
+
+/**
+ * Uploads are written to local disk. On serverless hosts (Vercel) that disk is
+ * ephemeral: every redeploy / cold instance silently loses every receipt while
+ * the database row still points at it. Refuse to accept uploads there unless
+ * STORAGE_DIR points at a mounted persistent volume.
+ */
+export function storageIsPersistent(): boolean {
+  const serverless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+  if (!serverless) return true;
+  return Boolean(process.env.STORAGE_DIR);
+}
+
+/** The client-declared MIME type is untrusted: confirm the leading bytes agree with it. */
+export function bytesMatchMime(head: Buffer, mime: string): boolean {
+  const startsWith = (sig: number[], off = 0) => sig.every((b, i) => head[off + i] === b);
+  switch (mime) {
+    case "image/jpeg": return startsWith([0xff, 0xd8, 0xff]);
+    case "image/png": return startsWith([0x89, 0x50, 0x4e, 0x47]);
+    case "application/pdf": return startsWith([0x25, 0x50, 0x44, 0x46]); // %PDF
+    case "image/webp": return startsWith([0x52, 0x49, 0x46, 0x46]) && startsWith([0x57, 0x45, 0x42, 0x50], 8);
+    case "image/heic": return startsWith([0x66, 0x74, 0x79, 0x70], 4); // "ftyp"
+    default: return false;
+  }
+}

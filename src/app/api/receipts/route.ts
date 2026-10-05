@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { withErrorHandling, ok } from "@/lib/http";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { saveFile, deleteFile, validateUpload } from "@/lib/storage";
+import { saveFile, deleteFile, validateUpload, storageIsPersistent, bytesMatchMime } from "@/lib/storage";
 import { getOcrProvider } from "@/lib/ocr";
 import { ALLOWED_CATEGORIES, normalizeCategory } from "@/lib/finance";
 import { getEntitlements } from "@/lib/plans";
@@ -30,6 +30,16 @@ export const POST = withErrorHandling(async (req) => {
   if (!(file instanceof File)) return NextResponse.json({ error: "Missing file" }, { status: 400 });
   const err = validateUpload(file);
   if (err) return NextResponse.json({ error: err }, { status: 400 });
+  const head = Buffer.from(await file.slice(0, 16).arrayBuffer());
+  if (!bytesMatchMime(head, file.type)) {
+    return NextResponse.json({ error: "File content does not match its declared type" }, { status: 400 });
+  }
+  if (!storageIsPersistent()) {
+    return NextResponse.json(
+      { error: "Receipt storage is not configured on this server yet.", code: "STORAGE_UNAVAILABLE" },
+      { status: 503 }
+    );
+  }
 
   // 2. Vehicle ownership check.
   const vehicleId = typeof vehicleIdRaw === "string" ? vehicleIdRaw : null;

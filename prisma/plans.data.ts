@@ -71,7 +71,7 @@ export const PLANS: PlanDefinition[] = [
     enableShareableReports: true,
     enableFamilySharing: false,
     enableApiAccess: false,
-    features: ["Up to 5 vehicles", "AI receipt scan", "Financial Twin"],
+    features: ["Up to 5 vehicles", "Ask Your Car", "Financial Twin", "What-if scenarios"],
     sortOrder: 1,
   },
   {
@@ -90,13 +90,13 @@ export const PLANS: PlanDefinition[] = [
     enableShareableReports: true,
     enableFamilySharing: true,
     enableApiAccess: false,
-    features: ["Up to 12 vehicles", "Family sharing"],
+    features: ["Up to 12 vehicles"],
     sortOrder: 2,
   },
   {
     key: "pro_plus",
     name: "Pro Plus",
-    description: "Power users + API.",
+    description: "Power users and small fleets.",
     priceCents: 1999,
     billingPeriod: "MONTHLY",
     maxVehicles: 50,
@@ -109,7 +109,7 @@ export const PLANS: PlanDefinition[] = [
     enableShareableReports: true,
     enableFamilySharing: true,
     enableApiAccess: true,
-    features: ["Up to 50 vehicles", "API access"],
+    features: ["Up to 50 vehicles", "Ask Your Car", "Financial Twin"],
     sortOrder: 3,
   },
 ];

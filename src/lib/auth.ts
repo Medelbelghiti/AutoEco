@@ -27,8 +27,13 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return bcrypt.compare(password, hash);
 }
 
-export async function createSession(userId: string): Promise<void> {
-  const token = await new SignJWT({ sub: userId })
+export async function createSession(userId: string, sessionVersion?: number): Promise<void> {
+  let sv = sessionVersion;
+  if (sv === undefined) {
+    const row = await db.user.findUnique({ where: { id: userId }, select: { sessionVersion: true } });
+    sv = row?.sessionVersion ?? 0;
+  }
+  const token = await new SignJWT({ sub: userId, sv })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${SESSION_DAYS}d`)
@@ -46,22 +51,31 @@ export function destroySession(): void {
   cookies().set(SESSION_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
 }
 
-export async function getSessionUserId(): Promise<string | null> {
+async function readSession(): Promise<{ userId: string; sv: number } | null> {
   const token = cookies().get(SESSION_COOKIE)?.value;
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, secretKey());
-    return typeof payload.sub === "string" ? payload.sub : null;
+    if (typeof payload.sub !== "string") return null;
+    // Tokens issued before sessionVersion existed carry no `sv` => 0.
+    const sv = typeof payload.sv === "number" ? payload.sv : 0;
+    return { userId: payload.sub, sv };
   } catch {
     return null;
   }
 }
 
+export async function getSessionUserId(): Promise<string | null> {
+  return (await readSession())?.userId ?? null;
+}
+
 export async function getCurrentUser(): Promise<User | null> {
-  const id = await getSessionUserId();
-  if (!id) return null;
-  const user = await db.user.findUnique({ where: { id } });
+  const session = await readSession();
+  if (!session) return null;
+  const user = await db.user.findUnique({ where: { id: session.userId } });
   if (!user || user.deletedAt) return null;
+  // Revoked session: password was changed/reset after this token was issued.
+  if ((user.sessionVersion ?? 0) !== session.sv) return null;
   return user;
 }
 

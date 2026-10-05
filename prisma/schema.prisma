@@ -17,6 +17,8 @@ model User {
   id           String  @id @default(cuid())
   email        String  @unique
   passwordHash String
+  // Bumped on password change/reset: invalidates every previously issued JWT.
+  sessionVersion Int @default(0)
   name         String?
   role         String  @default("USER") // USER | ADMIN
   locale       String  @default("en")
@@ -151,6 +153,8 @@ model Subscription {
   currentPeriodEnd     DateTime?
   cancelAtPeriodEnd    Boolean   @default(false)
   canceledAt           DateTime?
+  // occurred_at of the last provider webhook applied (out-of-order guard).
+  lastEventAt          DateTime?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 

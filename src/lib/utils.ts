@@ -63,7 +63,13 @@ export function csvCell(value: unknown): string {
 }
 
 export function getClientIp(req: Request): string {
+  // Prefer headers set by the platform edge over a client-controllable
+  // X-Forwarded-For prefix.
+  const vercel = req.headers.get("x-vercel-forwarded-for");
+  if (vercel) return vercel.split(",")[0].trim();
+  const real = req.headers.get("x-real-ip");
+  if (real) return real.trim();
   const fwd = req.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0].trim();
-  return req.headers.get("x-real-ip") ?? "unknown";
+  if (fwd) return fwd.split(",").pop()!.trim();
+  return "unknown";
 }

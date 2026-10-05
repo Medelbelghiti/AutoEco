@@ -41,16 +41,22 @@ export function BillingClient(props: Props) {
   const [msg, setMsg] = useState<string | null>(null);
 
   const openCustomerPortal = async () => {
-    if (typeof window === "undefined" || !window.Paddle) {
-      setMsg("Billing portal is not loaded yet. Try again in a moment.");
-      return;
-    }
+    setB(true);
+    setMsg(null);
     try {
-      window.Paddle.CustomerPortal.open({
-        ...(props.email ? { customer: { email: props.email } } : {}),
-      });
-    } catch (e) {
-      setMsg(e instanceof Error ? e.message : "Failed to open the customer portal");
+      // Paddle.js cannot open the customer portal; the server creates an
+      // authenticated portal session with the API key.
+      const r = await fetch("/api/billing/portal", { method: "POST" });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || typeof j?.url !== "string") {
+        setMsg(typeof j?.error === "string" ? j.error : "Failed to open the billing portal");
+        return;
+      }
+      window.location.assign(j.url);
+    } catch {
+      setMsg("Could not reach the server. Check your connection and try again.");
+    } finally {
+      setB(false);
     }
   };
 

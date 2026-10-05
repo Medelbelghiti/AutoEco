@@ -19,6 +19,8 @@ import { paddleWebhookConfigured, env } from "@/lib/env";
 import {
   verifyWebhookSignature,
   planKeyForPriceId,
+  paddleAmountToCents,
+  normalizeInvoiceCurrency,
   type PaddleWebhookPayload,
   type PaddlePlanKey,
 } from "@/lib/paddle";
@@ -172,6 +174,26 @@ function priceIdToPlanKey(priceId: string | undefined): PaddlePlanKey {
   return "pro";
 }
 
+
+/**
+ * Out-of-order protection. Paddle does not guarantee delivery order, so an
+ * older `subscription.updated` arriving after a newer `subscription.canceled`
+ * must NOT resurrect the subscription. We compare the event's `occurred_at`
+ * with the last event we applied to the same subscription.
+ */
+function eventTime(payload: PaddleWebhookPayload): Date {
+  const t = payload.occurred_at ? new Date(payload.occurred_at) : new Date();
+  return Number.isNaN(t.getTime()) ? new Date() : t;
+}
+
+async function isStaleForSubscription(paddleSubId: string, at: Date): Promise<boolean> {
+  const existing = await db.subscription.findUnique({
+    where: { paddleSubscriptionId: paddleSubId },
+    select: { lastEventAt: true },
+  });
+  return Boolean(existing?.lastEventAt && existing.lastEventAt > at);
+}
+
 async function onSubscriptionUpsert(payload: PaddleWebhookPayload, eventId: string): Promise<void> {
   const user = await findUser(payload);
   if (!user) {
@@ -195,6 +217,11 @@ async function onSubscriptionUpsert(payload: PaddleWebhookPayload, eventId: stri
   const paddleCustomerId = data.customer_id;
   const status = (data.status ?? "active").toLowerCase();
   if (!paddleSubId) return;
+  const at = eventTime(payload);
+  if (await isStaleForSubscription(paddleSubId, at)) {
+    await auditLog({ action: "paddle.webhook.stale_event_ignored", metadata: { eventId, type: payload.event_type, paddleSubId } });
+    return;
+  }
 
   // Determine the plan from the price id of the first item (if any).
   const priceId = data.items?.[0]?.price?.id;
@@ -212,7 +239,8 @@ async function onSubscriptionUpsert(payload: PaddleWebhookPayload, eventId: stri
 
   // Respect Paddle's real billing schedule instead of assuming 30 days,
   // and never wipe a customer-scheduled cancellation.
-  const periodStart = new Date();
+  const startsAt = data.current_billing_period?.starts_at ? new Date(data.current_billing_period.starts_at) : null;
+  const periodStart = startsAt && !Number.isNaN(startsAt.getTime()) ? startsAt : at;
   const nextBilled = data.next_billed_at ? new Date(data.next_billed_at) : null;
   const hasRealNextBill = nextBilled != null && !Number.isNaN(nextBilled.getTime());
   const periodEnd = isLifetime
@@ -247,6 +275,7 @@ async function onSubscriptionUpsert(payload: PaddleWebhookPayload, eventId: stri
       currentPeriodStart: periodStart,
       currentPeriodEnd: periodEnd,
       cancelAtPeriodEnd,
+      lastEventAt: at,
     },
     update: {
       planId: plan.id,
@@ -254,6 +283,7 @@ async function onSubscriptionUpsert(payload: PaddleWebhookPayload, eventId: stri
       currentPeriodStart: periodStart,
       currentPeriodEnd: periodEnd,
       cancelAtPeriodEnd,
+      lastEventAt: at,
     },
   });
 
@@ -277,9 +307,11 @@ async function onSubscriptionEnded(payload: PaddleWebhookPayload, eventId: strin
   if (!user) return;
   const paddleSubId = payload.data?.subscription_id;
   if (!paddleSubId) return;
+  const at = eventTime(payload);
+  if (await isStaleForSubscription(paddleSubId, at)) return;
   await db.subscription.updateMany({
     where: { paddleSubscriptionId: paddleSubId },
-    data: { status: "canceled", canceledAt: new Date() },
+    data: { status: "canceled", canceledAt: at, lastEventAt: at },
   });
   const stillActive = await db.subscription.count({ where: { userId: user.id, status: { in: ["active", "trialing", "lifetime"] } } });
   if (stillActive === 0) {
@@ -317,10 +349,13 @@ async function onPaymentFailed(payload: PaddleWebhookPayload, eventId: string): 
   const eventType = payload.event_type ?? "unknown";
 
   if (paddleSubId) {
-    // Never downgrade a lifetime purchase to past_due.
+    const at = eventTime(payload);
+    if (await isStaleForSubscription(paddleSubId, at)) return;
+    // Never downgrade a lifetime purchase to past_due, and never flip an
+    // already-canceled subscription back to past_due.
     await db.subscription.updateMany({
-      where: { paddleSubscriptionId: paddleSubId, status: { not: "lifetime" } },
-      data: { status: "past_due" },
+      where: { paddleSubscriptionId: paddleSubId, status: { notIn: ["lifetime", "canceled"] } },
+      data: { status: "past_due", lastEventAt: at },
     });
   }
 
@@ -349,11 +384,13 @@ async function onTransactionCompleted(payload: PaddleWebhookPayload, eventId: st
   if (!user) return;
   const orderId = data.id;
   if (!orderId) return;
-  // Paddle reports amounts in MAJOR units (e.g. 12.34 USD). Convert to cents.
-  const rawAmount = Number(data.details?.totals?.grand_total ?? 0);
-  const amountCents = Number.isFinite(rawAmount) ? Math.max(0, Math.round(rawAmount * 100)) : 0;
-  const rawCurrency = String(data.currency_code ?? data.details?.totals?.currency_code ?? "USD").toUpperCase();
-  const invoiceCurrency = (["USD", "EUR", "MAD", "GBP", "CAD"] as string[]).includes(rawCurrency) ? rawCurrency : "USD";
+  // Paddle Billing reports every amount as a STRING in the lowest
+  // denomination of the currency (e.g. "699" = $6.99). It is already "cents":
+  // multiplying by 100 again made invoices 100x too large.
+  const amountCents = paddleAmountToCents(data.details?.totals?.grand_total);
+  // Keep the real ISO 4217 code Paddle charged. Coercing unknown codes to USD
+  // recorded revenue in the wrong currency for every non-USD market.
+  const invoiceCurrency = normalizeInvoiceCurrency(data.currency_code ?? data.details?.totals?.currency_code);
 
   await db.invoice.upsert({
     where: { paddleOrderId: orderId },

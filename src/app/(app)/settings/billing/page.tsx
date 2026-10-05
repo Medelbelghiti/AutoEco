@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { UNAVAILABLE_PLAN_KEYS } from "@/lib/plans";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getEntitlements } from "@/lib/plans";
@@ -27,7 +28,7 @@ export default async function BillingPage() {
   });
   // `isDemo` marks test-created rows — they must never appear in a billing flow.
   const plans = await db.plan.findMany({
-    where: { active: true, isDemo: false },
+    where: { active: true, isDemo: false, key: { notIn: UNAVAILABLE_PLAN_KEYS } },
     orderBy: { sortOrder: "asc" },
   });
   const stripeBillingEnabled = stripeConfigured();

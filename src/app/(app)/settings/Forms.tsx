@@ -1,5 +1,6 @@
 "use client";
 
+import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -55,7 +56,7 @@ export function Preferences({ currency, distanceUnit, fuelUnit }: { userId: stri
 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         <div><label className="label" htmlFor="pref-currency">Currency</label>
           <select id="pref-currency" className="select" value={c} onChange={(e) => setC(e.target.value)}>
-            <option>USD</option><option>EUR</option><option>MAD</option><option>GBP</option><option>CAD</option>
+            {SUPPORTED_CURRENCIES.map((c) => (<option key={c} value={c}>{c}</option>))}
           </select>
         </div>
         <div><label className="label" htmlFor="pref-distance">Distance</label>

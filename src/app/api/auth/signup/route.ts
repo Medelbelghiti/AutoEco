@@ -6,6 +6,7 @@ import { hashPassword, createSession } from "@/lib/auth";
 import { getTrialSettings } from "@/lib/settings";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { verifyCaptcha } from "@/lib/captcha";
 import { getClientIp, randomToken, sha256 } from "@/lib/utils";
 import { sendEmail, tplWelcome, tplTrialStarted, tplEmailVerify } from "@/lib/email";
 import { createNotification } from "@/lib/notifications";
@@ -22,6 +23,9 @@ export const POST = withErrorHandling(async (req) => {
   }
 
   const body = await parseJson(req, SignupSchema);
+  if (!(await verifyCaptcha(body.captchaToken, ip))) {
+    return NextResponse.json({ error: "Captcha verification failed. Please try again." }, { status: 400 });
+  }
   const existing = await db.user.findUnique({ where: { email: body.email.toLowerCase() } });
   if (existing) return NextResponse.json({ error: "An account already exists for this email" }, { status: 409 });
 
@@ -69,7 +73,7 @@ export const POST = withErrorHandling(async (req) => {
     link: "/settings",
   });
 
-  await createSession(user.id);
+  await createSession(user.id, user.sessionVersion);
   await trackEvent("signup", { userId: user.id });
   if (trialEndsAt) await trackEvent("trial_started", { userId: user.id });
 

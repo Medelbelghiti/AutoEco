@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
+import { Turnstile, turnstileRequired } from "@/components/Turnstile";
 
 /**
  * Only same-origin, absolute-path redirects are allowed. This blocks
@@ -34,6 +35,7 @@ function SignupForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   const redirectTo = useMemo(() => safeNext(params.get("next")), [params]);
   const tooShort = password.length > 0 && password.length < 8;
@@ -50,7 +52,7 @@ function SignupForm() {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, captchaToken }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
@@ -123,8 +125,9 @@ function SignupForm() {
           </p>
           {tooShort && <p className="text-xs text-rose-600" role="alert">Password must be at least 8 characters.</p>}
         </div>
+        <Turnstile onToken={setCaptchaToken} />
         {error && <p className="text-sm text-rose-600" role="alert">{error}</p>}
-        <button className="btn btn-primary w-full" disabled={loading || tooShort}>
+        <button className="btn btn-primary w-full" disabled={loading || tooShort || (turnstileRequired && !captchaToken)}>
           {loading ? "Creating account…" : "Create account"}
         </button>
       </form>
