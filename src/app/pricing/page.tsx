@@ -40,6 +40,7 @@ function limitRows(p: {
   enableShareableReports: boolean;
   enableFamilySharing: boolean;
   enableApiAccess: boolean;
+  enablePdfReports: boolean;
 }): Array<[string, string]> {
   return [
     ["Vehicles", p.maxVehicles === 1 ? "1 vehicle" : `Up to ${p.maxVehicles} vehicles`],
@@ -52,6 +53,7 @@ function limitRows(p: {
     ["AI receipt scanning", p.aiReceiptScansPerMonth > 0 && !COMING_SOON_FEATURES.receiptScanning ? `${p.aiReceiptScansPerMonth} scans / month` : p.aiReceiptScansPerMonth > 0 ? "Coming soon" : "Not included"],
     ["What-if scenarios", p.enableAdvancedScenarios ? "Included" : "Not included"],
     ["Shareable reports", p.enableShareableReports ? "Included" : "Not included"],
+    ["PDF report download", p.enablePdfReports ? "Included" : "Not included"],
     ["Family sharing", p.enableFamilySharing ? (COMING_SOON_FEATURES.familySharing ? "Coming soon" : "Included") : "Not included"],
     ["API access", p.enableApiAccess ? (COMING_SOON_FEATURES.apiAccess ? "Coming soon" : "Included") : "Not included"],
   ];

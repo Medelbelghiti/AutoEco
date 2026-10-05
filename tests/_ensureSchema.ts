@@ -25,13 +25,11 @@ export async function ensureLemonSqueezySchema(prisma: PrismaClient): Promise<vo
     `ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "lemonOrderId" TEXT`,
     `CREATE UNIQUE INDEX IF NOT EXISTS "Invoice_lemonOrderId_key" ON "Invoice"("lemonOrderId")`,
   ];
-  for (const sql of stmts) {
+for (const sql of stmts) {
     try {
       await prisma.$executeRawUnsafe(sql);
     } catch {
-      // ignored — column or index may already exist or DB may not support
-      // IF NOT EXISTS. Tests will fail later if the schema is genuinely
-      // incompatible.
+      // ignored
     }
   }
 }
@@ -88,6 +86,24 @@ export async function ensureTripSchema(prisma: PrismaClient): Promise<void> {
     `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "mileageDeductionCurrency" TEXT`,
     `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "mileageDeductionUnit" TEXT`,
     `ALTER TABLE "Plan" ADD COLUMN IF NOT EXISTS "maxTripsPerMonth" INTEGER NOT NULL DEFAULT 25`,
+  ];
+  for (const sql of stmts) {
+    try {
+      await prisma.$executeRawUnsafe(sql);
+    } catch {
+      // ignored
+    }
+  }
+}
+
+/**
+ * Same idea for the PDF report entitlement: the `Plan.enablePdfReports` column
+ * added in the 3.4 migration. Additive and idempotent, so the report tests do
+ * not depend on `prisma migrate deploy` having been run first.
+ */
+export async function ensurePdfReportSchema(prisma: PrismaClient): Promise<void> {
+  const stmts = [
+    `ALTER TABLE "Plan" ADD COLUMN IF NOT EXISTS "enablePdfReports" BOOLEAN NOT NULL DEFAULT false`,
   ];
   for (const sql of stmts) {
     try {

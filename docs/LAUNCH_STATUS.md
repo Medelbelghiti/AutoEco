@@ -104,3 +104,29 @@ record without AutoEco claiming to know anything about their tax position.
   returns the slot to the month the trip belongs to, not the current month.
 - Known bounds: the list page shows the 500 most recent trips and says so, and
   the summary aggregates at most 5000 rows.
+
+## PDF cost-of-ownership report (3.4)
+The same report the user already sees on screen, as a file they can keep or send
+to somebody. Pro and above (`Plan.enablePdfReports`); the on-screen report stays
+free.
+- Every figure is the output of the existing computations (`summarizeExpenses`,
+  `computeDepreciation`, `projectCost`, `trueOwnershipCost`). The PDF adds no
+  arithmetic, and a vehicle with entries in two currencies is refused with
+  `MIXED_CURRENCY` rather than totalled across them.
+- Drawn with `pdf-lib` standard fonts, which are limited to WinAnsiEncoding and
+  *throw* on anything outside it. Every user-provided string therefore goes
+  through `toPdfSafe()`: diacritics and stroked letters are transliterated
+  (`Gdańsk` -> `Gdansk`, `Łódź` -> `Lodz`), and a character that still cannot be
+  encoded becomes `?` instead of failing the download. The allowlist is checked
+  against the real font encoder in CI.
+- Money is printed as an ISO code (`1,234.50 INR`), never a symbol. WinAnsi
+  cannot encode `₹`, `₱` or `₪`, and `$` alone does not say whether a figure is
+  USD, CAD, AUD, MXN or ARS.
+- The footer repeats on every page: "Estimates based on data you entered. Not
+  financial, tax or valuation advice." plus the generation date.
+- Document is English-only and says so in the UI when the account locale is not
+  English. Sending `Cache-Control: private, no-store`; rate limited to 20
+  downloads per user per hour; filename reduced to `[a-z0-9-]`.
+- Known bounds: the expense list is capped at the 300 most recent entries and
+  prints how many were omitted, so a partial list is never mistaken for a
+  complete one. Totals always cover every entry.

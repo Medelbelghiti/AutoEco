@@ -3,9 +3,11 @@ import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { computeVehicleCost } from "@/lib/compute-cost";
 import { formatMoney, computeDepreciation, projectCost, trueOwnershipCost } from "@/lib/finance";
+import { getEntitlements } from "@/lib/plans";
 
 export default async function ReportsPage() {
   const user = await requireUser();
+  const ent = await getEntitlements(user);
   const vehicles = await db.vehicle.findMany({ where: { userId: user.id, archived: false }, orderBy: [{ isPrimary: "desc" }, { createdAt: "desc" }] });
 
   if (vehicles.length === 0) {
@@ -57,6 +59,41 @@ export default async function ReportsPage() {
       <p className="text-sm text-charcoal-500">
         {v.year} {v.brand} {v.model} · Generated {new Date().toLocaleDateString()}
       </p>
+
+      {ent.enablePdfReports ? (
+        <div className="flex flex-wrap items-center gap-3">
+          {/* A plain <a>, not next/link: the browser's download handler has to
+              run, and a client-side navigation would try to render the PDF. */}
+          <a
+            href={`/api/reports/ownership-cost?vehicleId=${encodeURIComponent(v.id)}`}
+            className="btn btn-accent"
+            rel="noopener"
+          >
+            Download PDF
+          </a>
+          {user.locale !== "en" && (
+            <p className="text-xs text-charcoal-500" role="status">
+              The PDF is generated in English. Characters the PDF font cannot
+              represent are transliterated or replaced with "?".
+            </p>
+          )}
+        </div>
+      ) : (
+        <div
+          className="card border-amber-400 bg-amber-50 text-sm dark:bg-charcoal-900 dark:border-amber-700"
+          role="status"
+        >
+          <p className="font-semibold text-amber-700 dark:text-amber-200">
+            PDF download is available on Pro and above.
+          </p>
+          <p className="mt-1 text-amber-600 dark:text-amber-200/80">
+            <Link href="/pricing" className="underline">
+              View plans
+            </Link>{" "}
+            to download this report as a PDF. Everything on this page stays free.
+          </p>
+        </div>
+      )}
 
       <section className="card">
         <p className="font-semibold">Summary</p>

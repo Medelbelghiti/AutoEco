@@ -30,6 +30,7 @@ export interface PlanDefinition {
   forecastHorizonMonths: number;
   enableAdvancedScenarios: boolean;
   enableShareableReports: boolean;
+  enablePdfReports: boolean;
   enableFamilySharing: boolean;
   enableApiAccess: boolean;
   features: string[];
@@ -52,6 +53,7 @@ export const PLANS: PlanDefinition[] = [
     forecastHorizonMonths: 12,
     enableAdvancedScenarios: false,
     enableShareableReports: false,
+    enablePdfReports: false,
     enableFamilySharing: false,
     enableApiAccess: false,
     features: ["1 vehicle", "Expense tracking"],
@@ -72,6 +74,7 @@ export const PLANS: PlanDefinition[] = [
     forecastHorizonMonths: 60,
     enableAdvancedScenarios: true,
     enableShareableReports: true,
+    enablePdfReports: true,
     enableFamilySharing: false,
     enableApiAccess: false,
     features: ["Up to 5 vehicles", "Ask Your Car", "Financial Twin", "What-if scenarios"],
@@ -92,6 +95,7 @@ export const PLANS: PlanDefinition[] = [
     forecastHorizonMonths: 60,
     enableAdvancedScenarios: true,
     enableShareableReports: true,
+    enablePdfReports: true,
     enableFamilySharing: true,
     enableApiAccess: false,
     features: ["Up to 12 vehicles"],
@@ -112,6 +116,7 @@ export const PLANS: PlanDefinition[] = [
     forecastHorizonMonths: 120,
     enableAdvancedScenarios: true,
     enableShareableReports: true,
+    enablePdfReports: true,
     enableFamilySharing: true,
     enableApiAccess: true,
     features: ["Up to 50 vehicles", "Ask Your Car", "Financial Twin"],
@@ -137,6 +142,7 @@ export function planRow(p: PlanDefinition): Record<string, unknown> {
     forecastHorizonMonths: p.forecastHorizonMonths,
     enableAdvancedScenarios: p.enableAdvancedScenarios,
     enableShareableReports: p.enableShareableReports,
+    enablePdfReports: p.enablePdfReports,
     enableFamilySharing: p.enableFamilySharing,
     enableApiAccess: p.enableApiAccess,
     features: JSON.stringify(p.features),

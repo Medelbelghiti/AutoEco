@@ -37,6 +37,7 @@ export interface Entitlements {
   forecastHorizonMonths: number;
   enableAdvancedScenarios: boolean;
   enableShareableReports: boolean;
+  enablePdfReports: boolean;
   enableFamilySharing: boolean;
   enableApiAccess: boolean;
 
@@ -164,6 +165,7 @@ export async function getEntitlements(user: User): Promise<Entitlements> {
     forecastHorizonMonths: 12,
     enableAdvancedScenarios: false,
     enableShareableReports: false,
+    enablePdfReports: false,
     enableFamilySharing: false,
     enableApiAccess: false,
     features: ["1 vehicle", "Basic tracking"],
@@ -193,6 +195,7 @@ function planEntitlements(
     forecastHorizonMonths: plan.forecastHorizonMonths,
     enableAdvancedScenarios: plan.enableAdvancedScenarios,
     enableShareableReports: plan.enableShareableReports,
+    enablePdfReports: plan.enablePdfReports,
     enableFamilySharing: plan.enableFamilySharing,
     enableApiAccess: plan.enableApiAccess,
     features: safeJsonParse<string[]>(plan.features, []),

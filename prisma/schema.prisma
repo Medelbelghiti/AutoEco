@@ -124,6 +124,7 @@ model Plan {
   forecastHorizonMonths   Int     @default(12)
   enableAdvancedScenarios Boolean @default(false)
   enableShareableReports  Boolean @default(false)
+  enablePdfReports        Boolean @default(false)
   enableFamilySharing     Boolean @default(false)
   enableApiAccess         Boolean @default(false)
 
