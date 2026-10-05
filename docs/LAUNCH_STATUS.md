@@ -13,6 +13,9 @@ era and declared the product READY. They were stale and are removed.
 - **Sessions**: `User.sessionVersion` revokes all JWTs on password change/reset.
 - **Abuse**: rate limits on forgot/reset password; Turnstile on signup (activates when keys are set); trial entitlements require a verified email; `/api/track` limiter is now shared (DB) instead of per-instance memory; client IP prefers platform headers.
 - **Uploads**: refuse uploads on serverless without a persistent `STORAGE_DIR` (receipts were silently lost on every deploy); magic-byte check vs declared MIME; downloads served with `sandbox` CSP.
+- **Schema drift fixed**: `User.lemonCustomerId`, `Subscription.lemonSubscriptionId` and `Invoice.lemonOrderId` were declared in `schema.prisma` but created by no migration, so a freshly migrated database disagreed with the Prisma Client. Migration `20261005130000_add_lemon_identifiers` closes the gap; `prisma migrate diff --from-migrations --to-schema-datamodel` now exits 0.
+- **Seed fixed**: `prisma/seed.ts` wrote `fuelEconomyText` on `VehicleCatalogEntry`, which only exists on `Vehicle` — Prisma rejected it and the seed always aborted before creating the admin.
+- **Tracking failures are visible**: `/api/track` swallowed every write error; it now logs them (a silent catch made a total persistence failure look like a working funnel).
 - **Honest marketing**: receipt scanning, family sharing and API access are marked "Coming soon" (they are not implemented); the Family plan is hidden until sharing exists (`UNAVAILABLE_PLAN_KEYS` in `lib/plans.ts`).
 - **Global**: 35 two-decimal currencies (JPY/KWD-style currencies intentionally excluded until minor-unit handling exists); currency selects use the shared list.
 - **Legal pages** render real Markdown instead of a raw `<pre>`.
@@ -27,7 +30,25 @@ era and declared the product READY. They were stale and are removed.
 4. Persistent receipt storage (S3/R2 or mounted volume) before re-enabling uploads on Vercel.
 5. Custom domain; update `NEXT_PUBLIC_APP_URL`.
 6. Rotate any secrets that were ever committed (see git history) and enable secret scanning.
-7. Run `npx prisma migrate deploy` (2 new additive migrations) and `npm test` against a real Postgres.
+7. ~~Run `npx prisma migrate deploy` and `npm test` against a real Postgres.~~
+   **Done**: verified against a local PostgreSQL (17.4) — 9 migrations applied,
+   `migrate diff` reports no drift, typecheck/lint/build green, 139/139 tests
+   pass with the real-DB integration tests actually running (previously skipped).
+
+## Verified, do not regress
+- `tests/paddle-billing.test.ts` — real Paddle Billing payloads through the real
+  webhook handler: `grand_total: "699"` → `amountCents = 699` with the real
+  currency kept; an out-of-order `subscription.updated` cannot resurrect a
+  canceled subscription and writes a `paddle.webhook.stale_event_ignored` audit
+  row; `past_due` never flips a canceled subscription back; sandbox vs live base
+  URL, bearer header, `effective_from`, and no provider error body leaked.
+- `tests/auth-hardening.test.ts` — `change-password` and `reset-password` revoke
+  previously issued JWTs via `User.sessionVersion` (the current device keeps
+  working); `forgot-password` allows 3 reset emails per mailbox per hour and the
+  4th request returns the same 200 body with no email, identically for existing
+  and unknown addresses; account deletion calls `cancelPaddleSubscription`
+  *before* anonymising and returns 502 leaving the account intact when the
+  provider fails.
 
 ## Known gaps / next
 - Stripe code is still present as a legacy fallback; remove once no Stripe subscribers exist.
