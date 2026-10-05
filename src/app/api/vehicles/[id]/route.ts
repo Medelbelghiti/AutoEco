@@ -54,6 +54,7 @@ export const DELETE = withErrorHandling(async (_req: Request, ctx: { params: { i
   assertOwnership(v.userId, user);
   await db.expense.deleteMany({ where: { vehicleId: id } });
   await db.fuelEntry.deleteMany({ where: { vehicleId: id } });
+  await db.trip.deleteMany({ where: { vehicleId: id } });
   await db.vehicle.delete({ where: { id } });
   return ok({ ok: true });
 });

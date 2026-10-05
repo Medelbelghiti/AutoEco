@@ -82,3 +82,25 @@ era and declared the product READY. They were stale and are removed.
   which is how retries work. Made deterministic by separating the claim phase
   from the finalize phase, testing the guarantee that actually exists: one
   winner at claim time, and only the token holder may finalize.
+
+## Mileage trip log (3.3)
+Logged distances, per-year totals and a CSV export, so a user can keep a mileage
+record without AutoEco claiming to know anything about their tax position.
+- A distance is entered either as an odometer pair or as a number. Mixing the
+  two is rejected rather than resolved by preference, and a value with more than
+  two decimals is refused instead of rounded.
+- The deduction rate is the user's own figure for their jurisdiction. It is
+  stored on the profile together with its currency and unit, and copied onto
+  each trip as it is logged, so changing the rate later never restates a trip
+  that may already be filed. A rate is never applied to a distance in a unit it
+  was not set for, and a trip whose unit would invalidate its recorded rate
+  cannot be edited in place.
+- Totals are grouped per calendar year in UTC, per distance unit, and per
+  currency. Nothing is converted between km and miles and no two currencies are
+  ever added together. When a rate is unset, the UI says so rather than
+  implying a figure is missing or zero.
+- Quota is `Plan.maxTripsPerMonth` (free 25, pro 500, family 1000, pro_plus
+  5000), reserved atomically and released if the insert fails. Deleting a trip
+  returns the slot to the month the trip belongs to, not the current month.
+- Known bounds: the list page shows the 500 most recent trips and says so, and
+  the summary aggregates at most 5000 rows.

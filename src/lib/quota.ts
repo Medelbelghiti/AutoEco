@@ -35,7 +35,7 @@ import { Prisma, type PrismaClient } from "@prisma/client";
 import { db } from "./db";
 import { notifyQuotaLimitReached } from "./notifications";
 
-export type QuotaMetric = "ai_conversations" | "ocr_scans" | "expenses" | "vehicles";
+export type QuotaMetric = "ai_conversations" | "ocr_scans" | "expenses" | "vehicles" | "trips";
 
 export class QuotaExceededError extends Error {
   metric: QuotaMetric;

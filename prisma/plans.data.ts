@@ -23,6 +23,7 @@ export interface PlanDefinition {
   billingPeriod: "FREE" | "MONTHLY" | "YEARLY";
   maxVehicles: number;
   maxExpensesPerMonth: number;
+  maxTripsPerMonth: number;
   aiReceiptScansPerMonth: number;
   aiConversationsPerMonth: number;
   reportRetentionDays: number;
@@ -44,6 +45,7 @@ export const PLANS: PlanDefinition[] = [
     billingPeriod: "FREE",
     maxVehicles: 1,
     maxExpensesPerMonth: 50,
+    maxTripsPerMonth: 25,
     aiReceiptScansPerMonth: 0,
     aiConversationsPerMonth: 0,
     reportRetentionDays: 30,
@@ -63,6 +65,7 @@ export const PLANS: PlanDefinition[] = [
     billingPeriod: "MONTHLY",
     maxVehicles: 5,
     maxExpensesPerMonth: 1000,
+    maxTripsPerMonth: 500,
     aiReceiptScansPerMonth: 50,
     aiConversationsPerMonth: 100,
     reportRetentionDays: 365,
@@ -82,6 +85,7 @@ export const PLANS: PlanDefinition[] = [
     billingPeriod: "MONTHLY",
     maxVehicles: 12,
     maxExpensesPerMonth: 2500,
+    maxTripsPerMonth: 1000,
     aiReceiptScansPerMonth: 200,
     aiConversationsPerMonth: 300,
     reportRetentionDays: 730,
@@ -101,6 +105,7 @@ export const PLANS: PlanDefinition[] = [
     billingPeriod: "MONTHLY",
     maxVehicles: 50,
     maxExpensesPerMonth: 10000,
+    maxTripsPerMonth: 5000,
     aiReceiptScansPerMonth: 1000,
     aiConversationsPerMonth: 1000,
     reportRetentionDays: 3650,
@@ -125,6 +130,7 @@ export function planRow(p: PlanDefinition): Record<string, unknown> {
     billingPeriod: p.billingPeriod,
     maxVehicles: p.maxVehicles,
     maxExpensesPerMonth: p.maxExpensesPerMonth,
+    maxTripsPerMonth: p.maxTripsPerMonth,
     aiReceiptScansPerMonth: p.aiReceiptScansPerMonth,
     aiConversationsPerMonth: p.aiConversationsPerMonth,
     reportRetentionDays: p.reportRetentionDays,

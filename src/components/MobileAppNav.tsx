@@ -11,6 +11,7 @@ import {
   LineChart,
   Menu,
   Receipt,
+  Route,
   Settings as SettingsIcon,
   SlidersHorizontal,
   X,
@@ -24,6 +25,7 @@ const ALL_ITEMS: Item[] = [
   { href: "/garage", label: "Garage", icon: Car },
   { href: "/expenses", label: "Expenses", icon: Receipt },
   { href: "/fuel", label: "Fuel", icon: Fuel },
+  { href: "/trips", label: "Trips", icon: Route },
   { href: "/financial-twin", label: "Financial Twin", icon: LineChart },
   { href: "/scenarios", label: "Scenarios", icon: SlidersHorizontal },
   { href: "/insights", label: "Insights", icon: BarChart3 },
@@ -185,6 +187,8 @@ function labelFor(pathname: string): string {
   if (pathname.startsWith("/expenses")) return "Expenses";
   if (pathname.startsWith("/fuel/new")) return "Add fuel";
   if (pathname.startsWith("/fuel")) return "Fuel";
+  if (pathname.startsWith("/trips/new")) return "Add trip";
+  if (pathname.startsWith("/trips")) return "Trips";
   if (pathname.startsWith("/garage/new")) return "Add vehicle";
   if (pathname.startsWith("/garage")) return "Garage";
   if (pathname.startsWith("/settings/billing")) return "Billing";

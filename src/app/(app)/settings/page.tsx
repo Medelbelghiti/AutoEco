@@ -20,6 +20,14 @@ export default async function SettingsPage() {
           <SettingsForms.Preferences userId={user.id} currency={user.currency} distanceUnit={user.distanceUnit} fuelUnit={user.fuelUnit} />
         </div>
         <div className="card">
+          <p className="font-semibold">Mileage deduction rate</p>
+          <SettingsForms.DeductionRate
+            rateCents={user.mileageDeductionRateCents === null ? "" : (user.mileageDeductionRateCents / 100).toString()}
+            currency={user.mileageDeductionCurrency ?? user.currency}
+            unit={user.mileageDeductionUnit ?? user.distanceUnit}
+          />
+        </div>
+        <div className="card">
           <p className="font-semibold">Security</p>
           <SettingsForms.ChangePassword />
         </div>

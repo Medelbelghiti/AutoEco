@@ -75,6 +75,84 @@ export function Preferences({ currency, distanceUnit, fuelUnit }: { userId: stri
   );
 }
 
+/**
+ * The user's own mileage deduction rate.
+ *
+ * AutoEco has no jurisdiction database, so it cannot know what a deduction is
+ * worth to anyone: the rate, its currency and its unit are entered by the user
+ * and copied onto each trip as it is logged. Deliberately worded as "your rate"
+ * with no claim attached, because that figure is theirs to verify.
+ */
+export function DeductionRate({ rateCents, currency, unit }: { rateCents: string; currency: string; unit: string }) {
+  const router = useRouter();
+  const [r, setR] = useState(rateCents);
+  const [cur, setCur] = useState(currency);
+  const [u, setU] = useState(unit);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setMsg(null);
+    // All three fields go together: the API refuses a partial rate, so the form
+    // sends all three and lets the server stay the single source of truth.
+    const body = r.trim() === ""
+      ? { mileageDeductionRateCents: null, mileageDeductionCurrency: null, mileageDeductionUnit: null }
+      : { mileageDeductionRateCents: Number(r), mileageDeductionCurrency: cur, mileageDeductionUnit: u };
+    const res = await fetch("/api/profile", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    setBusy(false);
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      setMsg(j.error || "Could not save your rate");
+      return;
+    }
+    setMsg("Saved. Trips you log from now on will record this rate.");
+    router.refresh();
+  };
+
+  return (
+    <form onSubmit={save} className="mt-3 space-y-3">
+      <p className="text-xs text-charcoal-600 dark:text-charcoal-400">
+        Optional. If you set a rate, each trip you log records a copy of it, so changing
+        this later will not rewrite trips you already logged. Nothing here is calculated
+        for you and no figure is suggested: use the rate that applies where you drive.
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div>
+          <label className="label" htmlFor="ded-rate">Amount per unit</label>
+          <input
+            id="ded-rate"
+            className="input"
+            type="number"
+            step="0.0001"
+            min="0"
+            inputMode="decimal"
+            placeholder="e.g. 0.30"
+            value={r}
+            onChange={(e) => setR(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="label" htmlFor="ded-currency">Currency</label>
+          <select id="ded-currency" className="select" value={cur} onChange={(e) => setCur(e.target.value)} disabled={r.trim() === ""}>
+            {SUPPORTED_CURRENCIES.map((c) => (<option key={c} value={c}>{c}</option>))}
+          </select>
+        </div>
+        <div>
+          <label className="label" htmlFor="ded-unit">Per unit of</label>
+          <select id="ded-unit" className="select" value={u} onChange={(e) => setU(e.target.value)} disabled={r.trim() === ""}>
+            <option value="km">km</option>
+            <option value="mi">miles</option>
+          </select>
+        </div>
+      </div>
+      {msg && <p role="status" className="text-xs text-charcoal-600 dark:text-charcoal-400">{msg}</p>}
+      <button className="btn btn-primary" disabled={busy} type="submit">{busy ? "Saving…" : "Save rate"}</button>
+    </form>
+  );
+}
+
 export function ChangePassword() {
   const [current, setC] = useState("");
   const [next, setN] = useState("");
@@ -187,4 +265,4 @@ export function DeleteAccount() {
   );
 }
 
-export const SettingsForms = { Profile, Preferences, ChangePassword, ExportData, DeleteAccount };
+export const SettingsForms = { Profile, Preferences, DeductionRate, ChangePassword, ExportData, DeleteAccount };

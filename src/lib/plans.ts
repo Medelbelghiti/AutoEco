@@ -30,6 +30,7 @@ export interface Entitlements {
 
   maxVehicles: number;
   maxExpensesPerMonth: number;
+  maxTripsPerMonth: number;
   aiReceiptScansPerMonth: number;
   aiConversationsPerMonth: number;
   reportRetentionDays: number;
@@ -156,6 +157,7 @@ export async function getEntitlements(user: User): Promise<Entitlements> {
     currentPeriodEnd: null,
     maxVehicles: 1,
     maxExpensesPerMonth: 50,
+    maxTripsPerMonth: 25,
     aiReceiptScansPerMonth: 0,
     aiConversationsPerMonth: 0,
     reportRetentionDays: 30,
@@ -184,6 +186,7 @@ function planEntitlements(
     currentPeriodEnd: extra.currentPeriodEnd,
     maxVehicles: plan.maxVehicles,
     maxExpensesPerMonth: plan.maxExpensesPerMonth,
+    maxTripsPerMonth: plan.maxTripsPerMonth,
     aiReceiptScansPerMonth: plan.aiReceiptScansPerMonth,
     aiConversationsPerMonth: plan.aiConversationsPerMonth,
     reportRetentionDays: plan.reportRetentionDays,

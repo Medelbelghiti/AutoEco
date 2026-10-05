@@ -29,6 +29,16 @@ model User {
   distanceUnit String  @default("km") // km | mi
   fuelUnit     String  @default("L_PER_100KM") // L_PER_100KM | MPG | KM_PER_L
 
+  // Mileage deduction rate, supplied by the user for their own jurisdiction.
+  // There is deliberately NO default: deduction rules differ per country and
+  // per year, and shipping a built-in figure would be a tax claim we cannot
+  // support. While these are null the trip log records distance only and makes
+  // no deduction figure at all. The amount is in minor units of
+  // `mileageDeductionCurrency`, per one `mileageDeductionUnit`.
+  mileageDeductionRateCents Int?
+  mileageDeductionCurrency  String?
+  mileageDeductionUnit      String? // km | mi
+
   // Billing
   stripeCustomerId String?   @unique
   // Provider-neutral identifier (Lemon Squeezy customer id, or any future
@@ -56,6 +66,7 @@ model User {
   vehicles          Vehicle[]
   expenses          Expense[]
   fuelEntries       FuelEntry[]
+  trips             Trip[]
   documents         Document[]
   forecasts         Forecast[]
   scenarios         Scenario[]
@@ -106,6 +117,7 @@ model Plan {
   // Limits
   maxVehicles             Int     @default(1)
   maxExpensesPerMonth     Int     @default(100)
+  maxTripsPerMonth        Int     @default(25)
   aiReceiptScansPerMonth  Int     @default(0)
   aiConversationsPerMonth Int     @default(0)
   reportRetentionDays     Int     @default(30)
@@ -318,6 +330,7 @@ model Vehicle {
   forecasts   Forecast[]
   scenarios   Scenario[]
   reports     Report[]
+  trips       Trip[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -392,6 +405,43 @@ model FuelEntry {
 
   @@index([vehicleId, date])
   @@index([userId, date])
+}
+
+// ----------------------------- Trips -----------------------------
+// Mileage log for people who deduct vehicle costs on their taxes.
+//
+// Distance is recorded either as an odometer pair or as a direct distance.
+// `deductionRateCents` / `deductionCurrency` are a SNAPSHOT of the rate the
+// user had configured when the trip was logged, never a lookup at read time:
+// if a user corrects their rate in 2026, the 2024 rows they filed must not
+// silently change. They are null when no rate was configured, and a null
+// snapshot means the trip counts towards distance but claims nothing.
+
+model Trip {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleId String
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  date          DateTime
+  purpose       String  // business | personal | commute | medical | charity | other
+  startOdometer Int?
+  endOdometer   Int?
+  // Fractional, because people log 12.5 km. Rounded to 2dp at the API edge.
+  distance      Float?
+  distanceUnit  String  @default("km") // km | mi
+  note          String?
+
+  deductionRateCents Int?
+  deductionCurrency  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, date])
+  @@index([vehicleId, date])
+  @@index([userId, purpose])
 }
 
 // ----------------------------- Documents -----------------------------

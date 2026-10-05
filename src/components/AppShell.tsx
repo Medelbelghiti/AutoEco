@@ -1,4 +1,4 @@
-import { Car, Home, Fuel, Receipt, BarChart3, LineChart, SlidersHorizontal } from "lucide-react";
+import { Car, Home, Fuel, Receipt, BarChart3, LineChart, SlidersHorizontal, MapPin } from "lucide-react";
 import Link from "next/link";
 import { MobileAppNav } from "@/components/MobileAppNav";
 
@@ -28,6 +28,7 @@ function Sidebar({ user }: { user: { id: string; email: string; name: string | n
     { href: "/garage", label: "Garage", icon: Car },
     { href: "/expenses", label: "Expenses", icon: Receipt },
     { href: "/fuel", label: "Fuel", icon: Fuel },
+    { href: "/trips", label: "Trips", icon: MapPin },
     { href: "/financial-twin", label: "Financial Twin", icon: LineChart },
     { href: "/scenarios", label: "Scenarios", icon: SlidersHorizontal },
     { href: "/insights", label: "Insights", icon: BarChart3 },
