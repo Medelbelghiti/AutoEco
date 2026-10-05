@@ -90,7 +90,7 @@ export const POST = withErrorHandling(async (req) => {
     const bytes = Buffer.from(await file.arrayBuffer());
     const ext = (file.name.split(".").pop() ?? "bin").toLowerCase();
     const prefix = vehicleId ? `receipts/${vehicleId}` : `receipts/user/${user.id}`;
-    stored = await saveFile(prefix, ext, bytes);
+    stored = await saveFile(prefix, ext, bytes, file.type);
 
     // 6. Run OCR
     const ocr = await getOcrProvider().extract({ bytes, mimeType: file.type });

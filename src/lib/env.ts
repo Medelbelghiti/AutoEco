@@ -25,6 +25,16 @@ export const env = {
   smtpUser: process.env.SMTP_USER ?? "",
   smtpPass: process.env.SMTP_PASS ?? "",
 
+  // ---- Object storage (uploads: receipts, documents) ----
+  // STORAGE_DRIVER forces "local" or "s3". Left empty, the driver is inferred:
+  // s3 when a bucket and credentials are present, local otherwise.
+  storageDriver: process.env.STORAGE_DRIVER ?? "",
+  s3Endpoint: process.env.S3_ENDPOINT ?? "",
+  s3Region: process.env.S3_REGION ?? "auto",
+  s3Bucket: process.env.S3_BUCKET ?? "",
+  s3AccessKeyId: process.env.S3_ACCESS_KEY_ID ?? "",
+  s3SecretAccessKey: process.env.S3_SECRET_ACCESS_KEY ?? "",
+
   googlePlacesApiKey: process.env.GOOGLE_PLACES_API_KEY ?? "",
   osmNominatimUrl: process.env.OSM_NOMINATIM_URL ?? "https://nominatim.openstreetmap.org",
   osmOverpassUrl: process.env.OSM_OVERPASS_URL ?? "https://overpass-api.de/api/interpreter",

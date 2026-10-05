@@ -33,9 +33,8 @@
  * that, so a mistaken deletion is recoverable by support in the meantime.
  */
 import { NextResponse } from "next/server";
-import path from "node:path";
-import fs from "node:fs/promises";
 import { db } from "@/lib/db";
+import { deleteFile } from "@/lib/storage";
 import { verifyCronRequest } from "@/lib/cron";
 import { auditLog } from "@/lib/audit";
 import { captureException } from "@/lib/error-capture";
@@ -78,8 +77,6 @@ export async function POST(req: Request): Promise<NextResponse> {
   });
   summary.candidates = candidates.length;
 
-  const storageDir = process.env.STORAGE_DIR || path.join(process.cwd(), "uploads");
-
   for (const user of candidates) {
     try {
       // --- Delete uploaded receipt files first: once the rows are gone the
@@ -91,24 +88,14 @@ export async function POST(req: Request): Promise<NextResponse> {
       for (const doc of docs) {
         if (!doc.storageKey) continue;
         try {
-          // storageKey is written by the storage adapter; resolve it inside
-          // the storage root and refuse to escape it.
-          const target = path.resolve(storageDir, doc.storageKey);
-          const root = path.resolve(storageDir);
-          if (target !== root && !target.startsWith(root + path.sep)) {
-            // Refuse to touch anything outside the storage root. Counted as
-            // an error so it is visible instead of silently skipped.
-            summary.fileErrors++;
-            await auditLog({ action: "cron.purge_path_escape_blocked", metadata: { key: doc.storageKey } });
-            continue;
-          }
-          // `force: true` makes an already-absent file a no-op, so a retry
-          // after a partial failure is safe.
-          await fs.rm(target, { force: true });
+          // The storage adapter validates the key and resolves it inside the
+          // storage root, so this works for both the local and the S3 driver
+          // and does not repeat the traversal check here.
+          await deleteFile(doc.storageKey);
           summary.filesRemoved++;
         } catch (e) {
           // The Document row is deleted further down regardless, so the DB is
-          // consistent — but the orphaned file would linger on disk. Surface it.
+          // consistent — but the orphaned object would linger. Surface it.
           summary.fileErrors++;
           await auditLog({
             action: "cron.purge_file_failed",

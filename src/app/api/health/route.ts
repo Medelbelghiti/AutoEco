@@ -29,6 +29,7 @@ import {
 } from "@/lib/env";
 import { auditLog } from "@/lib/audit";
 import { externalAnalyticsConfigured } from "@/lib/analytics";
+import { storageDriver, s3MissingConfig } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -128,15 +129,25 @@ export async function GET(req: Request): Promise<NextResponse> {
     checks.migrations = { ok: false, detail: e instanceof Error ? e.message.slice(0, 200) : "unknown" };
   }
 
-  checks.storage = {
-    ok: Boolean(process.env.STORAGE_DIR),
-    // A local-disk STORAGE_DIR is EPHEMERAL on serverless hosts: uploaded
-    // receipts vanish on redeploy. That is a data-loss risk, not a crash, so
-    // it is reported but never fatal.
-    detail: process.env.STORAGE_DIR
-      ? "STORAGE_DIR set — verify it points at a persistent volume, not ephemeral /tmp"
-      : "STORAGE_DIR unset — uploads fall back to local disk and are LOST on redeploy",
-  };
+  // Object storage is durable; local disk on a serverless host is not. That is a
+  // data-loss risk rather than a crash, so it is reported but never fatal.
+  const driver = storageDriver();
+  if (driver === "s3") {
+    const missing = s3MissingConfig();
+    checks.storage = {
+      ok: missing.length === 0,
+      detail: missing.length === 0
+        ? `s3 driver, bucket ${env.s3Bucket}${env.s3Endpoint ? ` via ${env.s3Endpoint}` : ""}`
+        : `s3 driver selected but missing ${missing.join(", ")}`,
+    };
+  } else {
+    checks.storage = {
+      ok: Boolean(process.env.STORAGE_DIR),
+      detail: process.env.STORAGE_DIR
+        ? "local driver with STORAGE_DIR set — verify it points at a persistent volume, not ephemeral /tmp"
+        : "local driver, STORAGE_DIR unset — uploads are LOST on redeploy",
+    };
+  }
 
   checks.analytics = {
     ok: true,
