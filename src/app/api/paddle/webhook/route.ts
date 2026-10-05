@@ -255,7 +255,7 @@ async function onSubscriptionUpsert(payload: PaddleWebhookPayload, eventId: stri
     data: {
       planId: plan.id,
       // A real purchase retires the trial, so a later cancellation cannot
-      // hand the trial entitlements back (mirrors the Stripe webhook).
+      // hand the trial entitlements back (same rule as every other billing provider).
       trialEndsAt: null,
       trialUsed: true,
       // Persist the Paddle customer id once we know it (do not overwrite).

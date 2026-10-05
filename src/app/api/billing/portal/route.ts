@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 import { withErrorHandling, ok } from "@/lib/http";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { createBillingPortalSession } from "@/lib/stripe";
 import { createPaddlePortalUrl } from "@/lib/paddle-api";
-import { env } from "@/lib/env";
 
 export const POST = withErrorHandling(async () => {
   const user = await requireUser();
@@ -26,9 +24,5 @@ export const POST = withErrorHandling(async () => {
     }
   }
 
-  if (user.stripeCustomerId) {
-    const res = await createBillingPortalSession(user.stripeCustomerId, `${env.appUrl}/settings`);
-    return ok({ url: res.url });
-  }
   return NextResponse.json({ error: "No billing account for this user yet" }, { status: 400 });
 });

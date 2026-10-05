@@ -51,7 +51,7 @@ const FAQS = [
   },
   {
     q: "Is my data shared?",
-    a: "No. Your vehicle and financial data is private by default. We never share it with third parties. Stripe processes payments; we do not store payment card data.",
+    a: "No. Your vehicle and financial data is private by default. We never share it with third parties. Payments are processed by Paddle; we do not store payment card data.",
   },
 ];
 

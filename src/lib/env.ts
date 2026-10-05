@@ -5,11 +5,6 @@ export const env = {
   authSecret: process.env.AUTH_SECRET ?? "",
   appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
 
-  stripeMode: process.env.STRIPE_MODE ?? "test",
-  stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? "",
-  stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
-  stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "",
-
   // ---- Paddle (production payment provider) ----
   // The API key + webhook secret are server-only.
   paddleApiKey: process.env.PADDLE_API_KEY ?? "",
@@ -42,10 +37,6 @@ export const env = {
 
   isProd: process.env.NODE_ENV === "production",
 };
-
-export function stripeConfigured(): boolean {
-  return Boolean(env.stripeSecretKey);
-}
 
 /**
  * Paddle is configured when the API key, webhook secret, seller id, and
@@ -150,14 +141,11 @@ export function assertProdSafety(): string[] {
         "AUTH_SECRET must be set to a strong random value (32+ bytes) in production"
       );
     }
-    if (env.stripeMode === "live" && env.stripeSecretKey.startsWith("sk_test")) {
-      problems.push("STRIPE_MODE=live but a test Stripe key is configured");
+    if (env.paddleApiKey && !env.paddleApiKey.startsWith("pdl_sdbx_") && env.paddleWebhookSecret.length < 16) {
+      problems.push("PADDLE_WEBHOOK_SECRET appears too short");
     }
-    if (env.stripeMode === "test" && env.stripeSecretKey.startsWith("sk_live")) {
-      problems.push("STRIPE_MODE=test but a live Stripe key is configured");
-    }
-    if (env.stripeWebhookSecret && env.stripeSecretKey && env.stripeWebhookSecret.length < 16) {
-      problems.push("STRIPE_WEBHOOK_SECRET appears too short");
+    if (env.paddleApiKey && env.paddleApiKey.startsWith("pdl_sdbx_") && env.isProd) {
+      problems.push("A Paddle SANDBOX API key is configured in production");
     }
   }
   return problems;

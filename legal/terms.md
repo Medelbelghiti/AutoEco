@@ -59,7 +59,7 @@ not forecasts of future market conditions.
 ## 5. Subscriptions & Billing
 
 - Paid plans are billed in advance on a recurring monthly basis through our payment processor,
-  Paddle. Historical subscriptions may be billed through Stripe.
+  Paddle.
 - Subscriptions renew automatically unless cancelled. You may cancel at any time from Settings;
   cancellation takes effect at the end of the current billing period, and you retain access until
   then.

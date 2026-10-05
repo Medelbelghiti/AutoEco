@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getEntitlements } from "@/lib/plans";
 import { formatMoney } from "@/lib/finance";
-import { stripeConfigured, paddleConfigured } from "@/lib/env";
+import { paddleConfigured } from "@/lib/env";
 import { getPriceIdFor, PADDLE_PLAN_KEYS, isPaddlePlanKey } from "@/lib/paddle";
 import { BillingClient } from "./Client";
 
@@ -13,6 +13,20 @@ const PERIOD_SUFFIX: Record<string, string> = {
   YEARLY: "/yr",
   LIFETIME: " one-time",
 };
+
+/**
+ * What to show as the invoice reference. `number` is set by Lemon only, and the
+ * webhook never populates it, so falling back to the old required-but-misnamed
+ * `stripeInvoiceId` column rendered the literal text "paddle_invoice_" for
+ * every Paddle invoice.
+ */
+function invoiceRef(i: {
+  number: string | null;
+  paddleOrderId: string | null;
+  lemonOrderId: string | null;
+}): string {
+  return i.number ?? i.paddleOrderId ?? i.lemonOrderId ?? "—";
+}
 
 export default async function BillingPage() {
   const user = await requireUser();
@@ -31,7 +45,6 @@ export default async function BillingPage() {
     where: { active: true, isDemo: false, key: { notIn: UNAVAILABLE_PLAN_KEYS } },
     orderBy: { sortOrder: "asc" },
   });
-  const stripeBillingEnabled = stripeConfigured();
   const paddleBillingEnabled = paddleConfigured();
 
   // Resolve Paddle price ids server-side so we never expose them in source.
@@ -46,7 +59,7 @@ export default async function BillingPage() {
     }
   }
 
-  const providerEnabled = paddleBillingEnabled || stripeBillingEnabled;
+  const providerEnabled = paddleBillingEnabled;
 
   const statusTone =
     ent.subscriptionStatus === "active" || ent.subscriptionStatus === "lifetime"
@@ -208,7 +221,7 @@ export default async function BillingPage() {
               <tbody>
                 {invoices.map((i) => (
                   <tr key={i.id}>
-                    <td className="font-mono text-xs">{i.number ?? i.stripeInvoiceId.slice(0, 16)}</td>
+                    <td className="font-mono text-xs">{invoiceRef(i)}</td>
                     <td>{i.createdAt.toISOString().slice(0, 10)}</td>
                     <td>{formatMoney(i.amountCents, i.currency)}</td>
                     <td>
@@ -217,7 +230,7 @@ export default async function BillingPage() {
                     <td>
                       {i.pdfUrl && (
                         <a href={i.pdfUrl} target="_blank" rel="noopener noreferrer" className="underline text-xs">
-                          Download<span className="sr-only"> invoice {i.number ?? i.stripeInvoiceId}</span>
+                          Download<span className="sr-only"> invoice {invoiceRef(i)}</span>
                         </a>
                       )}
                     </td>
@@ -230,7 +243,7 @@ export default async function BillingPage() {
               {invoices.map((i) => (
                 <li key={i.id} className="rounded-lg border border-charcoal-200 dark:border-charcoal-700 p-3 text-sm">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-xs break-all">{i.number ?? i.stripeInvoiceId.slice(0, 16)}</span>
+                    <span className="font-mono text-xs break-all">{invoiceRef(i)}</span>
                     <span className={`badge ${i.status === "paid" ? "badge-ok" : "badge-warn"}`}>{i.status}</span>
                   </div>
                   <div className="mt-1 flex items-center justify-between text-charcoal-600 dark:text-charcoal-300">

@@ -10,7 +10,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { PrismaClient } from "@prisma/client";
 import { tryConsume, release, type QuotaMetric } from "@/lib/quota";
 import { getEntitlements } from "@/lib/plans";
-import { handleStripeEvent } from "@/lib/stripe-webhook";
+import { deliverOnce } from "./_webhook-harness";
 import { ensureLemonSqueezySchema, ensurePaddleSchema } from "./_ensureSchema";
 import { DB_OK } from "./_dbGuard";
 
@@ -140,24 +140,19 @@ describe.skipIf(!DB_OK)("Expense limit concurrency (real DB)", () => {
   });
 });
 
-describe.skipIf(!DB_OK)("Stripe webhook concurrency (real DB)", () => {
+describe.skipIf(!DB_OK)("webhook concurrency (real DB)", () => {
   const prefix = `wh-${stamp}-`;
 
   afterAll(async () => { await cleanup(); });
 
   it("20 concurrent deliveries of the same event.id → exactly 1 PROCESSED", async () => {
-    const { user } = await makeUserWithPlan();
+    await makeUserWithPlan();
     const eventId = `${stamp}-evt-${Math.random().toString(36).slice(2, 8)}`;
 
-    const event = {
-      id: eventId, object: "event", api_version: "2024-06-20",
-      created: Math.floor(Date.now() / 1000), type: "unknown.event.type",
-      livemode: false, pending_webhooks: 0, request: { id: null, idempotency_key: null },
-      data: { object: {} as any },
-    } as any;
-
     const N = 20;
-    const results = await Promise.all(Array.from({ length: N }, () => handleStripeEvent(event)));
+    const results = await Promise.all(
+      Array.from({ length: N }, () => deliverOnce(eventId, "unknown.event.type"))
+    );
     const applied = results.filter((r) => r === "applied").length;
     const skipped = results.filter((r) => r === "skipped-other-worker").length;
     expect(applied).toBe(1);

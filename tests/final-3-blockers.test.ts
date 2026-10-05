@@ -7,7 +7,8 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { PrismaClient } from "@prisma/client";
 import crypto from "node:crypto";
-import { handleStripeEvent, tryClaimSideEffect } from "@/lib/stripe-webhook";
+import { tryClaimSideEffect } from "@/lib/webhook-state";
+import { deliverOnce, deliverAndFail } from "./_webhook-harness";
 import { tryConsume, release } from "@/lib/quota";
 import { ensureLemonSqueezySchema, ensurePaddleSchema } from "./_ensureSchema";
 import { DB_OK } from "./_dbGuard";
@@ -108,20 +109,16 @@ describe.skipIf(!DB_OK)("BLOCKER 1 — OCR quota rollback + file cleanup", () =>
   });
 });
 
-describe.skipIf(!DB_OK)("BLOCKER 2 — Stripe stale-worker ownership safety", () => {
+describe.skipIf(!DB_OK)("BLOCKER 2 — webhook stale-worker ownership safety", () => {
   afterAll(async () => { await cleanup(); });
 
   it("normal duplicate delivery → exactly 1 PROCESSED, others skipped", async () => {
-    const { user } = await makeUserWithPlan();
+    await makeUserWithPlan();
     const eventId = `${stamp}-evt-dup-${crypto.randomBytes(3).toString("hex")}`;
-    const event = {
-      id: eventId, object: "event", api_version: "2024-06-20",
-      created: Math.floor(Date.now() / 1000), type: "unknown.event.type",
-      livemode: false, pending_webhooks: 0, request: { id: null, idempotency_key: null },
-      data: { object: {} as any },
-    } as any;
     const N = 20;
-    const results = await Promise.all(Array.from({ length: N }, () => handleStripeEvent(event)));
+    const results = await Promise.all(
+      Array.from({ length: N }, () => deliverOnce(eventId, "unknown.event.type"))
+    );
     const applied = results.filter((r) => r === "applied").length;
     const skipped = results.filter((r) => r === "skipped-other-worker").length;
     expect(applied).toBe(1);
@@ -131,18 +128,12 @@ describe.skipIf(!DB_OK)("BLOCKER 2 — Stripe stale-worker ownership safety", ()
   });
 
   it("failed → retry succeeds (FAILED → PROCESSING → PROCESSED, attempts=2)", async () => {
-    const { user } = await makeUserWithPlan();
+    await makeUserWithPlan();
     const eventId = `${stamp}-evt-fail-${crypto.randomBytes(3).toString("hex")}`;
     await prisma.webhookEvent.create({
       data: { eventId, type: "unknown.event.type", status: "FAILED", attempts: 1, error: "test failure" },
     });
-    const event = {
-      id: eventId, object: "event", api_version: "2024-06-20",
-      created: Math.floor(Date.now() / 1000), type: "unknown.event.type",
-      livemode: false, pending_webhooks: 0, request: { id: null, idempotency_key: null },
-      data: { object: {} as any },
-    } as any;
-    const outcome = await handleStripeEvent(event);
+    const outcome = await deliverOnce(eventId, "unknown.event.type");
     expect(outcome).toBe("applied");
     const row = await prisma.webhookEvent.findUnique({ where: { eventId } });
     expect(row?.status).toBe("PROCESSED");
@@ -159,13 +150,7 @@ describe.skipIf(!DB_OK)("BLOCKER 2 — Stripe stale-worker ownership safety", ()
     await prisma.$executeRawUnsafe(
       `UPDATE "WebhookEvent" SET "updatedAt" = '${oldTimestamp.toISOString()}' WHERE "eventId" = '${eventId}'`
     );
-    const event = {
-      id: eventId, object: "event", api_version: "2024-06-20",
-      created: Math.floor(Date.now() / 1000), type: "unknown.event.type",
-      livemode: false, pending_webhooks: 0, request: { id: null, idempotency_key: null },
-      data: { object: {} as any },
-    } as any;
-    const outcome = await handleStripeEvent(event);
+    const outcome = await deliverOnce(eventId, "unknown.event.type");
     expect(outcome).toBe("applied");
     const row = await prisma.webhookEvent.findUnique({ where: { eventId } });
     expect(row?.status).toBe("PROCESSED");
@@ -173,43 +158,31 @@ describe.skipIf(!DB_OK)("BLOCKER 2 — Stripe stale-worker ownership safety", ()
     expect(row?.processingToken).toBeTruthy();
   });
 
-  it("concurrent real-business-event delivery (invoice.paid) produces exactly 1 side effect per type", async () => {
-    const { user } = await makeUserWithPlan();
-    const customerId = user.stripeCustomerId!;
-    const eventId = `${stamp}-evt-invpaid-${crypto.randomBytes(3).toString("hex")}`;
-    const invoiceId = `in_test_${crypto.randomBytes(4).toString("hex")}`;
-    await prisma.invoice.create({
-      data: {
-        userId: user.id, stripeInvoiceId: invoiceId, amountCents: 1000,
-        currency: "USD", status: "paid",
-      },
-    });
+  it("concurrent delivery where every side effect throws → exactly one finalize, event FAILED", async () => {
+    await makeUserWithPlan();
+    const eventId = `${stamp}-evt-allfail-${crypto.randomBytes(3).toString("hex")}`;
     const N = 20;
-    const event = {
-      id: eventId, object: "event", api_version: "2024-06-20",
-      created: Math.floor(Date.now() / 1000), type: "invoice.paid",
-      livemode: false, pending_webhooks: 0, request: { id: null, idempotency_key: null },
-      data: { object: {
-        id: invoiceId, customer: customerId, amount_paid: 1000, currency: "usd",
-        number: "INV-001", hosted_invoice_url: null, invoice_pdf: null,
-        period_start: Math.floor(Date.now() / 1000), period_end: Math.floor(Date.now() / 1000),
-        subscription_details: { metadata: { userId: user.id } },
-        lines: { data: [{ description: "Pro plan" }] },
-      } as any },
-    } as any;
-    const results = await Promise.all(Array.from({ length: N }, () => handleStripeEvent(event)));
-    const applied = results.filter((r) => r === "applied").length;
+
+    const results = await Promise.all(
+      Array.from({ length: N }, () => deliverAndFail(eventId, "unknown.event.type"))
+    );
+
+    // Only the worker that owned the claim may finalize, so exactly one call
+    // reports "failed"; every other worker must have been locked out.
+    const failed = results.filter((r) => r === "failed").length;
     const skipped = results.filter((r) => r === "skipped-other-worker").length;
-    expect(applied).toBe(1);
-    expect(applied + skipped).toBe(N);
-    const inv = await prisma.invoice.findUnique({ where: { stripeInvoiceId: invoiceId } });
-    expect(inv).not.toBeNull();
-    const se = await prisma.webhookSideEffect.findMany({ where: { eventId } });
-    const effectTypes = se.map((s) => s.effectType);
-    const unique = new Set(effectTypes);
-    expect(effectTypes.length).toBe(unique.size);
+    expect(failed).toBe(1);
+    expect(failed + skipped).toBe(N);
+
     const row = await prisma.webhookEvent.findUnique({ where: { eventId } });
-    expect(row?.status).toBe("PROCESSED");
+    expect(row?.status).toBe("FAILED");
+    expect(row?.attempts).toBe(1);
+
+    // A later delivery picks the FAILED row back up and succeeds.
+    expect(await deliverOnce(eventId, "unknown.event.type")).toBe("applied");
+    const healed = await prisma.webhookEvent.findUnique({ where: { eventId } });
+    expect(healed?.status).toBe("PROCESSED");
+    expect(healed?.attempts).toBe(2);
   });
 });
 

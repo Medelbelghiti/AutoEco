@@ -26,7 +26,6 @@ import {
   paddleEnvironment,
   paddleWebhookConfigured,
   prodWarnings,
-  stripeConfigured,
 } from "@/lib/env";
 import { auditLog } from "@/lib/audit";
 import { externalAnalyticsConfigured } from "@/lib/analytics";
@@ -82,10 +81,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     ok: Boolean(env.paddleClientToken),
     detail: env.paddleClientToken ? "present" : "NEXT_PUBLIC_PADDLE_CLIENT_TOKEN missing — Paddle.js cannot open a checkout",
   };
-  checks.stripe = {
-    ok: stripeConfigured(),
-    detail: stripeConfigured() ? `legacy provider (${env.stripeMode})` : "not configured (optional legacy provider)",
-  };
+  // Stripe is gone as of 2.2 and is no longer reported here.
 
   // --- Migrations: the ledger answers "is a migration in flight?", while the
   // --- information_schema check above answers "does the code match the DB?".

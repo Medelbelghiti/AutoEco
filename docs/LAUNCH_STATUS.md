@@ -51,10 +51,15 @@ era and declared the product READY. They were stale and are removed.
   provider fails.
 
 ## Known gaps / next
-- Stripe code is still present as a legacy fallback; remove once no Stripe subscribers exist.
+- ~~Stripe code is still present as a legacy fallback~~ Removed in 2.2: no
+  Stripe subscribers exist, so `lib/stripe*.ts`, the Stripe webhook route and
+  the `stripe` dependency are gone. The DB columns are kept untouched.
+- ~~Account enumeration: signup returns 409 for existing emails~~ Fixed in 2.4:
+  signup returns the same envelope as a real signup and notifies the owner.
 - OCR, family sharing, API access, PDF reports: not built.
 - Only EN/FR UI; `dirFor()` always returns ltr (no RTL).
 - No annual plans yet (needs Paddle yearly prices + `YEARLY` plan rows).
-- Account enumeration: signup returns 409 for existing emails.
 - `npm audit` still reports advisories whose fix is a major upgrade (Next 15/16, Tailwind 4, Vitest 5 dev-only).
-- The cookie is still named `lg_session` and API keys use `lgk_` (old product name).
+- ~~The cookie is still named `lg_session` and API keys use `lgk_`~~ Rotated in
+  2.4 to `autoeco_session` / `aek_`; the legacy names are still accepted on read
+  for one release, so existing sessions and keys keep working.

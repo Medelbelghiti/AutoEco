@@ -27,9 +27,9 @@ password in plain text.
 - Receipt images you upload for scanning;
 - Generated reports, forecasts and scenarios.
 
-**Billing data.** Paid plans are processed by our payment processor (Paddle, and Stripe for
-historical subscriptions). They receive your payment details and return subscription status,
-invoices and transaction identifiers. **We do not store full card numbers.**
+**Billing data.** Paid plans are processed by our payment processor, Paddle. They receive your
+payment details and return subscription status, invoices and transaction identifiers.
+**We do not store full card numbers.**
 
 **Technical data.** IP address, user agent, request timestamps, authentication events, failed login
 attempts, and audit logs used to operate, secure and debug the Service.
@@ -78,7 +78,7 @@ We use a deliberately small set of cookies:
 
 We share data only as needed to operate the Service:
 
-- **Payment processing:** Paddle (and Stripe for historical subscriptions) — processes payments and
+- **Payment processing:** Paddle, our payment processor, handles payments and
   returns subscription and invoice status.
 - **Email delivery:** our SMTP provider, for transactional email such as password reset and
   billing notices.

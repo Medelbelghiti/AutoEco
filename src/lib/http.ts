@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError, type ZodSchema } from "zod";
 import { AuthError } from "./auth";
 import { RateLimitError } from "./rate-limit";
-import { BillingNotConfiguredError } from "./stripe-client";
+import { BillingNotConfiguredError } from "./billing-errors";
 import { CurrencyMismatchError } from "./finance";
 import { getClientIp } from "./utils";
 import { auditLog } from "./audit";

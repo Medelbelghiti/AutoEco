@@ -1,8 +1,8 @@
 /**
  * Webhook state machine + side-effect idempotency.
  *
- * This module is provider-neutral. Both the Stripe webhook handler and
- * the Lemon Squeezy webhook handler use these primitives to guarantee:
+ * This module is provider-neutral. The Paddle webhook handler uses these
+ * primitives to guarantee:
  *
  *   - at-most-once execution of business effects under concurrency
  *   - durable side-effect idempotency (notifications, emails) per event

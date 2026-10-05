@@ -5,7 +5,7 @@
  * subscription or open the customer portal: both need the API key and so must
  * run here. Without these calls a Paddle customer had NO way to stop being
  * charged from inside the app (the previous cancel/portal/resume routes were
- * Stripe-only).
+ * Paddle-only).
  *
  * Docs: https://developer.paddle.com/api-reference/overview
  */
