@@ -8,7 +8,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { PrismaClient } from "@prisma/client";
 import crypto from "node:crypto";
 import { tryClaimSideEffect } from "@/lib/webhook-state";
-import { deliverOnce, deliverAndFail } from "./_webhook-harness";
+import { deliverOnce, deliverAndFailConcurrently } from "./_webhook-harness";
 import { tryConsume, release } from "@/lib/quota";
 import { ensureLemonSqueezySchema, ensurePaddleSchema } from "./_ensureSchema";
 import { DB_OK } from "./_dbGuard";
@@ -163,9 +163,7 @@ describe.skipIf(!DB_OK)("BLOCKER 2 — webhook stale-worker ownership safety", (
     const eventId = `${stamp}-evt-allfail-${crypto.randomBytes(3).toString("hex")}`;
     const N = 20;
 
-    const results = await Promise.all(
-      Array.from({ length: N }, () => deliverAndFail(eventId, "unknown.event.type"))
-    );
+    const results = await deliverAndFailConcurrently(eventId, "unknown.event.type", N);
 
     // Only the worker that owned the claim may finalize, so exactly one call
     // reports "failed"; every other worker must have been locked out.

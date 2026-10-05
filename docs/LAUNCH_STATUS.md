@@ -63,3 +63,22 @@ era and declared the product READY. They were stale and are removed.
 - ~~The cookie is still named `lg_session` and API keys use `lgk_`~~ Rotated in
   2.4 to `autoeco_session` / `aek_`; the legacy names are still accepted on read
   for one release, so existing sessions and keys keep working.
+- ~~Errors were only visible in the platform log~~ Instrumented in 2.5:
+  `captureException()` now also forwards to Sentry when `SENTRY_DSN` is set, and
+  stays completely inert — no import, no network call — when it is empty. Events
+  are scrubbed by allowlist before leaving the process (no emails, tokens, or
+  nested objects), so no DSN is needed to keep the adapter privacy-safe. The DB
+  sink now writes through `db` directly, because `auditLog()` swallows its own
+  errors and would have hidden a failed insert; a stale `userId` is retried
+  un-attributed rather than losing the record. CSP reports reach the same sink.
+- Remaining observability gap: no source maps are uploaded, since the adapter is
+  a hand-rolled envelope POST rather than `@sentry/nextjs`. Stack traces arrive
+  minified. Adding the vendor SDK is a contained change if that becomes a
+  problem. `SENTRY_DSN` is still unset in every environment, so no event has
+  been confirmed against a live project.
+- The webhook concurrency test asserted that exactly one worker finalizes an
+  all-failures race. That only holds while every worker claims before the winner
+  marks the event `FAILED`; after that the row is legitimately claimable again,
+  which is how retries work. Made deterministic by separating the claim phase
+  from the finalize phase, testing the guarantee that actually exists: one
+  winner at claim time, and only the token holder may finalize.

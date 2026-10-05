@@ -25,6 +25,13 @@ export const env = {
   smtpUser: process.env.SMTP_USER ?? "",
   smtpPass: process.env.SMTP_PASS ?? "",
 
+  // ---- Error monitoring (optional) ----
+  // Leave SENTRY_DSN empty to keep error reporting local-only. The adapter is
+  // inert unless a DSN is present.
+  sentryDsn: process.env.SENTRY_DSN ?? "",
+  sentryEnvironment: process.env.SENTRY_ENVIRONMENT ?? "",
+  sentryRelease: process.env.SENTRY_RELEASE ?? "",
+
   // ---- Object storage (uploads: receipts, documents) ----
   // STORAGE_DRIVER forces "local" or "s3". Left empty, the driver is inferred:
   // s3 when a bucket and credentials are present, local otherwise.

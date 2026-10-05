@@ -96,7 +96,7 @@ runSuite("Phase 2.4 — identifier rotation and enumeration resistance", () => {
       `DELETE FROM "ApiKey" WHERE "userId" IN (SELECT id FROM "User" WHERE "email" LIKE '${EMAIL_DOMAIN}%@autoeco.test')`
     );
     await prisma.$executeRawUnsafe(
-      `DELETE FROM "AuditLog" WHERE "userId" IN (SELECT id FROM "User" WHERE "email" LIKE '${EMAIL_DOMAIN}%@autoeco.test') OR "action" = 'security.csp_violation'`
+      `DELETE FROM "AuditLog" WHERE "userId" IN (SELECT id FROM "User" WHERE "email" LIKE '${EMAIL_DOMAIN}%@autoeco.test') OR "metadata" LIKE '%[csp-report]%'`
     );
     await prisma.$executeRawUnsafe(
       `DELETE FROM "User" WHERE "email" LIKE '${EMAIL_DOMAIN}%@autoeco.test'`
@@ -133,6 +133,15 @@ runSuite("Phase 2.4 — identifier rotation and enumeration resistance", () => {
     return new Request("https://autoeco.test/api/reports", {
       headers: { authorization: `Bearer ${raw}` },
     });
+  }
+
+  /** CSP reports go through captureEvent, so they land as `error.unhandled`. */
+  const cspWhere = { metadata: { contains: "[csp-report]" } };
+  function countCsp(): Promise<number> {
+    return prisma.auditLog.count({ where: cspWhere });
+  }
+  function latestCsp() {
+    return prisma.auditLog.findFirst({ where: cspWhere, orderBy: { createdAt: "desc" } });
   }
 
   const SIGNUP_URL = "https://autoeco.test/api/auth/signup";
@@ -407,31 +416,34 @@ runSuite("Phase 2.4 — identifier rotation and enumeration resistance", () => {
         "blocked-uri": "https://cdn.example.invalid/evil.js",
       },
     };
-    const before = await prisma.auditLog.count({ where: { action: "security.csp_violation" } });
+    const before = await countCsp();
 
     const res = await csp.POST(
       new Request("https://autoeco.test/api/csp-report", {
         method: "POST",
-        headers: { "content-type": "application/csp-report" },
+        headers: {
+          "content-type": "application/csp-report",
+          "x-forwarded-for": "198.51.100.7",
+        },
         body: JSON.stringify(payload),
       })
     );
 
     expect(res.status).toBe(204);
     expect(await res.text()).toBe("");
-    const after = await prisma.auditLog.count({ where: { action: "security.csp_violation" } });
+    const after = await countCsp();
     expect(after).toBe(before + 1);
 
-    const row = await prisma.auditLog.findFirst({
-      where: { action: "security.csp_violation" },
-      orderBy: { createdAt: "desc" },
-    });
+    const row = await latestCsp();
     expect(row!.metadata).toContain("script-src");
     expect(row!.metadata).toContain("blocked-uri");
+    expect(row!.action).toBe("error.unhandled");
+    // The reporting IP is recorded for abuse investigation.
+    expect(row!.ip).toBe("198.51.100.7");
   });
 
   run("10b. a Reporting API csp-violation batch is accepted", async () => {
-    const before = await prisma.auditLog.count({ where: { action: "security.csp_violation" } });
+    const before = await countCsp();
     const res = await csp.POST(
       new Request("https://autoeco.test/api/csp-report", {
         method: "POST",
@@ -449,11 +461,11 @@ runSuite("Phase 2.4 — identifier rotation and enumeration resistance", () => {
       })
     );
     expect(res.status).toBe(204);
-    expect(await prisma.auditLog.count({ where: { action: "security.csp_violation" } })).toBe(before + 1);
+    expect(await countCsp()).toBe(before + 1);
   });
 
   run("10c. junk and unparsable bodies are answered without being persisted", async () => {
-    const before = await prisma.auditLog.count({ where: { action: "security.csp_violation" } });
+    const before = await countCsp();
 
     const junk = await csp.POST(
       new Request("https://autoeco.test/api/csp-report", {
@@ -472,7 +484,7 @@ runSuite("Phase 2.4 — identifier rotation and enumeration resistance", () => {
 
     expect(junk.status).toBe(204);
     expect(broken.status).toBe(204);
-    expect(await prisma.auditLog.count({ where: { action: "security.csp_violation" } })).toBe(before);
+    expect(await countCsp()).toBe(before);
   });
 
   run("10e. the sink is rate limited so it cannot be used to flood the audit log", async () => {
@@ -486,7 +498,7 @@ runSuite("Phase 2.4 — identifier rotation and enumeration resistance", () => {
         body: JSON.stringify({ "csp-report": { "violated-directive": "script-src" } }),
       });
 
-    const before = await prisma.auditLog.count({ where: { action: "security.csp_violation" } });
+    const before = await countCsp();
     let accepted = 0;
     let throttled = 0;
     for (let i = 0; i < 70; i += 1) {
@@ -497,7 +509,7 @@ runSuite("Phase 2.4 — identifier rotation and enumeration resistance", () => {
 
     expect(accepted).toBeGreaterThan(0);
     expect(throttled).toBeGreaterThan(0);
-    const after = await prisma.auditLog.count({ where: { action: "security.csp_violation" } });
+    const after = await countCsp();
     expect(after - before).toBeLessThanOrEqual(60);
   });
 
@@ -511,10 +523,10 @@ runSuite("Phase 2.4 — identifier rotation and enumeration resistance", () => {
     );
     expect(res.status).toBe(204);
 
-    const row = await prisma.auditLog.findFirst({
-      where: { action: "security.csp_violation" },
-      orderBy: { createdAt: "desc" },
-    });
-    expect(row!.metadata!.length).toBeLessThanOrEqual(520);
+    const row = await latestCsp();
+    // The stored message is capped by the error-capture scrubber.
+    const stored = (JSON.parse(row!.metadata!) as { message: string }).message;
+    expect(stored.length).toBeLessThanOrEqual(300);
+    expect(stored.length).toBeLessThan(9000);
   });
 });

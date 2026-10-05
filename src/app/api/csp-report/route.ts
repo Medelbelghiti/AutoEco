@@ -10,13 +10,10 @@
  * truncated and never reflected back in the response.
  */
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { captureEvent } from "@/lib/error-capture";
 
 export const dynamic = "force-dynamic";
-
-/** Keep the log readable and the storage bounded. */
-const MAX_LOGGED = 500;
 
 export async function POST(req: Request): Promise<NextResponse> {
   // Unauthenticated write endpoint: without a limit, anyone could spam reports
@@ -56,20 +53,13 @@ export async function POST(req: Request): Promise<NextResponse> {
     return new NextResponse(null, { status: 204 });
   }
 
-  try {
-    await db.auditLog.create({
-      data: {
-        action: "security.csp_violation",
-        metadata: entry.slice(0, MAX_LOGGED),
-        ip: ip === "unknown" ? null : ip,
-      },
-    });
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.warn(`[csp-report] not persisted: ${e instanceof Error ? e.message : e}`);
-  }
+  // Routed through the error-capture seam rather than written directly, so a
+  // violation reaches the audit log and Sentry through one code path. The
+  // message is truncated and email-scrubbed there.
+  await captureEvent(
+    { message: entry, level: "warning" },
+    { scope: "csp.violation", extra: { ip: ip === "unknown" ? undefined : ip } }
+  );
 
-  // eslint-disable-next-line no-console
-  console.warn(entry);
   return new NextResponse(null, { status: 204 });
 }
