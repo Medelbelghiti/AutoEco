@@ -3,13 +3,13 @@ import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { db } from "./db";
 import { env } from "./env";
+import { SESSION_COOKIE, LEGACY_SESSION_COOKIE } from "./session-cookie";
 import type { User } from "@prisma/client";
 
 // Production safety audit is run lazily inside `requireUser()` so that
 // build-time page data collection does not abort if env vars are missing
 // in development.
 
-const SESSION_COOKIE = "lg_session";
 const SESSION_DAYS = 30;
 
 function secretKey(): Uint8Array {
@@ -45,14 +45,24 @@ export async function createSession(userId: string, sessionVersion?: number): Pr
     path: "/",
     maxAge: SESSION_DAYS * 24 * 60 * 60,
   });
+  // Issuing under the new name retires the legacy cookie, so an old session
+  // silently upgrades on the next sign-in instead of lingering forever.
+  if (cookies().get(LEGACY_SESSION_COOKIE)) {
+    cookies().set(LEGACY_SESSION_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
+  }
 }
 
 export function destroySession(): void {
   cookies().set(SESSION_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
+  cookies().set(LEGACY_SESSION_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
 }
 
 async function readSession(): Promise<{ userId: string; sv: number } | null> {
-  const token = cookies().get(SESSION_COOKIE)?.value;
+  // Prefer the current name, fall back to the legacy one so the rename does
+  // not log anyone out. Read-only on purpose: `getCurrentUser()` can run in a
+  // Server Component, where `cookies().set()` throws.
+  const token =
+    cookies().get(SESSION_COOKIE)?.value ?? cookies().get(LEGACY_SESSION_COOKIE)?.value;
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, secretKey());

@@ -16,11 +16,22 @@ const csp = [
   "base-uri 'self'",
   "object-src 'none'",
   "frame-ancestors 'none'",
+  // Violations are POSTed to /api/csp-report. Only meaningful for the
+  // Report-Only header; kept here so flipping to enforcing is a key rename.
+  "report-uri /api/csp-report",
+  "report-to csp-endpoint",
+].join("; ");
+
+const cspReporting = [
+  'report-to csp-endpoint',
+  'endpoints [{ "url": "/api/csp-report", "priority": 1 }]',
 ].join("; ");
 
 const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Content-Security-Policy-Report-Only", value: csp },
+  // The Reporting API needs its own header to deliver `csp-endpoint` reports.
+  { key: "Reporting-Endpoints", value: cspReporting },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },

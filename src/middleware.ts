@@ -15,8 +15,7 @@
  */
 import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
-
-const SESSION_COOKIE = "lg_session";
+import { SESSION_COOKIE, LEGACY_SESSION_COOKIE } from "@/lib/session-cookie";
 
 /** Public auth pages that a signed-in user has no reason to see. */
 const AUTH_PAGES = ["/login", "/signup", "/forgot-password", "/reset-password"];
@@ -92,7 +91,12 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
 
   // --- Session verification (edge-safe: HMAC JWT, no database access). ---
   let signedIn = false;
-  const token = req.cookies.get(SESSION_COOKIE)?.value;
+  // Accept the legacy cookie name for one release, otherwise the rename would
+  // bounce every signed-in user to /login on deploy.
+  const cookieName = req.cookies.get(SESSION_COOKIE)?.value
+    ? SESSION_COOKIE
+    : LEGACY_SESSION_COOKIE;
+  const token = req.cookies.get(cookieName)?.value;
   if (token) {
     const secret = process.env.AUTH_SECRET ?? "";
     if (secret.length >= 32) {
@@ -128,7 +132,7 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
   const res = NextResponse.next();
   if (!signedIn && token) {
     // A stale or tampered cookie: clear it so the browser stops sending it.
-    res.cookies.set(SESSION_COOKIE, "", { path: "/", maxAge: 0 });
+    res.cookies.set(cookieName, "", { path: "/", maxAge: 0 });
   }
   return applySecurityHeaders(res, isProd);
 }

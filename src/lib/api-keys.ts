@@ -2,7 +2,18 @@ import crypto from "crypto";
 import { db } from "./db";
 import { env } from "./env";
 
-export const API_KEY_PREFIX = "lgk_";
+export const API_KEY_PREFIX = "aek_";
+
+/**
+ * Prefix issued before the rename ("LeadGen"). Keys created under it stay
+ * valid for one release: `hashApiKey` signs whatever raw key is presented, so
+ * accepting both prefixes is enough to keep existing keys working. New keys are
+ * always issued with `API_KEY_PREFIX`.
+ */
+export const LEGACY_API_KEY_PREFIX = "lgk_";
+
+const ACCEPTED_API_KEY_PREFIXES = [API_KEY_PREFIX, LEGACY_API_KEY_PREFIX] as const;
+
 export const API_KEY_BYTES = 24;
 
 export function generateApiKey(): { raw: string; prefix: string; hash: string } {
@@ -29,7 +40,7 @@ export async function authenticateApiKey(req: Request): Promise<{
   if (!auth) return null;
   const match = auth.match(/^Bearer\s+(.+)$/i);
   const token = match ? match[1].trim() : null;
-  if (!token || !token.startsWith(API_KEY_PREFIX)) return null;
+  if (!token || !ACCEPTED_API_KEY_PREFIXES.some((p) => token.startsWith(p))) return null;
   const hash = hashApiKey(token);
   const key = await db.apiKey.findUnique({
     where: { keyHash: hash },

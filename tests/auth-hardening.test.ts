@@ -35,7 +35,8 @@ vi.mock("@/lib/email", async (importOriginal) => {
   };
 });
 
-const SESSION_COOKIE = "lg_session";
+const SESSION_COOKIE = "autoeco_session";
+const LEGACY_SESSION_COOKIE = "lg_session";
 process.env.AUTH_SECRET = "phase1-auth-secret-0123456789abcdef0123456789";
 // `@/lib/env` snapshots process.env at import time, and paddleRequest refuses to
 // call the provider at all without an API key. Without this the deletion test
@@ -96,7 +97,8 @@ runSuite("Phase 1 — sessions, enumeration and deletion", () => {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ currentPassword: "old-password-1234", newPassword: "new-password-5678" }),
-      })
+      }),
+      undefined
     );
     expect(res.status).toBe(200);
 
@@ -140,7 +142,8 @@ runSuite("Phase 1 — sessions, enumeration and deletion", () => {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ token: raw, password: "brand-new-password-42" }),
-      })
+      }),
+      undefined
     );
     expect(res.status).toBe(200);
 
@@ -151,6 +154,32 @@ runSuite("Phase 1 — sessions, enumeration and deletion", () => {
 
     const row = await prisma.user.findUniqueOrThrow({ where: { id: uid } });
     expect(await auth.verifyPassword("brand-new-password-42", row.passwordHash)).toBe(true);
+  });
+
+  run("5c. a session cookie issued under the legacy name still authenticates", async () => {
+    const uid = await makeUser("legacy", "legacy-cookie-password-1");
+    await auth.createSession(uid);
+    const token = jar.get(SESSION_COOKIE)!;
+    expect(token).toBeTruthy();
+
+    // Simulate a browser that still holds the pre-rename cookie and nothing else.
+    jar.clear();
+    jar.set(LEGACY_SESSION_COOKIE, token);
+    expect((await auth.getCurrentUser())?.id).toBe(uid);
+
+    // Signing in again upgrades the cookie and retires the legacy one.
+    await auth.createSession(uid);
+    expect(jar.get(SESSION_COOKIE)).toBeTruthy();
+    expect(jar.get(LEGACY_SESSION_COOKIE)).toBe("");
+  });
+
+  run("5d. destroySession clears both cookie names", async () => {
+    const uid = await makeUser("destroy", "destroy-both-cookies-1");
+    await auth.createSession(uid);
+    jar.set(LEGACY_SESSION_COOKIE, "stale");
+    auth.destroySession();
+    expect(jar.get(SESSION_COOKIE)).toBe("");
+    expect(jar.get(LEGACY_SESSION_COOKIE)).toBe("");
   });
 
   run("6. forgot-password is throttled per mailbox and never reveals existence", async () => {
@@ -167,7 +196,8 @@ runSuite("Phase 1 — sessions, enumeration and deletion", () => {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ email }),
-        })
+        }),
+        undefined
       );
 
     const bodies: string[] = [];
@@ -230,7 +260,7 @@ runSuite("Phase 1 — sessions, enumeration and deletion", () => {
         return { ok: false, status: 500, json: async () => ({}) } as Response;
       }) as typeof fetch;
 
-      const failed = await DELETE(req());
+      const failed = await DELETE(req(), undefined);
       expect(failed.status).toBe(502);
       expect(providerCalls).toHaveLength(1);
       expect(providerCalls[0]).toContain("/subscriptions/sub_phase1_delete_me/cancel");
@@ -249,7 +279,7 @@ runSuite("Phase 1 — sessions, enumeration and deletion", () => {
         return { ok: true, status: 200, json: async () => ({}) } as Response;
       }) as typeof fetch;
 
-      const done = await DELETE(req());
+      const done = await DELETE(req(), undefined);
       expect(done.status).toBe(200);
       expect(providerCalls).toHaveLength(1);
 

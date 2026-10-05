@@ -129,6 +129,15 @@ export function tplPasswordReset(name: string | null, link: string): EmailMessag
   };
 }
 
+export function tplSignupAttemptNotice(name: string | null, appUrl: string): EmailMessage {
+  return {
+    to: "",
+    subject: "Someone tried to sign up with your email address",
+    html: `<p>Hi ${escape(name ?? "there")},</p><p>Someone tried to create an AutoEco account using this email address. No new account was created and nothing has changed.</p><p>If this was you, you can sign in as usual, or reset your password here: <a href="${appUrl}/forgot-password">${appUrl}/forgot-password</a></p><p>If it was not you, no action is needed.</p>`,
+    text: `Someone tried to create an AutoEco account with this address. No account was created. If this was you: ${appUrl}/forgot-password`,
+  };
+}
+
 export function tplTrialStarted(name: string | null, appUrl: string, days: number): EmailMessage {
   return {
     to: "",
