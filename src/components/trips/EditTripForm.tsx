@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { TripFormFields, type TripFormValues } from "@/components/trips/TripFormFields";
+import { useT } from "@/components/LocaleProvider";
 
 export function EditTripForm({
   trip,
@@ -22,6 +23,7 @@ export function EditTripForm({
   vehicles: { id: string; label: string }[];
 }) {
   const router = useRouter();
+  const t = useT();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -36,13 +38,13 @@ export function EditTripForm({
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        setError(j.error || "Could not update this trip.");
+        setError(j.error || t("trips.update_failed"));
         return;
       }
       router.push("/trips");
       router.refresh();
     } catch {
-      setError("Network error. Check your connection and try again.");
+      setError(t("common.network_error"));
     } finally {
       setBusy(false);
     }
@@ -82,7 +84,7 @@ export function EditTripForm({
           endOdometer: trip.endOdometer,
           distance: trip.distance,
         }}
-        submitLabel={busy ? "Saving…" : "Save changes"}
+        submitLabel={busy ? t("common.saving") : t("common.save_changes")}
         disabled={busy}
       />
     </form>

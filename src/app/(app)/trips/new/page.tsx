@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getT } from "@/lib/server-i18n";
 import { NewTripForm } from "@/components/trips/NewTripForm";
 
 export const dynamic = "force-dynamic";
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function NewTripPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  const t = getT();
   const vehicles = await db.vehicle.findMany({
     where: { userId: user.id },
     orderBy: { createdAt: "desc" },
@@ -16,13 +18,13 @@ export default async function NewTripPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-4 md:p-6">
-      <h1 className="text-2xl font-bold">Add trip</h1>
+      <h1 className="text-2xl font-bold">{t("nav.add_trip")}</h1>
       <p className="text-sm text-charcoal-600 dark:text-charcoal-400 mt-1 mb-6">
-        Record the distance you drove so it counts towards your yearly log.
+        {t("trips.new_subtitle")}
       </p>
       {vehicles.length === 0 ? (
         <p className="text-sm text-charcoal-600 dark:text-charcoal-400">
-          Add a vehicle in your Garage first.
+          {t("trips.needs_vehicle_short")}
         </p>
       ) : (
         <NewTripForm

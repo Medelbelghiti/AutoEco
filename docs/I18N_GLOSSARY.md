@@ -54,7 +54,7 @@ The parity test (`tests/i18n.test.ts`) treats the following values as allowed to
 - Brand/product proper nouns: `AutoEco`, `Financial Twin`, `Ask Your Car`
 - Exact technical tokens that must remain identical: `DELETE`, `km`, `mi`, status codes `ACTUAL`, `ESTIMATE`, `FORECAST`
 - Pure numeric/symbolic strings (dates-decimal amounts, unit ratios) — matched by regex `^[\d.,\s%+\-/()]*[\d][\d.,\s%+\-/()]*$`
-- Genuine cognates/loanwords that are the correct word in the target language: `Garage`, `Date`, `Distance`, `Name`, `Plan`, `Sections`, `FAQ`, `Docs`, `Admin`, `Assistant`
+- Genuine cognates/loanwords that are the correct word in the target language: `Garage`, `Date`, `Distance`, `Name`, `Plan`, `Sections`, `FAQ`, `Docs`, `Admin`, `Assistant`, `Note` (fr), `Personal` (es), `(optional)` (de)
 - Placeholders only (but value length>0 required)
 
 Plan names (`Pro`, `Pro Plus`, `Family`, `Free`) are proper nouns and remain untranslated; they do not currently appear as bare values in the locale files. No other phrase may be silently identical to English for a `ready` locale (enforced by a failing test, not a warning). `ar` is exempt while `pending` (full mirror).

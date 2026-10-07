@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { TripFormFields, type TripFormValues } from "@/components/trips/TripFormFields";
+import { useT } from "@/components/LocaleProvider";
 
 /**
  * Create form for a trip.
@@ -19,6 +20,7 @@ export function NewTripForm({
   defaultUnit: string;
 }) {
   const router = useRouter();
+  const t = useT();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -33,13 +35,13 @@ export function NewTripForm({
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        setError(j.error || "Could not save this trip.");
+        setError(j.error || t("trips.save_failed"));
         return;
       }
       router.push("/trips");
       router.refresh();
     } catch {
-      setError("Network error. Check your connection and try again.");
+      setError(t("common.network_error"));
     } finally {
       setBusy(false);
     }
@@ -72,7 +74,7 @@ export function NewTripForm({
       <TripFormFields
         vehicles={vehicles}
         defaults={{ distanceUnit: defaultUnit as TripFormValues["distanceUnit"] }}
-        submitLabel={busy ? "Saving…" : "Add trip"}
+        submitLabel={busy ? t("common.saving") : t("nav.add_trip")}
         disabled={busy}
       />
     </form>

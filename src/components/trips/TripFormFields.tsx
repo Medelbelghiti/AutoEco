@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { TRIP_PURPOSES, type TripDistanceUnit } from "@/lib/trips";
+import { translateEnum } from "@/lib/i18n";
+import { useT } from "@/components/LocaleProvider";
 
 export interface TripFormValues {
   vehicleId: string;
@@ -13,12 +15,6 @@ export interface TripFormValues {
   distanceUnit: TripDistanceUnit;
   note: string | null;
 }
-
-const PURPOSE_LABELS: Record<string, string> = {
-  business: "Business",
-  personal: "Personal",
-  commute: "Commute",
-};
 
 const field =
   "w-full rounded-lg border border-charcoal-300 dark:border-charcoal-700 bg-white dark:bg-charcoal-900 px-3 py-2 text-sm";
@@ -56,15 +52,16 @@ export function TripFormFields({
   disabled?: boolean;
   cancelHref?: string;
 }) {
+  const t = useT();
   const today = new Date().toISOString().slice(0, 10);
   return (
     <div className="space-y-4">
       <div>
         <label htmlFor="vehicleId" className={label}>
-          Vehicle
+          {t("common.vehicle")}
         </label>
         <select id="vehicleId" name="vehicleId" required className={field}>
-          <option value="">Choose a vehicle</option>
+          <option value="">{t("trips.choose_vehicle")}</option>
           {vehicles.map((v) => (
             <option key={v.id} value={v.id}>
               {v.label}
@@ -76,7 +73,7 @@ export function TripFormFields({
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="date" className={label}>
-            Date
+            {t("common.date")}
           </label>
           <input
             type="date"
@@ -89,7 +86,7 @@ export function TripFormFields({
         </div>
         <div>
           <label htmlFor="purpose" className={label}>
-            Purpose
+            {t("trips.purpose")}
           </label>
           <select
             id="purpose"
@@ -100,7 +97,7 @@ export function TripFormFields({
           >
             {TRIP_PURPOSES.map((p) => (
               <option key={p} value={p}>
-                {PURPOSE_LABELS[p] ?? p}
+                {translateEnum(t, "trips.purpose_", p)}
               </option>
             ))}
           </select>
@@ -108,16 +105,15 @@ export function TripFormFields({
       </div>
 
       <fieldset className="rounded-lg border border-charcoal-200 dark:border-charcoal-800 p-4 space-y-4">
-        <legend className="px-1 text-sm font-medium">How far did you drive?</legend>
+        <legend className="px-1 text-sm font-medium">{t("trips.how_far")}</legend>
         <p className={help}>
-          Fill in either the odometer before and after, or the distance itself. Fill in
-          one, not both.
+          {t("trips.distance_help")}
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="startOdometer" className={label}>
-              Odometer before
+              {t("trips.odometer_before")}
             </label>
             <input
               type="number"
@@ -132,7 +128,7 @@ export function TripFormFields({
           </div>
           <div>
             <label htmlFor="endOdometer" className={label}>
-              Odometer after
+              {t("trips.odometer_after")}
             </label>
             <input
               type="number"
@@ -150,7 +146,7 @@ export function TripFormFields({
         <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
           <div>
             <label htmlFor="distance" className={label}>
-              Distance
+              {t("common.distance")}
             </label>
             <input
               type="number"
@@ -165,7 +161,7 @@ export function TripFormFields({
           </div>
           <div>
             <label htmlFor="distanceUnit" className={label}>
-              Unit
+              {t("trips.unit")}
             </label>
             <select
               id="distanceUnit"
@@ -182,7 +178,7 @@ export function TripFormFields({
 
       <div>
         <label htmlFor="note" className={label}>
-          Note <span className="font-normal text-charcoal-500">(optional)</span>
+          {t("trips.note")} <span className="font-normal text-charcoal-500">{t("common.optional")}</span>
         </label>
         <textarea
           id="note"
@@ -206,7 +202,7 @@ export function TripFormFields({
           href={cancelHref}
           className="px-3 py-2 rounded-lg border border-charcoal-300 dark:border-charcoal-700 text-sm font-medium"
         >
-          Cancel
+          {t("common.cancel")}
         </Link>
       </div>
     </div>

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Pencil, Trash2 } from "lucide-react";
+import { useT } from "@/components/LocaleProvider";
 
 /**
  * Edit/delete for a single logged trip.
@@ -13,6 +14,7 @@ import { Pencil, Trash2 } from "lucide-react";
  */
 export function TripRowActions({ tripId }: { tripId: string }) {
   const router = useRouter();
+  const t = useT();
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -21,7 +23,7 @@ export function TripRowActions({ tripId }: { tripId: string }) {
     setError(null);
     const res = await fetch(`/api/trips/${tripId}`, { method: "DELETE" });
     if (!res.ok) {
-      setError("Could not delete this trip.");
+      setError(t("trips.delete_failed"));
       return;
     }
     setConfirming(false);
@@ -37,14 +39,14 @@ export function TripRowActions({ tripId }: { tripId: string }) {
           disabled={pending}
           className="px-2 py-1 rounded-md bg-red-600 text-white text-xs font-medium disabled:opacity-60"
         >
-          {pending ? "Deleting…" : "Confirm delete"}
+          {pending ? t("common.deleting") : t("trips.confirm_delete")}
         </button>
         <button
           type="button"
           onClick={() => setConfirming(false)}
           className="px-2 py-1 rounded-md border border-charcoal-300 dark:border-charcoal-700 text-xs font-medium"
         >
-          Cancel
+          {t("common.cancel")}
         </button>
         {error && (
           <span role="alert" className="text-xs text-red-600 dark:text-red-400">
@@ -59,7 +61,7 @@ export function TripRowActions({ tripId }: { tripId: string }) {
     <div className="flex items-center gap-1">
       <a
         href={`/trips/${tripId}/edit`}
-        aria-label="Edit trip"
+        aria-label={t("trips.edit_aria")}
         className="inline-flex h-8 w-8 items-center justify-center rounded-md text-charcoal-600 dark:text-charcoal-400 hover:bg-charcoal-100 dark:hover:bg-charcoal-800"
       >
         <Pencil className="w-4 h-4" aria-hidden="true" />
@@ -67,7 +69,7 @@ export function TripRowActions({ tripId }: { tripId: string }) {
       <button
         type="button"
         onClick={() => setConfirming(true)}
-        aria-label="Delete trip"
+        aria-label={t("trips.delete_aria")}
         className="inline-flex h-8 w-8 items-center justify-center rounded-md text-charcoal-600 dark:text-charcoal-400 hover:bg-charcoal-100 dark:hover:bg-charcoal-800"
       >
         <Trash2 className="w-4 h-4" aria-hidden="true" />

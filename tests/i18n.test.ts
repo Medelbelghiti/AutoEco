@@ -48,9 +48,9 @@ function extractPlaceholders(s: string): string[] {
  *
  * Brand and product names (never translated), units and codes used as labels,
  * and a handful of words that are the same word in the target language
- * (Garage, Date, Distance, Plan, Name, Sections, FAQ, Docs, Admin, Assistant).
- * Anything else identical to English in a *ready* locale is an unfinished
- * translation and must fail the build.
+ * (Garage, Date, Distance, Plan, Name, Sections, FAQ, Docs, Admin, Assistant,
+ * Note, Personal, (optional)). Anything else identical to English in a *ready*
+ * locale is an unfinished translation and must fail the build.
  */
 const IDENTICAL_ALLOWLIST = new Set([
   "AutoEco",
@@ -66,6 +66,9 @@ const IDENTICAL_ALLOWLIST = new Set([
   "Docs",
   "Admin",
   "Assistant",
+  "Note",
+  "Personal",
+  "(optional)",
   "km",
   "mi",
   "ACTUAL",
