@@ -209,10 +209,20 @@ function yyyymm(d: Date): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
-export function formatMoney(cents: number, currency = "USD"): string {
+/**
+ * Money for display.
+ *
+ * `tag` is a BCP-47 locale tag from `intlLocale()`; it only changes how the
+ * digits are grouped and where the decimal separator sits. The currency
+ * always comes from the caller — it is the user's own setting — so choosing a
+ * language can never change which currency a figure is reported in. The
+ * default keeps the historic `en-US` output for call sites (and tests) that
+ * have no request locale to pass.
+ */
+export function formatMoney(cents: number, currency = "USD", tag = "en-US"): string {
   const cur = isSupportedCurrency(currency) ? currency : "USD";
   try {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency: cur.toUpperCase() }).format(cents / 100);
+    return new Intl.NumberFormat(tag, { style: "currency", currency: cur.toUpperCase() }).format(cents / 100);
   } catch {
     return `${(cents / 100).toFixed(2)} ${cur}`;
   }

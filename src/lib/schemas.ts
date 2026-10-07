@@ -1,11 +1,34 @@
 import { z } from "zod";
+import { LOCALES, READY_LOCALES, type Locale } from "@/lib/i18n";
+
+/**
+ * The one place a locale is validated.
+ *
+ * Signup and the profile update both read this, so a value that can be
+ * written is always a value the `Locale` type and the dictionaries already
+ * understand. Before this, signup accepted `ar` while the profile endpoint
+ * rejected it, and neither matched the `Locale` union.
+ */
+export const LocaleSchema = z.enum(LOCALES);
+
+/**
+ * A locale that is safe to *store on a profile*.
+ *
+ * A ready locale renders in the language it names. A pending locale (arabic)
+ * renders English until RTL lands, so persisting it would store a preference
+ * the product cannot honour yet — the settings dropdown only offers ready
+ * locales, and the API fails the same list.
+ */
+export const StoredLocaleSchema = z.enum(
+  READY_LOCALES as unknown as readonly [Locale, ...Locale[]]
+);
 
 export const SignupSchema = z.object({
   email: z.string().email().max(200),
   password: z.string().min(8).max(200),
   name: z.string().min(1).max(80).optional(),
   ref: z.string().max(40).optional(),
-  locale: z.enum(["en", "fr", "ar"]).optional(),
+  locale: StoredLocaleSchema.optional(),
   captchaToken: z.string().max(4096).optional(),
 });
 

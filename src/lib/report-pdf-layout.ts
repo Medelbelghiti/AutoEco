@@ -261,6 +261,9 @@ export function layoutTable(
   return { lines, heightMm: used, pages: page + 1 };
 }
 
+import type { Locale } from "./i18n";
+import { pdfText } from "./report-pdf-text";
+
 /** The disclaimer printed at the bottom of every page. */
 export const PDF_FOOTER_DISCLAIMER =
   "Estimates based on data you entered. Not financial, tax or valuation advice.";
@@ -268,6 +271,7 @@ export const PDF_FOOTER_DISCLAIMER =
 /** Fixed-width footer, centred, so it never collides with the page number. */
 export const PDF_FOOTER_PREFIX = "AutoEco - ";
 
-export function footerLines(generatedAt: Date): [string, string] {
-  return [PDF_FOOTER_DISCLAIMER, `Generated ${generatedAt.toISOString().slice(0, 10)}`];
+export function footerLines(generatedAt: Date, locale?: Locale): [string, string] {
+  const t = pdfText(locale ?? "en");
+  return [t.footerDisclaimer, t.generatedStamp.replace("{date}", generatedAt.toISOString().slice(0, 10))];
 }

@@ -21,6 +21,8 @@ import type {
   trueOwnershipCost,
 } from "./finance";
 import { toPdfSafe } from "./pdf-safe";
+import { canPdfRender, pdfText } from "./report-pdf-text";
+import type { Locale } from "./i18n";
 import {
   PAGE,
   FONT,
@@ -101,12 +103,16 @@ export interface OwnershipReportData {
   /** How many entries exist in total, so a capped list can say so. */
   totalExpenseCount: number;
   generatedAt: Date;
+  /** Locale to render the PDF in (falls back to English for PDF-incompatible). */
+  locale?: Locale;
 }
 
 /** A4 at the 72dpi PDF user-space unit. */
 const PAGE_SIZE: [number, number] = [mm(PAGE.widthMm), mm(PAGE.heightMm)];
 
 export async function renderOwnershipCostPdf(data: OwnershipReportData): Promise<Uint8Array> {
+  const locale: Locale = data.locale && canPdfRender(data.locale) ? data.locale : "en";
+  const t = pdfText(locale);
   const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
 
   const doc = await PDFDocument.create();
@@ -208,7 +214,7 @@ export async function renderOwnershipCostPdf(data: OwnershipReportData): Promise
 
   // ---- Title block -------------------------------------------------------
   ensure(20);
-  draw(toPdfSafe("Ownership cost report"), left, FONT.titlePt, { bold: true });
+  draw(toPdfSafe(t.title), left, FONT.titlePt, { bold: true });
   y -= 6;
 
   const vehicleLine = toPdfSafe(
@@ -224,28 +230,28 @@ export async function renderOwnershipCostPdf(data: OwnershipReportData): Promise
 
   // ---- Summary -----------------------------------------------------------
   ensure(10);
-  draw(toPdfSafe("Summary"), left, FONT.headingPt, { bold: true });
+  draw(toPdfSafe(t.summary), left, FONT.headingPt, { bold: true });
   y -= LEADING.heading;
 
   const distance =
     summary.totalDistance !== null
       ? `${pdfNumber(summary.totalDistance)} ${unit}`
-      : "Not recorded";
+      : t.notRecorded;
   const costPerUnit =
-    summary.costPerKm !== null ? pdfMoney(summary.costPerKm, currency) : "Not recorded";
+    summary.costPerKm !== null ? pdfMoney(summary.costPerKm, currency) : t.notRecorded;
 
   table(
     [
-      { header: "Measure", widthMm: 74, align: "left" },
-      { header: "Value", widthMm: fullWidth - 74, align: "left" },
+      { header: t.thMeasure, widthMm: 74, align: "left" },
+      { header: t.thValue, widthMm: fullWidth - 74, align: "left" },
     ],
     [
-      { cells: ["Months of data", String(summary.monthsOfData)] },
-      { cells: ["Total recorded spending (ACTUAL)", pdfMoney(summary.totalSpent, currency)] },
-      { cells: [`Distance driven (ACTUAL)`, distance] },
-      { cells: ["Monthly average (ACTUAL)", pdfMoney(summary.monthlyAverage, currency)] },
-      { cells: ["Estimated annual cost (FORECAST)", pdfMoney(summary.annualEstimate, currency)] },
-      { cells: [`Cost per ${unit} (ACTUAL)`, costPerUnit] },
+      { cells: [t.monthsOfData, String(summary.monthsOfData)] },
+      { cells: [t.totalSpentActual, pdfMoney(summary.totalSpent, currency)] },
+      { cells: [t.distanceActual, distance] },
+      { cells: [t.monthlyAverageActual, pdfMoney(summary.monthlyAverage, currency)] },
+      { cells: [t.annualForecast, pdfMoney(summary.annualEstimate, currency)] },
+      { cells: [t.costPerUnit.replace("{unit}", unit), costPerUnit] },
     ]
   );
 
@@ -253,14 +259,14 @@ export async function renderOwnershipCostPdf(data: OwnershipReportData): Promise
   if (summary.breakdown.length > 0) {
     table(
       [
-        { header: "Category", widthMm: 78, align: "left" },
-        { header: "Amount", widthMm: fullWidth - 108, align: "right" },
+        { header: t.thCategory, widthMm: 78, align: "left" },
+        { header: t.thAmount, widthMm: fullWidth - 108, align: "right" },
         { header: "%", widthMm: 30, align: "right" },
       ],
       summary.breakdown.map((b) => ({
         cells: [toPdfSafe(b.category), pdfMoney(b.amount, currency), `${pdfNumber(b.percent)}%`],
       })),
-      "By category"
+      t.byCategory
     );
   }
 
@@ -274,11 +280,11 @@ export async function renderOwnershipCostPdf(data: OwnershipReportData): Promise
 
     table(
       [
-        { header: "Date", widthMm: 24, align: "left" },
-        { header: "Category", widthMm: 32, align: "left" },
-        { header: "Merchant", widthMm: 54, align: "left" },
-        { header: unit === "mi" ? "Miles" : "km", widthMm: 20, align: "right" },
-        { header: "Amount", widthMm: fullWidth - 130, align: "right" },
+        { header: t.thDate, widthMm: 24, align: "left" },
+        { header: t.thCategory, widthMm: 32, align: "left" },
+        { header: t.thMerchant, widthMm: 54, align: "left" },
+        { header: unit === "mi" ? t.thMiles : t.thKm, widthMm: 20, align: "right" },
+        { header: t.thAmount, widthMm: fullWidth - 130, align: "right" },
       ],
       listed.map((e) => ({
         cells: [
@@ -291,16 +297,17 @@ export async function renderOwnershipCostPdf(data: OwnershipReportData): Promise
           pdfMoney(e.amountCents, e.currency),
         ],
       })),
-      `Expenses (${pdfNumber(listed.length)} of ${pdfNumber(data.totalExpenseCount)})`
+      t.expensesCaption
+        .replace("{listed}", String(pdfNumber(listed.length)))
+        .replace("{total}", String(pdfNumber(data.totalExpenseCount)))
     );
 
     if (omitted > 0) {
       // Never truncate silently: a reader has to be able to tell that the list
       // is partial, or they may assume they are looking at everything.
+      const tpl = omitted === 1 ? t.omittedOne : t.omittedOther;
       paragraph(
-        `${pdfNumber(omitted)} earlier ${omitted === 1 ? "entry is" : "entries are"} not listed. The totals above include all ${pdfNumber(
-          data.totalExpenseCount
-        )} entries.`,
+        tpl.replace("{n}", String(pdfNumber(omitted))).replace("{total}", String(pdfNumber(data.totalExpenseCount))),
         { colour: grey }
       );
     }
@@ -308,7 +315,7 @@ export async function renderOwnershipCostPdf(data: OwnershipReportData): Promise
 
   // ---- Forecast ----------------------------------------------------------
   ensure(16);
-  draw(toPdfSafe("Forecast, next 12 months"), left, FONT.headingPt, { bold: true });
+  draw(toPdfSafe(t.forecastHeading), left, FONT.headingPt, { bold: true });
   y -= LEADING.heading;
   draw(pdfMoney(data.forecast12.total, currency), left, 14, { bold: true, colour: accent });
   y -= 6;
@@ -320,11 +327,11 @@ export async function renderOwnershipCostPdf(data: OwnershipReportData): Promise
   // ---- Depreciation ------------------------------------------------------
   if (data.depreciation) {
     ensure(16);
-    draw(toPdfSafe("Depreciation (ESTIMATE)"), left, FONT.headingPt, { bold: true });
+    draw(toPdfSafe(t.depreciationHeading), left, FONT.headingPt, { bold: true });
     y -= LEADING.heading;
-    paragraph(`Method: ${toPdfSafe(data.depreciation.method)}`, { sizePt: FONT.bodyPt });
+    paragraph(`${t.methodLabel}: ${toPdfSafe(data.depreciation.method)}`, { sizePt: FONT.bodyPt });
     paragraph(
-      `Total estimated depreciation: ${pdfMoney(data.depreciation.totalDepreciationCents, currency)}`,
+      `${t.totalDepreciationLabel}: ${pdfMoney(data.depreciation.totalDepreciationCents, currency)}`,
       { sizePt: FONT.bodyPt, bold: true }
     );
     paragraph(toPdfSafe(data.depreciation.note), { colour: grey });
@@ -335,7 +342,7 @@ export async function renderOwnershipCostPdf(data: OwnershipReportData): Promise
   if (data.trueCost) {
     ensure(16);
     draw(
-      toPdfSafe("True cost of ownership (3-year horizon)"),
+      toPdfSafe(t.trueCostHeading),
       left,
       FONT.headingPt,
       { bold: true }
@@ -346,9 +353,9 @@ export async function renderOwnershipCostPdf(data: OwnershipReportData): Promise
 
     table(
       [
-        { header: "Component", widthMm: 106, align: "left" },
-        { header: "Basis", widthMm: 30, align: "left" },
-        { header: "Amount", widthMm: fullWidth - 136, align: "right" },
+        { header: t.thComponent, widthMm: 106, align: "left" },
+        { header: t.thBasis, widthMm: 30, align: "left" },
+        { header: t.thAmount, widthMm: fullWidth - 136, align: "right" },
       ],
       data.trueCost.breakdown.map((b) => ({
         cells: [
@@ -363,18 +370,19 @@ export async function renderOwnershipCostPdf(data: OwnershipReportData): Promise
       const i = data.trueCostInputs;
       const resale =
         i.estimatedResaleCents === null
-          ? "not provided"
+          ? t.notProvided
           : pdfMoney(i.estimatedResaleCents, currency);
       paragraph(
-        `Purchase price ${pdfMoney(i.purchasePriceCents, currency)}, purchased ${i.purchaseDate
-          .toISOString()
-          .slice(0, 10)}, estimated resale ${resale}.`,
+        t.purchaseLine
+          .replace("{price}", pdfMoney(i.purchasePriceCents, currency))
+          .replace("{date}", i.purchaseDate.toISOString().slice(0, 10))
+          .replace("{resale}", resale),
         { colour: grey }
       );
     }
 
     ensure(8);
-    draw(toPdfSafe("Assumptions"), left, FONT.labelPt, { bold: true, colour: grey });
+    draw(toPdfSafe(t.assumptionsHeading), left, FONT.labelPt, { bold: true, colour: grey });
     y -= LEADING.small;
     for (const assumption of data.trueCost.assumptions) {
       paragraph(`- ${toPdfSafe(assumption)}`, { indentMm: 2 });
@@ -384,13 +392,10 @@ export async function renderOwnershipCostPdf(data: OwnershipReportData): Promise
 
   // ---- Standing disclaimer ----------------------------------------------
   ensure(12);
-  paragraph(
-    "Every figure above is ACTUAL (from data you recorded), ESTIMATE (from a stated assumption) or FORECAST (a projection). AutoEco analyses the data you enter; it does not diagnose a vehicle or tell you what a vehicle or a deduction is worth.",
-    { colour: grey }
-  );
+  paragraph(t.standingDisclaimer, { colour: grey });
 
   // ---- Footer on every page ---------------------------------------------
-  const [disclaimer, stamp] = footerLines(data.generatedAt);
+  const [disclaimer, stamp] = footerLines(data.generatedAt, locale);
   for (const p of doc.getPages()) {
     const pWidth = mm(PAGE.widthMm);
     p.drawLine({

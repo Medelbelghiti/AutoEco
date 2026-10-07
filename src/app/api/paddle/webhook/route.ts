@@ -28,6 +28,7 @@ import { db } from "@/lib/db";
 import { claim, reclaimStale, markProcessed, markFailed, tryClaimSideEffect } from "@/lib/webhook-state";
 import { createNotification } from "@/lib/notifications";
 import { sendEmail, tplPaymentSuccess, tplPaymentFailed, tplSubscriptionCanceled } from "@/lib/email";
+import { coerceLocale } from "@/lib/i18n";
 import { trackEvent } from "@/lib/analytics";
 import { auditLog } from "@/lib/audit";
 
@@ -137,16 +138,16 @@ async function applyEvent(payload: PaddleWebhookPayload, eventId: string): Promi
  * already verified against `PADDLE_WEBHOOK_SECRET` above — Paddle echoes
  * back exactly what our own client sent.
  */
-async function findUser(payload: PaddleWebhookPayload): Promise<{ id: string; email: string; name: string | null; paddleCustomerId: string | null } | null> {
+async function findUser(payload: PaddleWebhookPayload): Promise<{ id: string; email: string; name: string | null; locale: string | null; paddleCustomerId: string | null } | null> {
   const customUserId = payload.data?.custom_data?.userId;
   if (customUserId) {
     const u = await db.user.findUnique({ where: { id: customUserId } });
     // Never grant entitlement to a soft-deleted account.
-    if (u && !u.deletedAt) return { id: u.id, email: u.email, name: u.name, paddleCustomerId: u.paddleCustomerId };
+    if (u && !u.deletedAt) return { id: u.id, email: u.email, name: u.name, locale: u.locale, paddleCustomerId: u.paddleCustomerId };
   }
   if (payload.data?.customer_id) {
     const u = await db.user.findUnique({ where: { paddleCustomerId: payload.data.customer_id } });
-    if (u && !u.deletedAt) return { id: u.id, email: u.email, name: u.name, paddleCustomerId: u.paddleCustomerId };
+    if (u && !u.deletedAt) return { id: u.id, email: u.email, name: u.name, locale: u.locale, paddleCustomerId: u.paddleCustomerId };
   }
   // Subscription ids are stored on Subscription rows; we walk them.
   if (payload.data?.subscription_id) {
@@ -154,7 +155,7 @@ async function findUser(payload: PaddleWebhookPayload): Promise<{ id: string; em
       where: { paddleSubscriptionId: payload.data.subscription_id },
       include: { user: true },
     });
-    if (sub?.user && !sub.user.deletedAt) return { id: sub.user.id, email: sub.user.email, name: sub.user.name, paddleCustomerId: sub.user.paddleCustomerId };
+    if (sub?.user && !sub.user.deletedAt) return { id: sub.user.id, email: sub.user.email, name: sub.user.name, locale: sub.user.locale, paddleCustomerId: sub.user.paddleCustomerId };
   }
   return null;
 }
@@ -291,7 +292,7 @@ async function onSubscriptionUpsert(payload: PaddleWebhookPayload, eventId: stri
     await createNotification({ userId: user.id, type: "PAYMENT_SUCCESS", title: "Payment successful", link: "/settings/billing" });
   }
   if (await tryClaimSideEffect(eventId, "PADDLE_PAYMENT_SUCCESS_EMAIL")) {
-    await sendEmail({ ...tplPaymentSuccess(user.name, plan.name), to: user.email });
+    await sendEmail({ ...tplPaymentSuccess(user.name, plan.name, coerceLocale(user.locale)), to: user.email });
   }
   // The single most important business metric: a paying customer.
   if (await tryClaimSideEffect(eventId, "PADDLE_SUBSCRIPTION_CREATED_ANALYTICS")) {
@@ -325,7 +326,7 @@ async function onSubscriptionEnded(payload: PaddleWebhookPayload, eventId: strin
   if (await tryClaimSideEffect(eventId, "PADDLE_SUBSCRIPTION_CANCELED_EMAIL")) {
     const sub = await db.subscription.findFirst({ where: { paddleSubscriptionId: paddleSubId } });
     const endDate = sub?.currentPeriodEnd ? sub.currentPeriodEnd.toISOString().slice(0, 10) : "soon";
-    await sendEmail({ ...tplSubscriptionCanceled(user.name, endDate), to: user.email });
+    await sendEmail({ ...tplSubscriptionCanceled(user.name, endDate, coerceLocale(user.locale)), to: user.email });
   }
 }
 
@@ -374,7 +375,7 @@ async function onPaymentFailed(payload: PaddleWebhookPayload, eventId: string): 
     });
   }
   if (await tryClaimSideEffect(eventId, "PADDLE_PAYMENT_FAILED_EMAIL")) {
-    await sendEmail({ ...tplPaymentFailed(user.name, env.appUrl), to: user.email });
+    await sendEmail({ ...tplPaymentFailed(user.name, env.appUrl, coerceLocale(user.locale)), to: user.email });
   }
 }
 

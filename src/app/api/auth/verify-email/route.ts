@@ -10,7 +10,10 @@ export const POST = withErrorHandling(async (req) => {
   const tokenHash = sha256(token);
   const row = await db.verificationToken.findUnique({ where: { tokenHash } });
   if (!row || row.type !== "VERIFY_EMAIL" || row.usedAt || row.expiresAt < new Date()) {
-    return NextResponse.json({ error: "Invalid or expired token" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid or expired token", code: "AUTH_INVALID_TOKEN" },
+      { status: 400 }
+    );
   }
   await db.user.update({
     where: { id: row.userId },

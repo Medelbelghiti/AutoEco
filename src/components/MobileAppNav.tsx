@@ -3,48 +3,22 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import {
-  BarChart3,
-  Car,
-  Fuel,
-  Home,
-  LineChart,
-  Menu,
-  Receipt,
-  Route,
-  Settings as SettingsIcon,
-  SlidersHorizontal,
-  X,
-} from "lucide-react";
+import { Car, Menu, X } from "lucide-react";
+import { APP_NAV_ITEMS, QUICK_NAV_ITEMS, navTitle, type NavItem } from "@/lib/app-nav";
+import { translator, type Locale } from "@/lib/i18n";
 
-type Item = { href: string; label: string; icon: typeof Home };
-
-/** Full navigation. Every one of these must be reachable on a phone. */
-const ALL_ITEMS: Item[] = [
-  { href: "/dashboard", label: "Dashboard", icon: Home },
-  { href: "/garage", label: "Garage", icon: Car },
-  { href: "/expenses", label: "Expenses", icon: Receipt },
-  { href: "/fuel", label: "Fuel", icon: Fuel },
-  { href: "/trips", label: "Trips", icon: Route },
-  { href: "/financial-twin", label: "Financial Twin", icon: LineChart },
-  { href: "/scenarios", label: "Scenarios", icon: SlidersHorizontal },
-  { href: "/insights", label: "Insights", icon: BarChart3 },
-  { href: "/reports", label: "Reports", icon: BarChart3 },
-  { href: "/receipts", label: "Receipts", icon: Receipt },
-  { href: "/settings", label: "Settings", icon: SettingsIcon },
-];
-
-/** The five shown in the bottom bar. Everything else lives in the drawer. */
-const QUICK_ITEMS: Item[] = [
-  { href: "/dashboard", label: "Home", icon: Home },
-  { href: "/garage", label: "Garage", icon: Car },
-  { href: "/expenses/new", label: "Add", icon: Receipt },
-  { href: "/insights", label: "Insights", icon: BarChart3 },
-];
-
-export function MobileAppNav({ email, role }: { email: string; role: string }) {
+export function MobileAppNav({
+  email,
+  role,
+  locale,
+}: {
+  email: string;
+  role: string;
+  locale: Locale;
+}) {
+  const t = translator(locale);
   const [open, setOpen] = useState(false);
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
 
   // Close the drawer on navigation.
   useEffect(() => {
@@ -73,7 +47,7 @@ export function MobileAppNav({ email, role }: { email: string; role: string }) {
           <span className="inline-flex items-center justify-center w-7 h-7 shrink-0 rounded-lg bg-charcoal-900 text-white dark:bg-white dark:text-charcoal-900">
             <Car className="w-3.5 h-3.5" aria-hidden="true" />
           </span>
-          <span className="truncate">{labelFor(pathname)}</span>
+          <span className="truncate">{navTitle(locale, pathname)}</span>
         </Link>
         <button
           type="button"
@@ -81,7 +55,7 @@ export function MobileAppNav({ email, role }: { email: string; role: string }) {
           className="inline-flex items-center justify-center w-10 h-10 -mr-1 rounded-lg hover:bg-charcoal-100 dark:hover:bg-charcoal-800"
           aria-expanded={open}
           aria-controls="app-drawer"
-          aria-label="Open navigation menu"
+          aria-label={t("shell.open_menu")}
         >
           <Menu className="w-5 h-5" aria-hidden="true" />
         </button>
@@ -93,7 +67,7 @@ export function MobileAppNav({ email, role }: { email: string; role: string }) {
             type="button"
             className="absolute inset-0 bg-charcoal-900/50"
             onClick={() => setOpen(false)}
-            aria-label="Close navigation menu"
+            aria-label={t("shell.close_menu")}
             tabIndex={-1}
           />
           <div
@@ -106,14 +80,14 @@ export function MobileAppNav({ email, role }: { email: string; role: string }) {
                 type="button"
                 onClick={() => setOpen(false)}
                 className="inline-flex items-center justify-center w-10 h-10 rounded-lg hover:bg-charcoal-100 dark:hover:bg-charcoal-800"
-                aria-label="Close navigation menu"
+                aria-label={t("shell.close_menu")}
               >
                 <X className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
 
-            <nav className="flex-1 overflow-y-auto p-2" aria-label="All sections">
-              {ALL_ITEMS.map((n) => (
+            <nav className="flex-1 overflow-y-auto p-2" aria-label={t("shell.sections")}>
+              {APP_NAV_ITEMS.map((n: NavItem) => (
                 <Link
                   key={n.href}
                   href={n.href}
@@ -126,17 +100,17 @@ export function MobileAppNav({ email, role }: { email: string; role: string }) {
                   }`}
                 >
                   <n.icon className="w-4 h-4 shrink-0" aria-hidden="true" />
-                  {n.label}
+                  {t(n.key)}
                 </Link>
               ))}
             </nav>
 
             <div className="border-t border-charcoal-200 dark:border-charcoal-800 p-3 text-xs text-charcoal-500">
               <p className="truncate">{email}</p>
-              <p className="capitalize">{role.toLowerCase()}</p>
+              <p className="capitalize">{t(`shell.role_${role.toLowerCase()}`)}</p>
               <form action="/api/auth/logout" method="post" className="mt-2">
                 <button type="submit" className="text-rose-600 underline">
-                  Log out
+                  {t("nav.logout")}
                 </button>
               </form>
             </div>
@@ -147,9 +121,9 @@ export function MobileAppNav({ email, role }: { email: string; role: string }) {
       {/* Bottom quick bar */}
       <nav
         className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white dark:bg-charcoal-900 border-t border-charcoal-200 dark:border-charcoal-800 flex justify-around items-center h-16 px-1"
-        aria-label="Quick navigation"
+        aria-label={t("shell.quick_nav")}
       >
-        {QUICK_ITEMS.map((n) => {
+        {QUICK_NAV_ITEMS.map((n: NavItem) => {
           const isPrimary = n.href === "/expenses/new";
           const active = pathname === n.href;
           return (
@@ -170,28 +144,12 @@ export function MobileAppNav({ email, role }: { email: string; role: string }) {
               >
                 <n.icon className="w-5 h-5" aria-hidden="true" />
               </span>
-              {!isPrimary && <span>{n.label}</span>}
-              {isPrimary && <span className="sr-only">Add expense</span>}
+              {!isPrimary && <span>{t(n.key)}</span>}
+              {isPrimary && <span className="sr-only">{t("nav.add_expense")}</span>}
             </Link>
           );
         })}
       </nav>
     </>
   );
-}
-
-function labelFor(pathname: string): string {
-  const exact = ALL_ITEMS.find((i) => i.href === pathname);
-  if (exact) return exact.label;
-  if (pathname.startsWith("/expenses/new")) return "Add expense";
-  if (pathname.startsWith("/expenses")) return "Expenses";
-  if (pathname.startsWith("/fuel/new")) return "Add fuel";
-  if (pathname.startsWith("/fuel")) return "Fuel";
-  if (pathname.startsWith("/trips/new")) return "Add trip";
-  if (pathname.startsWith("/trips")) return "Trips";
-  if (pathname.startsWith("/garage/new")) return "Add vehicle";
-  if (pathname.startsWith("/garage")) return "Garage";
-  if (pathname.startsWith("/settings/billing")) return "Billing";
-  if (pathname.startsWith("/settings")) return "Settings";
-  return "AutoEco";
 }

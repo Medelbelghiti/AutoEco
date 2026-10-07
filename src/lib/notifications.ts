@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { sendEmail, tplUsageLimitReached } from "./email";
 import { env } from "./env";
+import { coerceLocale } from "./i18n";
 
 export type NotificationType =
   | "SEARCH_COMPLETE" | "USAGE_WARNING" | "USAGE_LIMIT" | "TRIAL_ENDING"
@@ -58,14 +59,14 @@ export async function notifyQuotaLimitReached(params: {
 
     const user = await db.user.findUnique({
       where: { id: params.userId },
-      select: { email: true, name: true, deletedAt: true },
+      select: { email: true, name: true, locale: true, deletedAt: true },
     });
 
     // A deleted account still holds retained QuotaUsage rows; do not email it.
     if (!user || user.deletedAt) return;
 
     await sendEmail({
-      ...tplUsageLimitReached(user.name, label, env.appUrl),
+      ...tplUsageLimitReached(user.name, label, env.appUrl, coerceLocale(user.locale)),
       to: user.email,
     });
   } catch {

@@ -11,12 +11,20 @@ import { getClientIp } from "@/lib/utils";
 export const POST = withErrorHandling(async (req) => {
   const ip = getClientIp(req);
   const rl = await checkRateLimit({ key: `reset-password:${ip}`, limit: 10, windowSeconds: 3600 });
-  if (!rl.allowed) return NextResponse.json({ error: "Too many attempts. Try again later." }, { status: 429 });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many attempts. Try again later.", code: "AUTH_RATE_LIMITED" },
+      { status: 429 }
+    );
+  }
   const { token, password } = await parseJson(req, ResetPasswordSchema);
   const tokenHash = sha256(token);
   const row = await db.verificationToken.findUnique({ where: { tokenHash } });
   if (!row || row.type !== "PASSWORD_RESET" || row.usedAt || row.expiresAt < new Date()) {
-    return NextResponse.json({ error: "Invalid or expired token" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid or expired token", code: "AUTH_INVALID_TOKEN" },
+      { status: 400 }
+    );
   }
   await db.user.update({
     where: { id: row.userId },

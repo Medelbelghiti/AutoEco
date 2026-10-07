@@ -7,9 +7,14 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/utils";
 import { auditLog } from "@/lib/audit";
 import { trackEvent } from "@/lib/analytics";
+import { localeCookieHeader } from "@/lib/server-i18n";
+import { coerceLocale } from "@/lib/i18n";
 
 /** One message for every failure mode, so none of them is a lookup oracle. */
 const GENERIC_AUTH_ERROR = "Invalid email or password";
+
+/** Stable identifier for the generic credential-failure case. */
+const GENERIC_AUTH_CODE = "AUTH_INVALID_CREDENTIALS";
 
 /**
  * A real bcrypt hash of a value nobody can supply, used only to spend the same
@@ -20,7 +25,12 @@ const DUMMY_HASH = "$2b$12$C6UzMDM.H6dfI/f/IKcEe.7DKQ7CxSbLuKQpFWTVtL0zwsO6PbCLu
 export const POST = withErrorHandling(async (req) => {
   const ip = getClientIp(req);
   const rl = await checkRateLimit({ key: `login:${ip}`, limit: 20, windowSeconds: 600 });
-  if (!rl.allowed) return NextResponse.json({ error: "Too many login attempts" }, { status: 429 });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many login attempts", code: "AUTH_RATE_LIMITED" },
+      { status: 429 }
+    );
+  }
 
   const body = await parseJson(req, LoginSchema);
   const user = await db.user.findUnique({ where: { email: body.email.toLowerCase() } });
@@ -31,7 +41,7 @@ export const POST = withErrorHandling(async (req) => {
   if (!user || user.deletedAt) {
     await verifyPassword(body.password, DUMMY_HASH);
     await auditLog({ action: "login.failed", metadata: { email: body.email }, ip });
-    return NextResponse.json({ error: GENERIC_AUTH_ERROR }, { status: 401 });
+    return NextResponse.json({ error: GENERIC_AUTH_ERROR, code: GENERIC_AUTH_CODE }, { status: 401 });
   }
 
   // A locked account must be indistinguishable from a wrong password: the
@@ -39,7 +49,7 @@ export const POST = withErrorHandling(async (req) => {
   // The lockout itself is untouched.
   if (user.lockedUntil && user.lockedUntil > new Date()) {
     await auditLog({ action: "login.locked", metadata: { email: body.email }, ip });
-    return NextResponse.json({ error: GENERIC_AUTH_ERROR }, { status: 401 });
+    return NextResponse.json({ error: GENERIC_AUTH_ERROR, code: GENERIC_AUTH_CODE }, { status: 401 });
   }
 
   const valid = await verifyPassword(body.password, user.passwordHash);
@@ -53,7 +63,7 @@ export const POST = withErrorHandling(async (req) => {
       },
     });
     await auditLog({ userId: user.id, action: "login.failed", ip });
-    return NextResponse.json({ error: GENERIC_AUTH_ERROR }, { status: 401 });
+    return NextResponse.json({ error: GENERIC_AUTH_ERROR, code: GENERIC_AUTH_CODE }, { status: 401 });
   }
 
   await db.user.update({
@@ -64,5 +74,9 @@ export const POST = withErrorHandling(async (req) => {
   await auditLog({ userId: user.id, action: "login.success", ip });
   await trackEvent("login", { userId: user.id });
 
-  return ok({ user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+  const res = ok({ user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+  // Carry the stored preference onto this device: the cookie, not the
+  // profile, is what the next render reads.
+  res.headers.append("set-cookie", localeCookieHeader(coerceLocale(user.locale)));
+  return res;
 });

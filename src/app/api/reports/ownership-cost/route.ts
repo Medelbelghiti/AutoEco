@@ -10,6 +10,7 @@ import { auditLog } from "@/lib/audit";
 import { computeVehicleCost } from "@/lib/compute-cost";
 import { computeDepreciation, projectCost, trueOwnershipCost } from "@/lib/finance";
 import { renderOwnershipCostPdf } from "@/lib/report-pdf";
+import { coerceLocale } from "@/lib/i18n";
 import { pdfFilenameStem } from "@/lib/pdf-safe";
 
 /**
@@ -159,6 +160,7 @@ export const GET = withErrorHandling(async (req) => {
       expenses: expenseRows,
       totalExpenseCount,
       generatedAt,
+      locale: coerceLocale(user.locale),
     });
   } catch (e) {
     // Rendered entirely in-process: never leak a pdf-lib message or a stack to

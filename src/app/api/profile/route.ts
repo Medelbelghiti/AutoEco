@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 import { TRIP_DISTANCE_UNITS } from "@/lib/trips";
+import { StoredLocaleSchema } from "@/lib/schemas";
 
 /**
  * The mileage deduction rate is the user's own figure for their jurisdiction.
@@ -20,7 +21,7 @@ const DeductionFields = {
 
 const UpdateSchema = z.object({
   name: z.string().min(1).max(80).optional(),
-  locale: z.enum(["en", "fr"]).optional(),
+  locale: StoredLocaleSchema.optional(),
   currency: z.enum(SUPPORTED_CURRENCIES).optional(),
   distanceUnit: z.enum(["km", "mi"]).optional(),
   fuelUnit: z.enum(["L_PER_100KM", "MPG", "KM_PER_L"]).optional(),

@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { randomToken, sha256 } from "@/lib/utils";
 import { sendEmail, tplPasswordReset } from "@/lib/email";
 import { env } from "@/lib/env";
+import { coerceLocale } from "@/lib/i18n";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/utils";
 
@@ -29,7 +30,7 @@ export const POST = withErrorHandling(async (req) => {
       },
     });
     const link = `${env.appUrl}/reset-password?token=${token}`;
-    await sendEmail({ ...tplPasswordReset(user.name, link), to: user.email });
+    await sendEmail({ ...tplPasswordReset(user.name, link, coerceLocale(user.locale)), to: user.email });
   }
   return ok({ ok: true });
 });

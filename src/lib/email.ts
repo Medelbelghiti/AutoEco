@@ -1,6 +1,8 @@
 import nodemailer, { type Transporter } from "nodemailer";
 import { env } from "./env";
 import { auditLog } from "./audit";
+import { renderEmailCopy } from "./email-i18n";
+import { coerceLocale, type Locale } from "./i18n";
 
 export type EmailMessage = {
   to: string;
@@ -101,94 +103,140 @@ function maskEmail(email: string): string {
 
 // ---- Transactional templates (plain HTML + text) -----------------------------
 
-export function tplWelcome(name: string | null, appUrl: string): EmailMessage {
-  const display = name ?? "there";
+function localeOf(v: string | null | undefined): Locale {
+  return coerceLocale(v);
+}
+
+export function tplWelcome(name: string | null, appUrl: string, localeValue?: string | null): EmailMessage {
+  const c = renderEmailCopy(localeOf(localeValue), "welcome", {
+    name: escape(name ?? "there"),
+    appUrl,
+  });
   return {
     to: "",
-    subject: "Welcome to AutoEco",
-    html: `<p>Hi ${escape(display)},</p><p>Welcome to <strong>AutoEco</strong> — the financial operating system for your car.</p><p>Add your vehicle, log fuel and expenses, and AutoEco works out what your car really costs per month and per kilometer.</p><p>Get started: <a href="${appUrl}/dashboard">${appUrl}/dashboard</a></p>`,
-    text: `Welcome to AutoEco. Add your car and start tracking: ${appUrl}/dashboard`,
+    subject: c.subject,
+    html: c.html,
+    text: c.text,
   };
 }
 
-export function tplEmailVerify(name: string | null, link: string): EmailMessage {
+export function tplEmailVerify(name: string | null, link: string, localeValue?: string | null): EmailMessage {
+  const c = renderEmailCopy(localeOf(localeValue), "emailVerify", {
+    name: escape(name ?? "there"),
+    link,
+  });
   return {
     to: "",
-    subject: "Verify your AutoEco email",
-    html: `<p>Hi ${escape(name ?? "there")},</p><p>Please verify your email by clicking the link below:</p><p><a href="${link}">${link}</a></p><p>This link expires in 24 hours.</p>`,
-    text: `Verify your email: ${link} (expires in 24 hours)`,
+    subject: c.subject,
+    html: c.html,
+    text: c.text,
   };
 }
 
-export function tplPasswordReset(name: string | null, link: string): EmailMessage {
+export function tplPasswordReset(name: string | null, link: string, localeValue?: string | null): EmailMessage {
+  const c = renderEmailCopy(localeOf(localeValue), "passwordReset", {
+    name: escape(name ?? "there"),
+    link,
+  });
   return {
     to: "",
-    subject: "Reset your AutoEco password",
-    html: `<p>Hi ${escape(name ?? "there")},</p><p>Use the link below to reset your password:</p><p><a href="${link}">${link}</a></p><p>If you did not request this, you can ignore this email.</p>`,
-    text: `Reset your password: ${link}`,
+    subject: c.subject,
+    html: c.html,
+    text: c.text,
   };
 }
 
-export function tplSignupAttemptNotice(name: string | null, appUrl: string): EmailMessage {
+export function tplSignupAttemptNotice(name: string | null, appUrl: string, localeValue?: string | null): EmailMessage {
+  const c = renderEmailCopy(localeOf(localeValue), "signupAttemptNotice", {
+    name: escape(name ?? "there"),
+    appUrl,
+  });
   return {
     to: "",
-    subject: "Someone tried to sign up with your email address",
-    html: `<p>Hi ${escape(name ?? "there")},</p><p>Someone tried to create an AutoEco account using this email address. No new account was created and nothing has changed.</p><p>If this was you, you can sign in as usual, or reset your password here: <a href="${appUrl}/forgot-password">${appUrl}/forgot-password</a></p><p>If it was not you, no action is needed.</p>`,
-    text: `Someone tried to create an AutoEco account with this address. No account was created. If this was you: ${appUrl}/forgot-password`,
+    subject: c.subject,
+    html: c.html,
+    text: c.text,
   };
 }
 
-export function tplTrialStarted(name: string | null, appUrl: string, days: number): EmailMessage {
+export function tplTrialStarted(name: string | null, appUrl: string, days: number, localeValue?: string | null): EmailMessage {
+  const c = renderEmailCopy(localeOf(localeValue), "trialStarted", {
+    name: escape(name ?? "there"),
+    appUrl,
+    days,
+  });
   return {
     to: "",
-    subject: `Your AutoEco ${days}-day free trial is active`,
-    html: `<p>Hi ${escape(name ?? "there")},</p><p>Your free trial is now active. <a href="${appUrl}/dashboard">Go to your dashboard</a> and add your first vehicle.</p>`,
-    text: `Your ${days}-day free trial is active. Go to ${appUrl}/dashboard`,
+    subject: c.subject,
+    html: c.html,
+    text: c.text,
   };
 }
 
-export function tplTrialEnding(name: string | null, daysLeft: number, appUrl: string): EmailMessage {
+export function tplTrialEnding(name: string | null, daysLeft: number, appUrl: string, localeValue?: string | null): EmailMessage {
+  const c = renderEmailCopy(localeOf(localeValue), "trialEnding", {
+    name: escape(name ?? "there"),
+    appUrl,
+    days: daysLeft,
+  });
   return {
     to: "",
-    subject: `Your trial ends in ${daysLeft} day(s)`,
-    html: `<p>Hi ${escape(name ?? "there")},</p><p>Your trial ends in ${daysLeft} day(s). <a href="${appUrl}/settings/billing">Upgrade now</a> to keep multi-vehicle tracking, forecasts and Ask Your Car.</p>`,
-    text: `Trial ends in ${daysLeft} day(s). Upgrade at ${appUrl}/settings/billing`,
+    subject: c.subject,
+    html: c.html,
+    text: c.text,
   };
 }
 
-export function tplPaymentSuccess(name: string | null, planName: string): EmailMessage {
+export function tplPaymentSuccess(name: string | null, planName: string, localeValue?: string | null): EmailMessage {
+  const c = renderEmailCopy(localeOf(localeValue), "paymentSuccess", {
+    name: escape(name ?? "there"),
+    planName: escape(planName),
+  });
   return {
     to: "",
-    subject: `Payment successful — ${planName} is active`,
-    html: `<p>Hi ${escape(name ?? "there")},</p><p>Your payment was successful. The <strong>${escape(planName)}</strong> plan is now active.</p>`,
-    text: `Payment successful — ${planName} is active.`,
+    subject: c.subject,
+    html: c.html,
+    text: c.text,
   };
 }
 
-export function tplPaymentFailed(name: string | null, appUrl: string): EmailMessage {
+export function tplPaymentFailed(name: string | null, appUrl: string, localeValue?: string | null): EmailMessage {
+  const c = renderEmailCopy(localeOf(localeValue), "paymentFailed", {
+    name: escape(name ?? "there"),
+    appUrl,
+  });
   return {
     to: "",
-    subject: "Payment failed — action required",
-    html: `<p>Hi ${escape(name ?? "there")},</p><p>We could not process your most recent payment. Please <a href="${appUrl}/settings/billing">update your billing</a> to avoid interruption.</p>`,
-    text: `Payment failed. Update billing at ${appUrl}/settings/billing`,
+    subject: c.subject,
+    html: c.html,
+    text: c.text,
   };
 }
 
-export function tplSubscriptionCanceled(name: string | null, endDate: string): EmailMessage {
+export function tplSubscriptionCanceled(name: string | null, endDate: string, localeValue?: string | null): EmailMessage {
+  const c = renderEmailCopy(localeOf(localeValue), "subscriptionCanceled", {
+    name: escape(name ?? "there"),
+    endDate,
+  });
   return {
     to: "",
-    subject: "Your AutoEco subscription was canceled",
-    html: `<p>Hi ${escape(name ?? "there")},</p><p>Your subscription has been canceled. You will retain access until <strong>${endDate}</strong>.</p>`,
-    text: `Subscription canceled. Access until ${endDate}.`,
+    subject: c.subject,
+    html: c.html,
+    text: c.text,
   };
 }
 
-export function tplUsageLimitReached(name: string | null, label: string, appUrl: string): EmailMessage {
+export function tplUsageLimitReached(name: string | null, label: string, appUrl: string, localeValue?: string | null): EmailMessage {
+  const c = renderEmailCopy(localeOf(localeValue), "usageLimitReached", {
+    name: escape(name ?? "there"),
+    label: escape(label),
+    appUrl,
+  });
   return {
     to: "",
-    subject: `You've reached your ${label} limit`,
-    html: `<p>Hi ${escape(name ?? "there")},</p><p>You've reached your current <strong>${escape(label)}</strong> limit. <a href="${appUrl}/settings/billing">Upgrade your plan</a> to continue.</p>`,
-    text: `You've reached your ${label} limit. Upgrade at ${appUrl}/settings/billing`,
+    subject: c.subject,
+    html: c.html,
+    text: c.text,
   };
 }
 
