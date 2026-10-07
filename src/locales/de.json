@@ -12,7 +12,7 @@
   "nav.pricing": "Preise",
   "nav.docs": "Dokumentation",
   "nav.calculators": "Rechner",
-  "nav.admin": "Admin",
+  "nav.admin": "Verwaltung",
   "nav.logout": "Abmelden",
   "nav.home": "Start",
   "nav.trips": "Fahrten",
@@ -370,7 +370,7 @@
   "error.invalid_token": "Dieser Link ist ungültig oder abgelaufen.",
   "error.email_taken": "Zu dieser E-Mail-Adresse existiert bereits ein Konto.",
   "common.cancel": "Abbrechen",
-  "common.optional": "(optional)",
+  "common.optional": "(fakultativ)",
   "garage.back": "Zurück zur Garage",
   "twin.forecast_36": "36-Monats-Prognose",
   "twin.depreciation": "Wertminderung",
@@ -457,5 +457,8 @@
   "common.liters": "Liter",
   "common.run_scenario": "Szenario ausführen",
   "common.save_changes": "Änderungen speichern",
-  "garage.mixed_body": "Vorhandene Währungen: {currencies}. AutoEco kann keine Summen über mehrere Währungen hinweg bilden. Bearbeiten Sie Ihre Einträge, um eine einzige Währung zu verwenden."
+  "garage.mixed_body": "Vorhandene Währungen: {currencies}. AutoEco kann keine Summen über mehrere Währungen hinweg bilden. Bearbeiten Sie Ihre Einträge, um eine einzige Währung zu verwenden.",
+  "twin.breakdown_operating": "Alle erfassten Ausgaben (FORECAST, konstant)",
+  "twin.breakdown_forward_fixed": "Zukünftige Fixkosten (FORECAST)",
+  "twin.breakdown_depreciation": "Wertminderung (ESTIMATE)"
 }

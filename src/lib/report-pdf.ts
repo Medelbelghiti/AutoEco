@@ -359,7 +359,13 @@ export async function renderOwnershipCostPdf(data: OwnershipReportData): Promise
       ],
       data.trueCost.breakdown.map((b) => ({
         cells: [
-          toPdfSafe(b.label),
+          toPdfSafe(
+            b.id === "operating"
+              ? t.componentOperating
+              : b.id === "forwardFixed"
+                ? t.componentForwardFixed
+                : t.componentDepreciation
+          ),
           toPdfSafe(b.source.toUpperCase()),
           pdfMoney(b.cents, currency),
         ],

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { computeVehicleCost } from "@/lib/compute-cost";
-import { formatMoney, computeDepreciation, projectCost, trueOwnershipCost } from "@/lib/finance";
+import { formatMoney, computeDepreciation, projectCost, trueOwnershipCost, trueCostRowKey } from "@/lib/finance";
 import { getEntitlements } from "@/lib/plans";
 import { canPdfRender } from "@/lib/report-pdf-text";
 import { formatDate, formatNumber, intlLocale, translateEnum } from "@/lib/i18n";
@@ -152,7 +152,7 @@ export default async function ReportsPage() {
           <p className="text-3xl font-extrabold mt-2">{money(trueCost.total, currency)}</p>
           <ul className="text-xs text-charcoal-500 mt-3 space-y-1">
             {trueCost.breakdown.map((b) => (
-              <li key={b.label}><span className="badge badge-info me-2">{b.source}</span>{b.label}: <strong>{money(b.cents, currency)}</strong></li>
+              <li key={b.id}><span className="badge badge-info me-2">{b.source}</span>{t(trueCostRowKey(b.id))}: <strong>{money(b.cents, currency)}</strong></li>
             ))}
           </ul>
           <ul className="mt-3 space-y-1 text-xs text-charcoal-400">

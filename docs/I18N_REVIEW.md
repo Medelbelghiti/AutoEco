@@ -4,13 +4,13 @@ This document lists all machine-translated strings that **need native review** p
 
 ## 1. Scope and status
 
-- **Locale key set (UI copy):** `en.json` is the superset with **459 keys** (see section breakdown below). Every other locale is verified to match it exactly (no missing, no extra, no empty values, identical `{placeholder}` sets) by `tests/i18n.test.ts`.
+- **Locale key set (UI copy):** `en.json` is the superset with **462 keys** (see section breakdown below). Every other locale is verified to match it exactly (no missing, no extra, no empty values, identical `{placeholder}` sets) by `tests/i18n.test.ts`.
 - **Transactional email copy:** 10 templates (`welcome`, `emailVerify`, `passwordReset`, `signupAttemptNotice`, `trialStarted`, `trialEnding`, `paymentSuccess`, `paymentFailed`, `subscriptionCanceled`, `usageLimitReached`) shipped for the 5 ready locales in `src/lib/email-i18n.ts`. Arabic falls back to English (pending).
 - **Scope of this change:** shell/nav, auth, common chrome, dashboard, garage (list + detail), trips (list/new/edit + forms), receipts, assistant, expenses, fuel, insights, financial-twin, scenarios, settings, reports + 7 `error.*` keys + 8 `status.*` keys + 14 `category.*` keys + product emails.
 - **Pending (not translated now):** marketing sub-pages (features/docs/FAQ — partially covered by keys above but page bodies remain English) and the 12 calculators. These remain English where out of the key set.
 - **Locale readiness for selectors:** selectors show ONLY `ready` locales (`LOCALE_STATUS` in `src/lib/i18n.ts`). `ar` is `pending` until COMMIT B.
 
-### en.json key breakdown by section (459 total)
+### en.json key breakdown by section (462 total)
 
 | Section | Keys |
 |---|---|
@@ -48,18 +48,25 @@ This document lists all machine-translated strings that **need native review** p
 
 ## 2. Real translation vs copy of English (per locale)
 
-Parity test reports any value identical to English. The allowlist (section 5 of the glossary) treats brand/product proper nouns, `DELETE`, `km`/`mi`, `ACTUAL`/`ESTIMATE`/`FORECAST`, units, numbers and symbols as "not a copy". Counts below are on the **459-key set**.
+Parity test reports any value identical to English. The exclusion set is split in `tests/i18n.test.ts`:
+- `IDENTICAL_ALLOWLIST` — strict: only brand/product names (`AutoEco`, `Financial Twin`, `Ask Your Car`), units (`km`, `mi`) and code tokens (`DELETE`, `ACTUAL`, `ESTIMATE`, `FORECAST`); numbers/symbols pass via regex.
+- `IDENTICAL_NATIVE_WORDS` — words whose correct translation is literally the same word/acronym in that language (documented per locale, see below).
 
-| Locale | Total keys | Identical to English | Identical but allowlisted | Copies of English (must be 0) | Status |
+Copies of English (identical and *not* in either set) must be 0 in every ready locale.
+
+| Locale | Total keys | Identical to English | Identical but excluded (brands/units/codes + native words) | Copies of English (must be 0) | Status |
 |---|---|---|---|---|---|
-| en | 459 | 459 (reference) | — | — | ready |
-| fr | 459 | **15** | 15 | **0** | ready |
-| es | 459 | **11** | 11 | **0** | ready |
-| pt-BR | 459 | **9** | 9 | **0** | ready |
-| de | 459 | **15** | 15 | **0** | ready |
-| ar | 459 | 459 | 459 (mirror) | n/a (pending) | pending |
+| en | 462 | 462 (reference) | — | — | ready |
+| fr | 462 | **12** | 12 | **0** | ready |
+| es | 462 | **9** | 9 | **0** | ready |
+| pt-BR | 462 | **8** | 8 | **0** | ready |
+| de | 462 | **13** | 13 | **0** | ready |
+| ar | 462 | 462 | 462 (mirror) | n/a (pending) | pending |
 
-The identical-but-allowlisted values are exactly: `brand.name`, `diff.autoeco.title` (`AutoEco`); the product names `Financial Twin` (`hero.badge`, `features.twin.title`, `preview.title`, `nav.financial_twin`), `Ask Your Car` (`dashboard.qa_assistant`, `ask.name`); and true cognates/loanwords that are legitimate in the target language: `Garage` (fr/de), `Date` (fr), `Distance` (fr), `Name` (de), `Note` (fr, `trips.note`), `Personal` (es, `trips.purpose_personal`), `(optional)` (de, `common.optional`), `Plan` (es/de), `Sections` (fr), `FAQ`, `Docs` (fr), `Admin`, `Assistant` (fr/de).
+The identical values are exactly:
+- Brands/products (all ready locales): `AutoEco` (`brand.name`, `diff.autoeco.title`), `Financial Twin` (`hero.badge`, `features.twin.title`, `preview.title`, `nav.financial_twin`), `Ask Your Car` (`dashboard.qa_assistant`, `ask.name`).
+- Native same-word translations (unavoidable — the word is identical in that language): fr — `Garage` (`garage.title`, `nav.garage`), `Date` (`common.date`), `Distance` (`common.distance`, `dashboard.badge_distance`), `Sections` (`shell.sections`), `Assistant` (`nav.assistant`), `FAQ` (`nav.faq`); es — `Plan` (`settings.plan`); de — `Garage` (`garage.title`, `nav.garage`), `Name` (`common.name`), `Plan` (`settings.plan`), `FAQ` (`nav.faq`); pt-BR — none.
+- No other identical values remain in a ready locale. `trips.note` → fr `Remarque`, `trips.purpose_personal` → es `Particular`, `common.optional` → de `(fakultativ)` were translated to end their English copies; `nav.docs` (fr) and `nav.admin` (all ready locales) were translated too.
 
 ## 3. Machine translation posture
 
@@ -71,7 +78,7 @@ Risky strings (billing, trial, refund, tax, limits, security/2FA, deletion, mixe
 
 ### fr (French) — status: needs native review
 Confidence: **medium–high**. Formal register `vous` verified throughout including `report-pdf-text.ts` and emails.  
-**Identical to English: 15, all allowlisted (0 copies).**
+**Identical to English: 12, all excluded (0 copies).**
 
 Key areas needing review:
 - RISK: billing/trial/refund — `settings.trial_ends`, `settings.manage_billing`, `status.past_due/unpaid/canceled`, `error.rate_limited/registration_disabled`
@@ -82,7 +89,7 @@ Key areas needing review:
 
 ### es (Spanish) — status: needs native review
 Confidence: **medium**. Formal register `usted` verified; Iberian-flavored; confirm date/number contexts and some Latin American alternatives.  
-**Identical to English: 11, all allowlisted (0 copies).**
+**Identical to English: 9, all excluded (0 copies).**
 
 Key areas needing review:
 - RISK: billing/trial/refund — `settings.plan`, `status.*`, `error.*`
@@ -93,7 +100,7 @@ Key areas needing review:
 
 ### pt-BR (Brazilian Portuguese) — status: needs native review
 Confidence: **medium**. Formal register `você` verified.  
-**Identical to English: 9, all allowlisted (0 copies).**
+**Identical to English: 8, all excluded (0 copies).**
 
 Key areas needing review:
 - RISK: billing/trial/refund — `settings.manage_billing`, `status.*`, `error.*`
@@ -104,7 +111,7 @@ Key areas needing review:
 
 ### de (German) — status: needs native review
 Confidence: **medium**. Formal register `Sie` verified.  
-**Identical to English: 15, all allowlisted (0 copies).**
+**Identical to English: 13, all excluded (0 copies).**
 
 Key areas needing review:
 - RISK: billing/trial/refund — `settings.trial_ends`, `status.*`, `error.*`
@@ -114,12 +121,13 @@ Key areas needing review:
 - Mixed-currency warnings
 
 ### ar (Arabic) — status: **pending (not ready)**
-Arabic strings are mirrors of English (`ar.json` duplicates `en.json`, 459/459 identical) so the parity test passes while selectors stay disabled. Arabic content + RTL layout land in **COMMIT B**. Do not expose in UI until ready.
+Arabic strings are mirrors of English (`ar.json` duplicates `en.json`, 462/462 identical) so the parity test passes while selectors stay disabled. Arabic content + RTL layout land in **COMMIT B**. Do not expose in UI until ready.
 
 ## 5. Pending (explicitly out of scope for COMMIT A translation)
 - Marketing sub-pages bodies not covered by the key set (features/docs/FAQ detail pages).
 - Calculators (~12 calculators) — remain English.
 - **Page conversions shipped in COMMIT A2:** `trips` (list/new/edit), `receipts`, `assistant`, `garage/[id]` now render through `useT()`/`getT()`. Remaining English on those screens is dynamic data prose computed by the backend (the grounded-answer text and its sources in `assistant`, the finance breakdown labels/assumptions in `garage/[id]`) and a handful of `trips`/`receipts` vehicle-name labels assembled from the user's own `nickname + brand + model` data — none of it is fixed interface copy.
+- **Fixup commit delta:** the true-cost breakdown **labels** (`twin.breakdown_*`, PDF `component*`) now render through keys everywhere (garage/$id, reports, PDF). The `assumptions` sentences emitted by `finance.ts` remain English prose (deferred). The AI assistant's LLM answers follow the user's locale via the system prompt (fallback English; quoted facts/sources are never translated); its deterministic fallback (`deterministicAnswer`) remains English templates (deferred).
 - The 4 trip client components (`TripFormFields`, `NewTripForm`, `EditTripForm`, `TripRowActions`) and the new `ReceiptDeleteForm` are wired to the locale too.
 - Any UI error strings not yet routed through `errorText` (see next section).
 
@@ -146,7 +154,7 @@ Screens wired: login, signup, forgot-password, reset-password, verify-email, set
 - Profile API (`PATCH /api/profile`) rejects any non-ready locale via `StoredLocaleSchema`, so a pending locale can never become a durable preference.
 
 ## 8. Verification notes
-- `tests/i18n.test.ts` (48 tests): parity (missing/extra/empty/placeholders), identical-value detection with allowlist for ready locales, fallback-to-English, legacy-locale coercion, plural selection (`Intl.PluralRules`) for en/fr/es/pt-BR/de, error-code mapping, enum translation, RTL held out, email-copy localization + fallback.
+- `tests/i18n.test.ts` (53 tests): parity (missing/extra/empty/placeholders), identical-value detection with allowlist for ready locales, fallback-to-English, legacy-locale coercion, plural selection (`Intl.PluralRules`) for en/fr/es/pt-BR/de including trips-count forms 0/1/2/5, error-code mapping, enum translation, RTL held out, email-copy localization + fallback.
 - `tests/profile-locale.test.ts` (5 tests, real DB): PATCH/GET persist locale, pending `ar` rejected, junk locale rejected, LOCALE_STATUS/READY_LOCALES coherence.
 - Locale selector exposes only `ready` locales. `ar` = pending.
 - Unknown/legacy locale values fall back to `en`. Direct URL/cookie with pending locale falls back to `en`.

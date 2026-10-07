@@ -50,12 +50,24 @@ This glossary is binding for all machine and human-reviewed translations in this
 - Pluralization: expect ICU-style forms where `{count}` is present (French/Spanish/Portuguese/German have standard plural rules). Strings with counts must be written to support plural forms in the final translation; for this commit the key structure is flat strings but any future ICU must remain compatible.
 
 ## 5. Allowlist (values considered "not a copy of English")
-The parity test (`tests/i18n.test.ts`) treats the following values as allowed to be identical to English in a READY locale:
-- Brand/product proper nouns: `AutoEco`, `Financial Twin`, `Ask Your Car`
-- Exact technical tokens that must remain identical: `DELETE`, `km`, `mi`, status codes `ACTUAL`, `ESTIMATE`, `FORECAST`
-- Pure numeric/symbolic strings (dates-decimal amounts, unit ratios) — matched by regex `^[\d.,\s%+\-/()]*[\d][\d.,\s%+\-/()]*$`
-- Genuine cognates/loanwords that are the correct word in the target language: `Garage`, `Date`, `Distance`, `Name`, `Plan`, `Sections`, `FAQ`, `Docs`, `Admin`, `Assistant`, `Note` (fr), `Personal` (es), `(optional)` (de)
+The parity test (`tests/i18n.test.ts`) treats the following as allowed to be identical to English in a READY locale:
+
+- **`IDENTICAL_ALLOWLIST` — strict, contains ONLY brand names, numbers, symbols and units:**
+  - Brand/product proper nouns (never translated): `AutoEco`, `Financial Twin`, `Ask Your Car`
+  - Units and code tokens that must remain identical: `km`, `mi`, `DELETE`, `ACTUAL`, `ESTIMATE`, `FORECAST`
+  - Pure numeric/symbolic strings (deci-mal amounts, unit ratios) — matched by regex `^[\d.,\s%+\-/()]*[\d][\d.,\s%+\-/()]*$`
+- **`IDENTICAL_NATIVE_WORDS` — separate, documented exception for the rare words whose correct translation is literally the same word/acronym in that language** (each with its per-locale justification):
+  - `Garage` — fr `garage.title`, `nav.garage`; de `garage.title`, `nav.garage` (native word in French and German)
+  - `Date` — fr `common.date` (native French)
+  - `Distance` — fr `common.distance`, `dashboard.badge_distance` (native French)
+  - `Sections` — fr `shell.sections` (native French plural)
+  - `Assistant` — fr `nav.assistant` (native French)
+  - `Name` — de `common.name` (native German)
+  - `Plan` — es `settings.plan`, de `settings.plan` (native Spanish/German)
+  - `FAQ` — fr `nav.faq`, de `nav.faq` (universal Latin acronym)
 - Placeholders only (but value length>0 required)
+
+Everything else identical to English was translated instead of allowlisted, e.g. `trips.note` → fr `Remarque`, `trips.purpose_personal` → es `Particular` (`Pessoal` pt, `Privat` de), `common.optional` → de `(fakultativ)`, `nav.docs` → fr `Documentation`, `nav.admin` → fr `Administration`, es `Administración`, pt `Administração`, de `Verwaltung`.
 
 Plan names (`Pro`, `Pro Plus`, `Family`, `Free`) are proper nouns and remain untranslated; they do not currently appear as bare values in the locale files. No other phrase may be silently identical to English for a `ready` locale (enforced by a failing test, not a warning). `ar` is exempt while `pending` (full mirror).
 

@@ -34,8 +34,8 @@ describe("trueOwnershipCost double-counting guard", () => {
       estimatedResaleCents: 1400000,
     }, 36);
     // No forward fixed → operating alone: 120000 * 36 = 4_320_000
-    expect(t.breakdown.find((b) => b.label.startsWith("All recorded"))!.cents).toBe(4_320_000);
-    expect(t.breakdown.find((b) => b.label.startsWith("Forward fixed"))!.cents).toBe(0);
+    expect(t.breakdown.find((b) => b.id === "operating")!.cents).toBe(4_320_000);
+    expect(t.breakdown.find((b) => b.id === "forwardFixed")!.cents).toBe(0);
   });
 
   it("ADDs forward fixed ONLY when explicitly passed (caller accepts the overlap)", () => {
@@ -48,7 +48,7 @@ describe("trueOwnershipCost double-counting guard", () => {
       forwardLookingFixedLabel: "Insurance renewal",
     }, 36);
     // Forward fixed explicitly: 10_000 * 36 = 360_000
-    expect(t.breakdown.find((b) => b.label.includes("Insurance renewal"))!.cents).toBe(360_000);
+    expect(t.breakdown.find((b) => b.id === "forwardFixed")!.cents).toBe(360_000);
     // The breakdown DOCUMENTATION mentions that this overlaps with recorded insurance.
     const hasOverlapNote = t.assumptions.some((a) => a.includes("Forward-looking fixed"));
     expect(hasOverlapNote).toBe(true);
@@ -61,7 +61,7 @@ describe("trueOwnershipCost double-counting guard", () => {
       purchaseDate: new Date("2022-01-01"),
       estimatedResaleCents: 1400000,
     }, 36);
-    const operating = t.breakdown.find((b) => b.label.includes("All recorded"))!;
+    const operating = t.breakdown.find((b) => b.id === "operating")!;
     expect(operating.source).toBe("forecast");
   });
 
@@ -72,7 +72,7 @@ describe("trueOwnershipCost double-counting guard", () => {
       purchaseDate: new Date("2022-01-01"),
       estimatedResaleCents: 1400000,
     }, 36);
-    const dep = t.breakdown.find((b) => b.label.toLowerCase().includes("depreciation"))!;
+    const dep = t.breakdown.find((b) => b.id === "depreciation")!;
     expect(dep.source).toBe("estimate");
   });
 });

@@ -12,9 +12,9 @@
   "nav.settings": "Paramètres",
   "nav.features": "Fonctionnalités",
   "nav.pricing": "Tarifs",
-  "nav.docs": "Docs",
+  "nav.docs": "Documentation",
   "nav.calculators": "Calculateurs",
-  "nav.admin": "Admin",
+  "nav.admin": "Administration",
   "nav.logout": "Déconnexion",
   "legal.terms": "CGU",
   "legal.privacy": "Confidentialité",
@@ -419,7 +419,7 @@
   "trips.odometer_before": "Compteur avant",
   "trips.odometer_after": "Compteur après",
   "trips.unit": "Unité",
-  "trips.note": "Note",
+  "trips.note": "Remarque",
   "trips.save_failed": "Impossible d'enregistrer ce trajet.",
   "trips.update_failed": "Impossible de mettre à jour ce trajet.",
   "trips.delete_failed": "Impossible de supprimer ce trajet.",
@@ -457,5 +457,8 @@
   "common.liters": "Litres",
   "common.run_scenario": "Lancer un scénario",
   "common.save_changes": "Enregistrer les modifications",
-  "garage.mixed_body": "Devises présentes : {currencies}. AutoEco ne peut pas agréger des totaux entre plusieurs devises. Modifiez vos saisies pour utiliser une seule devise."
+  "garage.mixed_body": "Devises présentes : {currencies}. AutoEco ne peut pas agréger des totaux entre plusieurs devises. Modifiez vos saisies pour utiliser une seule devise.",
+  "twin.breakdown_operating": "Toutes les dépenses enregistrées (FORECAST, flat)",
+  "twin.breakdown_forward_fixed": "Frais fixes futurs (FORECAST)",
+  "twin.breakdown_depreciation": "Dépréciation (ESTIMATE)"
 }

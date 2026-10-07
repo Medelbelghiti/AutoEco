@@ -12,7 +12,7 @@
   "nav.pricing": "Precios",
   "nav.docs": "Documentación",
   "nav.calculators": "Calculadoras",
-  "nav.admin": "Admin",
+  "nav.admin": "Administración",
   "nav.logout": "Cerrar sesión",
   "nav.home": "Inicio",
   "nav.trips": "Viajes",
@@ -403,7 +403,7 @@
   "trips.showing_page": "Mostrando los {count} viajes más recientes. Exporte el CSV para el registro completo.",
   "trips.unknown_vehicle": "Vehículo desconocido",
   "trips.purpose_business": "Negocios",
-  "trips.purpose_personal": "Personal",
+  "trips.purpose_personal": "Particular",
   "trips.purpose_commute": "Desplazamiento",
   "trips.purpose_medical": "Médico",
   "trips.purpose_charity": "Benéfico",
@@ -457,5 +457,8 @@
   "common.liters": "Litros",
   "common.run_scenario": "Ejecutar un escenario",
   "common.save_changes": "Guardar cambios",
-  "garage.mixed_body": "Divisas presentes: {currencies}. AutoEco no puede agregar totales entre varias divisas. Edite sus registros para usar una sola divisa."
+  "garage.mixed_body": "Divisas presentes: {currencies}. AutoEco no puede agregar totales entre varias divisas. Edite sus registros para usar una sola divisa.",
+  "twin.breakdown_operating": "Todos los gastos registrados (FORECAST, plano)",
+  "twin.breakdown_forward_fixed": "Costes fijos futuros (FORECAST)",
+  "twin.breakdown_depreciation": "Depreciación (ESTIMATE)"
 }

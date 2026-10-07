@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requireUser, assertOwnership } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { computeVehicleCost } from "@/lib/compute-cost";
-import { formatMoney, computeDepreciation, projectCost, trueOwnershipCost } from "@/lib/finance";
+import { formatMoney, computeDepreciation, projectCost, trueOwnershipCost, trueCostRowKey } from "@/lib/finance";
 import { formatNumber, intlLocale, translateEnum } from "@/lib/i18n";
 import { getLocale, getT } from "@/lib/server-i18n";
 import { ArrowLeft } from "lucide-react";
@@ -87,10 +87,10 @@ export default async function VehicleDetail({ params }: { params: { id: string }
                 <p className="text-3xl font-bold">{money(trueCost.total, currency)}</p>
                 <ul className="mt-3 space-y-1 text-xs text-charcoal-500">
                   {trueCost.breakdown.map((b) => (
-                    <li key={b.label} className="flex justify-between">
+                    <li key={b.id} className="flex justify-between">
                       <span>
                         <span className="badge badge-info mr-2">{b.source}</span>
-                        {b.label}
+                        {t(trueCostRowKey(b.id))}
                       </span>
                       <span>{money(b.cents, currency)}</span>
                     </li>

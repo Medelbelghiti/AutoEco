@@ -12,7 +12,7 @@
   "nav.pricing": "Preços",
   "nav.docs": "Documentação",
   "nav.calculators": "Calculadoras",
-  "nav.admin": "Admin",
+  "nav.admin": "Administração",
   "nav.logout": "Sair",
   "nav.home": "Início",
   "nav.trips": "Viagens",
@@ -457,5 +457,8 @@
   "common.liters": "Litros",
   "common.run_scenario": "Executar um cenário",
   "common.save_changes": "Salvar alterações",
-  "garage.mixed_body": "Moedas presentes: {currencies}. O AutoEco não pode agregar totais entre várias moedas. Edite seus registros para usar uma única moeda."
+  "garage.mixed_body": "Moedas presentes: {currencies}. O AutoEco não pode agregar totais entre várias moedas. Edite seus registros para usar uma única moeda.",
+  "twin.breakdown_operating": "Todas as despesas registradas (FORECAST, plana)",
+  "twin.breakdown_forward_fixed": "Custos fixos futuros (FORECAST)",
+  "twin.breakdown_depreciation": "Depreciação (ESTIMATE)"
 }

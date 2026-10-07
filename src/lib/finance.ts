@@ -366,12 +366,38 @@ export interface CostInputs {
   forwardLookingFixedLabel?: string;
 }
 
+/**
+ * Stable identifiers for true-cost breakdown rows. The engine NEVER emits
+ * English label text: renderers map an id to a localized key via
+ * `trueCostRowKey` (see below).
+ */
+export type TrueCostRowId = "operating" | "forwardFixed" | "depreciation";
+export type TrueCostSource = "actual" | "estimate" | "forecast";
+
+export interface TrueCostRow {
+  id: TrueCostRowId;
+  cents: number;
+  source: TrueCostSource;
+}
+
+/** Map a true-cost breakdown row id to the i18n key holding its label. */
+export function trueCostRowKey(id: TrueCostRowId): string {
+  switch (id) {
+    case "operating":
+      return "twin.breakdown_operating";
+    case "forwardFixed":
+      return "twin.breakdown_forward_fixed";
+    case "depreciation":
+      return "twin.breakdown_depreciation";
+  }
+}
+
 export function trueOwnershipCost(
   summary: CostSummary,
   inputs: CostInputs,
   horizonMonths: number,
   now: Date = new Date()
-): { total: number; currency: string; breakdown: { label: string; cents: number; source: "actual" | "estimate" | "forecast" }[]; assumptions: string[] } {
+): { total: number; currency: string; breakdown: TrueCostRow[]; assumptions: string[] } {
   const depreciation = computeDepreciation(inputs, now);
   // Project operating cost forward, but only for categories the user actually recorded.
   const projectedOperating = summary.monthlyAverage * horizonMonths;
@@ -393,9 +419,9 @@ export function trueOwnershipCost(
     total,
     currency: summary.baseCurrency,
     breakdown: [
-      { label: "All recorded expenses (FORECAST, flat)", cents: projectedOperating, source: "forecast" },
-      { label: `${inputs.forwardLookingFixedLabel ?? "Forward fixed"} (FORECAST)`, cents: forwardFixed, source: "forecast" },
-      { label: "Depreciation (ESTIMATE)", cents: depreciation.totalDepreciationCents, source: "estimate" },
+      { id: "operating", cents: projectedOperating, source: "forecast" },
+      { id: "forwardFixed", cents: forwardFixed, source: "forecast" },
+      { id: "depreciation", cents: depreciation.totalDepreciationCents, source: "estimate" },
     ],
     assumptions,
   };

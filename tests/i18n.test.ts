@@ -17,6 +17,7 @@ import {
   errorText,
 } from "@/lib/i18n";
 import { EMAIL_READY_LOCALES, renderEmailCopy } from "@/lib/email-i18n";
+import { trueCostRowKey } from "@/lib/finance";
 
 type Dict = Record<string, string>;
 
@@ -44,31 +45,19 @@ function extractPlaceholders(s: string): string[] {
 }
 
 /**
- * Values that are legitimately identical to English.
+ * Brand/product names, units and numeric/code tokens that are legitimately
+ * identical to English in every locale. This list must contain ONLY brand
+ * names, numbers, symbols and units.
  *
- * Brand and product names (never translated), units and codes used as labels,
- * and a handful of words that are the same word in the target language
- * (Garage, Date, Distance, Plan, Name, Sections, FAQ, Docs, Admin, Assistant,
- * Note, Personal, (optional)). Anything else identical to English in a *ready*
- * locale is an unfinished translation and must fail the build.
+ * Brand and product names (never translated): AutoEco, Financial Twin,
+ * Ask Your Car. Units and codes used as labels: km, mi and the badge tokens
+ * ACTUAL / ESTIMATE / FORECAST / DELETE (pure numbers and symbol-only strings
+ * are handled by the regex below, not this list).
  */
 const IDENTICAL_ALLOWLIST = new Set([
   "AutoEco",
   "Financial Twin",
   "Ask Your Car",
-  "Garage",
-  "Date",
-  "Distance",
-  "Name",
-  "Plan",
-  "Sections",
-  "FAQ",
-  "Docs",
-  "Admin",
-  "Assistant",
-  "Note",
-  "Personal",
-  "(optional)",
   "km",
   "mi",
   "ACTUAL",
@@ -77,8 +66,33 @@ const IDENTICAL_ALLOWLIST = new Set([
   "DELETE",
 ]);
 
+/**
+ * Words whose correct translation is literally the same word (or the same
+ * universal acronym) in that language, so the value must be identical to
+ * English. These are genuine same-word translations, not English copies left
+ * behind, and are documented per locale:
+ *   fr:  Garage (garage.title, nav.garage), Date (common.date),
+ *        Distance (common.distance, dashboard.badge_distance),
+ *        Sections (shell.sections), Assistant (nav.assistant),
+ *        FAQ (nav.faq — universal Latin acronym)
+ *   es:  Plan (settings.plan — Spanish for plan)
+ *   pt-BR: (none — all Portuguese values are distinct)
+ *   de:  Garage (garage.title, nav.garage), Name (common.name),
+ *        Plan (settings.plan), FAQ (nav.faq — universal Latin acronym)
+ */
+const IDENTICAL_NATIVE_WORDS = new Set([
+  "Garage",
+  "Date",
+  "Distance",
+  "Sections",
+  "Assistant",
+  "Plan",
+  "Name",
+  "FAQ",
+]);
+
 function isAllowedIdentical(v: string): boolean {
-  if (IDENTICAL_ALLOWLIST.has(v)) return true;
+  if (IDENTICAL_ALLOWLIST.has(v) || IDENTICAL_NATIVE_WORDS.has(v)) return true;
   // Pure numbers, symbols and units-with-numbers are safe to leave identical.
   if (/^[\d.,\s%+\-/()]*[\d][\d.,\s%+\-/()]*$/.test(v)) return true;
   return false;
@@ -217,6 +231,58 @@ describe("plural forms", () => {
   it("Arabic degrades to English plural rules while pending", () => {
     expect(plural("ar", 1, "ONE", "OTHER")).toBe("ONE");
     expect(plural("ar", 2, "ONE", "OTHER")).toBe("OTHER");
+  });
+});
+
+describe("true-cost breakdown labels render via keys in every ready locale", () => {
+  const ids = ["operating", "forwardFixed", "depreciation"] as const;
+
+  for (const loc of READY_LOCALES) {
+    it(`${loc} renders the three breakdown labels from keys`, () => {
+      const t = translator(loc);
+      const rendered = ids.map((id) => ({ id, text: t(trueCostRowKey(id)) }));
+      for (const { id, text } of rendered) {
+        expect(text.length).toBeGreaterThan(0);
+        expect(text).not.toBe(trueCostRowKey(id));
+      }
+    });
+  }
+
+  it("every key exists in English (reference) so a missing key can never print raw", () => {
+    const en = getDictionary("en");
+    for (const id of ids) {
+      expect(en[trueCostRowKey(id)]).toBeTruthy();
+    }
+  });
+});
+
+describe("trips count plural forms across locales", () => {
+  const counts = [0, 1, 2, 5];
+  const expected: Record<string, Record<number, string>> = {
+    fr: { 0: "0 trajet", 1: "1 trajet", 2: "2 trajets", 5: "5 trajets" },
+    es: { 0: "0 viajes", 1: "1 viaje", 2: "2 viajes", 5: "5 viajes" },
+    "pt-BR": { 0: "0 viagem", 1: "1 viagem", 2: "2 viagens", 5: "5 viagens" },
+    de: { 0: "0 Fahrten", 1: "1 Fahrt", 2: "2 Fahrten", 5: "5 Fahrten" },
+  };
+
+  for (const loc of ["fr", "es", "pt-BR", "de"] as const) {
+    it(`${loc} renders 0/1/2/5 with the correct singular/plural form`, () => {
+      const t = translator(loc);
+      for (const count of counts) {
+        const one = t("trips.trip_count_one", { count });
+        const other = t("trips.trip_count_other", { count });
+        const rendered = plural(loc, count, one, other);
+        expect(rendered).toBe(expected[loc][count]);
+      }
+    });
+  }
+
+  it("uses the 'other' form for 2 and 5 in every ready locale", () => {
+    for (const loc of ["fr", "es", "pt-BR", "de"] as const) {
+      for (const count of [2, 5]) {
+        expect(plural(loc, count, "ONE", "OTHER")).toBe("OTHER");
+      }
+    }
   });
 });
 

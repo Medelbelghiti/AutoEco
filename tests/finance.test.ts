@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { summarizeExpenses, computeDepreciation, projectCost, formatMoney, estimateCO2Kg, trueOwnershipCost, CurrencyMismatchError } from "@/lib/finance";
+import { summarizeExpenses, computeDepreciation, projectCost, formatMoney, estimateCO2Kg, trueOwnershipCost, trueCostRowKey, CurrencyMismatchError } from "@/lib/finance";
 
 describe("summarizeExpenses", () => {
   it("returns zero months data when nothing recorded", () => {
@@ -78,6 +78,40 @@ describe("trueOwnershipCost", () => {
     const labels = t.breakdown.map((b) => b.source);
     expect(labels).toContain("forecast");
     expect(labels).toContain("estimate");
+  });
+
+  it("returns stable identifiers, never English label text", () => {
+    const summary = summarizeExpenses([{ amountCents: 60000, currency: "USD", date: new Date("2026-01-01"), category: "fuel" }], [], "USD");
+    const t = trueOwnershipCost(summary, {
+      purchasePriceCents: 2000000,
+      purchaseDate: new Date("2022-01-01"),
+      estimatedResaleCents: 1500000,
+    }, 12);
+    expect(t.breakdown.map((b) => b.id)).toEqual(["operating", "forwardFixed", "depreciation"]);
+    for (const b of t.breakdown) {
+      expect(b).not.toHaveProperty("label");
+      expect(trueCostRowKey(b.id).length).toBeGreaterThan(0);
+    }
+  });
+
+  it("computations are unchanged after identifier refactor", () => {
+    const summary = summarizeExpenses([
+      { amountCents: 50000, currency: "USD", date: new Date("2026-01-15"), category: "fuel" },
+      { amountCents: 30000, currency: "USD", date: new Date("2026-01-20"), category: "maintenance" },
+      { amountCents: 120000, currency: "USD", date: new Date("2026-02-05"), category: "insurance" },
+      { amountCents: 40000, currency: "USD", date: new Date("2026-02-10"), category: "parking", mileage: 2500 },
+    ], [], "USD"); // monthlyAverage = 120000
+    const t = trueOwnershipCost(summary, {
+      purchasePriceCents: 2000000,
+      purchaseDate: new Date("2022-01-01"),
+      estimatedResaleCents: 1400000,
+    }, 36);
+    // Operating projection: 120000 * 36 = 4_320_000 (no forward fixed).
+    expect(t.breakdown.find((b) => b.id === "operating")!.cents).toBe(4_320_000);
+    expect(t.breakdown.find((b) => b.id === "forwardFixed")!.cents).toBe(0);
+    // Breakdown rows must sum exactly to the total: rows carry the same numbers
+    // the old English labels did, just without the English text.
+    expect(t.breakdown.reduce((acc, b) => acc + b.cents, 0)).toBe(t.total);
   });
 });
 

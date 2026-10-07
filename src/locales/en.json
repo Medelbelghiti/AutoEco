@@ -457,5 +457,8 @@
   "common.liters": "Liters",
   "common.run_scenario": "Run a scenario",
   "common.save_changes": "Save changes",
-  "garage.mixed_body": "Currencies present: {currencies}. AutoEco cannot aggregate totals across currencies. Edit your entries to use a single currency."
+  "garage.mixed_body": "Currencies present: {currencies}. AutoEco cannot aggregate totals across currencies. Edit your entries to use a single currency.",
+  "twin.breakdown_operating": "All recorded expenses (FORECAST, flat)",
+  "twin.breakdown_forward_fixed": "Forward fixed (FORECAST)",
+  "twin.breakdown_depreciation": "Depreciation (ESTIMATE)"
 }

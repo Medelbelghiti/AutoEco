@@ -95,7 +95,7 @@ describe("financial engine invariants", () => {
       // no forwardLookingFixedCents
     }, 12);
     // Operating alone: 80000 * 12 = 960000 (no double-count)
-    const operating = t.breakdown.find((b) => b.label.includes("All recorded"))!.cents;
+    const operating = t.breakdown.find((b) => b.id === "operating")!.cents;
     expect(operating).toBe(960000);
   });
 });

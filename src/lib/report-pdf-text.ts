@@ -50,6 +50,9 @@ export interface PdfText {
   trueCostHeading: string;
   thComponent: string;
   thBasis: string;
+  componentOperating: string;
+  componentForwardFixed: string;
+  componentDepreciation: string;
   notProvided: string;
   purchaseLine: string;
   assumptionsHeading: string;
@@ -97,6 +100,9 @@ const en: PdfText = {
   trueCostHeading: "True cost of ownership (3-year horizon)",
   thComponent: "Component",
   thBasis: "Basis",
+  componentOperating: "All recorded expenses (FORECAST, flat)",
+  componentForwardFixed: "Forward fixed (FORECAST)",
+  componentDepreciation: "Depreciation (ESTIMATE)",
   notProvided: "not provided",
   purchaseLine: "Purchase price {price}, purchased {date}, estimated resale {resale}.",
   assumptionsHeading: "Assumptions",
@@ -145,6 +151,9 @@ const fr: PdfText = {
   trueCostHeading: "Coût réel de possession (horizon 3 ans)",
   thComponent: "Composante",
   thBasis: "Base",
+  componentOperating: "Toutes les dépenses enregistrées (FORECAST, flat)",
+  componentForwardFixed: "Frais fixes futurs (FORECAST)",
+  componentDepreciation: "Dépréciation (ESTIMATE)",
   notProvided: "non renseigné",
   purchaseLine: "Prix d'achat {price}, acheté le {date}, revente estimée {resale}.",
   assumptionsHeading: "Hypothèses",
@@ -193,6 +202,9 @@ const es: PdfText = {
   trueCostHeading: "Coste real de propiedad (horizonte de 3 años)",
   thComponent: "Componente",
   thBasis: "Base",
+  componentOperating: "Todos los gastos registrados (FORECAST, plano)",
+  componentForwardFixed: "Costes fijos futuros (FORECAST)",
+  componentDepreciation: "Depreciación (ESTIMATE)",
   notProvided: "no indicado",
   purchaseLine: "Precio de compra {price}, comprado el {date}, reventa estimada {resale}.",
   assumptionsHeading: "Supuestos",
@@ -241,6 +253,9 @@ const ptBR: PdfText = {
   trueCostHeading: "Custo real de propriedade (horizonte de 3 anos)",
   thComponent: "Componente",
   thBasis: "Base",
+  componentOperating: "Todas as despesas registradas (FORECAST, plana)",
+  componentForwardFixed: "Custos fixos futuros (FORECAST)",
+  componentDepreciation: "Depreciação (ESTIMATE)",
   notProvided: "não informado",
   purchaseLine: "Preço de compra {price}, comprado em {date}, revenda estimada {resale}.",
   assumptionsHeading: "Premissas",
@@ -286,9 +301,12 @@ const de: PdfText = {
   methodLabel: "Methode",
   totalDepreciationLabel: "Geschätzte Gesamtabwertung",
 
-  trueCostHeading: "Tatsächliche Besitzkosten (Zeithorizont 3 Jahre)",
+trueCostHeading: "Tatsächliche Besitzkosten (Zeithorizont 3 Jahre)",
   thComponent: "Komponente",
-  thBasis: "Grundlage",
+  thBasis: "Basis",
+  componentOperating: "Alle erfassten Ausgaben (FORECAST, konstant)",
+  componentForwardFixed: "Zukünftige Fixkosten (FORECAST)",
+  componentDepreciation: "Wertminderung (ESTIMATE)",
   notProvided: "nicht angegeben",
   purchaseLine: "Kaufpreis {price}, gekauft am {date}, geschätzter Wiederverkauf {resale}.",
   assumptionsHeading: "Annahmen",
