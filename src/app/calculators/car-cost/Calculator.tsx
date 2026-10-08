@@ -319,7 +319,7 @@ export function CarCostCalculator() {
         {problems.length > 0 && (
           <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-800 p-3" role="alert">
             <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">Check these</p>
-            <ul className="mt-1 list-disc pl-5 text-sm text-amber-700 dark:text-amber-200/80 space-y-0.5">
+            <ul className="mt-1 list-disc ps-5 text-sm text-amber-700 dark:text-amber-200/80 space-y-0.5">
               {problems.map((p) => (
                 <li key={p}>{p}</li>
               ))}
@@ -392,10 +392,10 @@ export function CarCostCalculator() {
                   <p className="text-xs text-charcoal-500 mt-1">
                     {l.detail}
                     {l.basis === "calculated" && (
-                      <span className="ml-1 badge badge-info align-middle">Calculated from your inputs</span>
+                      <span className="ms-1 badge badge-info align-middle">Calculated from your inputs</span>
                     )}
                     {l.basis === "provided" && (
-                      <span className="ml-1 badge badge-info align-middle">Your figure</span>
+                      <span className="ms-1 badge badge-info align-middle">Your figure</span>
                     )}
                   </p>
                 </li>
@@ -406,7 +406,7 @@ export function CarCostCalculator() {
 
         <details className="card">
           <summary className="font-semibold cursor-pointer select-none">Assumptions &amp; limits</summary>
-          <ul className="mt-3 space-y-1.5 text-sm text-charcoal-600 dark:text-charcoal-300 list-disc pl-5">
+          <ul className="mt-3 space-y-1.5 text-sm text-charcoal-600 dark:text-charcoal-300 list-disc ps-5">
             <li>Fuel is the only calculated line: distance ÷ 100 × L/100km × price per litre.</li>
             <li>
               Parking and tolls are entered per month and multiplied by 12. Insurance, maintenance and

@@ -1,11 +1,16 @@
-import type { Locale } from "@/lib/i18n";
+import { READY_LOCALES, effectiveLocale, type Locale } from "@/lib/i18n";
 
 /**
  * Transactional email copy, one dictionary per locale with English fallback.
  *
- * Only the four ready-to-ship languages belong here: `ar` is `pending` and
- * renders English until COMMIT B. Placeholders use `{name}`, `{link}` etc.
- * and are filled by `renderEmailCopy`.
+ * Which locale is actually delivered is decided by `LOCALE_STATUS` (via
+ * `effectiveLocale`), the single source of truth shared with the rest of the
+ * product: `ar` is `pending` until a native-speaker review is confirmed, so
+ * a production `renderEmailCopy("ar", ...)` keeps returning English copy —
+ * the full Arabic templates and the RTL document wrapper below only come
+ * into play once the status flips to `ready`. `renderEmailCopyForLocale`
+ * is the status-blind preview used by tests to validate the shipped Arabic
+ * copy. Placeholders use `{name}`, `{link}` etc. and are filled by `fill`.
  */
 
 type EmailKey =
@@ -287,28 +292,140 @@ const de: Record<EmailKey, EmailCopy> = {
   },
 };
 
-/** English exists for every key; the shipped locales are exactly these five. */
-const dicts: Partial<Record<Locale, Record<EmailKey, EmailCopy>>> = { en, fr, es, "pt-BR": ptBR, de };
+/**
+ * Arabic (formal, reads right to left). URLs, codes and the app domain stay
+ * LTR and are wrapped in `<bdi dir="ltr">`; numbers and amounts use Latin
+ * digits. Not delivered until `LOCALE_STATUS["ar"]` is flipped to `ready`.
+ */
+const ar: Record<EmailKey, EmailCopy> = {
+  welcome: {
+    subject: "مرحبًا بك في AutoEco",
+    html: "مرحبًا {name}،</p><p>مرحبًا بك في <strong>AutoEco</strong> — النظام التشغيلي المالي لسيارتك. أضف مركبتك، وسجّل الوقود والمصروفات، وتعمل AutoEco على حساب التكلفة الحقيقية لسيارتك شهريًا ولكل كيلومتر.</p><p>ابدأ من هنا: <bdi dir=\"ltr\"><a href=\"{appUrl}/dashboard\">{appUrl}/dashboard</a></bdi></p>",
+    text: "مرحبًا بك في AutoEco. أضف سيارتك وابدأ التتبع: {appUrl}/dashboard",
+  },
+  emailVerify: {
+    subject: "تحقّق من بريدك الإلكتروني في AutoEco",
+    html: "مرحبًا {name}،</p><p>يرجى التحقّق من بريدك الإلكتروني بالضغط على الرابط أدناه:</p><p><bdi dir=\"ltr\"><a href=\"{link}\">{link}</a></bdi></p><p>تنتهي صلاحية هذا الرابط خلال 24 ساعة.",
+    text: "تحقّق من بريدك الإلكتروني: {link} (تنتهي الصلاحية خلال 24 ساعة)",
+  },
+  passwordReset: {
+    subject: "إعادة تعيين كلمة المرور في AutoEco",
+    html: "مرحبًا {name}،</p><p>استخدم الرابط أدناه لإعادة تعيين كلمة المرور:</p><p><bdi dir=\"ltr\"><a href=\"{link}\">{link}</a></bdi></p><p>إذا لم تطلب إعادة التعيين، يمكنك تجاهل هذا البريد.",
+    text: "إعادة تعيين كلمة المرور: {link}",
+  },
+  signupAttemptNotice: {
+    subject: "حاول شخص ما إنشاء حساب باستخدام بريدك الإلكتروني",
+    html: "مرحبًا {name}،</p><p>حاول شخص ما إنشاء حساب في AutoEco باستخدام هذا البريد الإلكتروني. لم يتم إنشاء أي حساب جديد، ولم يتغيّر شيء.</p><p>إذا كان ذلك أنت، يمكنك تسجيل الدخول كالمعتاد، أو إعادة تعيين كلمة المرور من هنا: <bdi dir=\"ltr\"><a href=\"{appUrl}/forgot-password\">{appUrl}/forgot-password</a></bdi></p><p>وإذا لم يكن ذلك أنت، فلا حاجة إلى أي إجراء.",
+    text: "حاول شخص ما إنشاء حساب في AutoEco بهذا البريد. لم يتم إنشاء أي حساب. إذا كان ذلك أنت: {appUrl}/forgot-password",
+  },
+  trialStarted: {
+    subject: "فترتك التجريبية المجانية لمدة {days} يومًا نشطة",
+    html: "مرحبًا {name}،</p><p>فترتك التجريبية المجانية نشطة الآن. <bdi dir=\"ltr\"><a href=\"{appUrl}/dashboard\">انتقل إلى لوحة المعلومات</a></bdi> وأضف مركبتك الأولى.",
+    text: "فترتك التجريبية المجانية لمدة {days} يومًا نشطة. انتقل إلى: {appUrl}/dashboard",
+  },
+  trialEnding: {
+    subject: "تنتهي فترتك التجريبية خلال {days} يومًا",
+    html: "مرحبًا {name}،</p><p>تنتهي فترتك التجريبية خلال {days} يومًا. <bdi dir=\"ltr\"><a href=\"{appUrl}/settings/billing\">قم بالترقية الآن</a></bdi> للاستمرار في تتبع عدة مركبات، والتوقعات، وخاصية Ask Your Car.",
+    text: "تنتهي الفترة التجريبية خلال {days} يومًا. قم بالترقية: {appUrl}/settings/billing",
+  },
+  paymentSuccess: {
+    subject: "تم الدفع بنجاح — خطة {planName} نشطة",
+    html: "مرحبًا {name}،</p><p>تمت معالجة دفعتك بنجاح، وخطة <strong>{planName}</strong> نشطة الآن.",
+    text: "تم الدفع بنجاح — خطة {planName} نشطة.",
+  },
+  paymentFailed: {
+    subject: "فشل الدفع — إجراء مطلوب",
+    html: "مرحبًا {name}،</p><p>تعذّرت معالجة آخر دفعة لك. يرجى <bdi dir=\"ltr\"><a href=\"{appUrl}/settings/billing\">تحديث بيانات الفوترة</a></bdi> لتجنّب أي انقطاع.",
+    text: "فشل الدفع. حدّث بيانات الفوترة: {appUrl}/settings/billing",
+  },
+  subscriptionCanceled: {
+    subject: "تم إلغاء اشتراكك في AutoEco",
+    html: "مرحبًا {name}،</p><p>تم إلغاء اشتراكك. سيظل وصولك متاحًا حتى <strong>{endDate}</strong>.",
+    text: "تم إلغاء الاشتراك. الوصول متاح حتى {endDate}.",
+  },
+  usageLimitReached: {
+    subject: "لقد بلغت الحد المسموح به ({label})",
+    html: "مرحبًا {name}،</p><p>بلغت الحد الحالي <strong>{label}</strong>. <bdi dir=\"ltr\"><a href=\"{appUrl}/settings/billing\">قم بترقية خطتك</a></bdi> للمتابعة.",
+    text: "بلغت الحد ({label}). قم بترقية خطتك: {appUrl}/settings/billing",
+  },
+};
+
+/** English exists for every key; Arabic ships full copy but is gated on LOCALE_STATUS. */
+const dicts: Partial<Record<Locale, Record<EmailKey, EmailCopy>>> = { en, fr, es, "pt-BR": ptBR, de, ar };
 
 /**
- * The shipped locales that hold real email copy. Arabic is pending and falls
- * back to English (via `en`) until the RTL change lands.
+ * The locales clients may actually receive right now — the same readiness
+ * gate as the UI (`LOCALE_STATUS`), so "a locale is selectable" and "its
+ * email is localized" can never drift apart. Arabic is pending until a
+ * native-speaker review, so it is absent here and `pick` routes it to the
+ * English copy through `effectiveLocale`.
  */
-export const EMAIL_READY_LOCALES: readonly Locale[] = ["en", "fr", "es", "pt-BR", "de"];
+export const EMAIL_READY_LOCALES: readonly Locale[] = READY_LOCALES;
 
 function pick(locale: Locale): Record<EmailKey, EmailCopy> {
-  return dicts[locale] ?? en;
+  return dicts[effectiveLocale(locale)] ?? en;
 }
 
+/**
+ * Direction-aware HTML for the one locale whose emails are right-to-left.
+ * Most mail clients ignore logical CSS properties, so the layout uses the
+ * `dir`/`align` attributes and inline styles instead of Tailwind or logical
+ * properties. The document is a full <html> with a UTF-8 charset so Arabic
+ * renders correctly everywhere; LTR fragments in the body are wrapped in
+ * `<bdi dir="ltr">` by the templates themselves.
+ */
+function emailDocument(lang: string, dir: "rtl", body: string): string {
+  return (
+    '<!doctype html><html lang="' +
+    lang +
+    '" dir="' +
+    dir +
+    '"><head><meta charset="utf-8" /></head>' +
+    '<body style="margin:0;padding:0;background-color:#f6f7f8;font-family:\'system-ui\',-apple-system,\'Segoe UI\',Tahoma,Roboto,sans-serif;color:#0f1216;">' +
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="rtl" style="direction:rtl;">' +
+    '<tr><td align="right" dir="rtl" style="direction:rtl;text-align:right;padding:28px 16px;font-size:15px;line-height:1.7;">' +
+    body +
+    "</td></tr></table></body></html>"
+  );
+}
+
+function wrapHtml(locale: Locale, fragment: string): string {
+  return locale === "ar" ? emailDocument("ar", "rtl", fragment) : fragment;
+}
+
+/**
+ * Status-aware render used by the real send path (`email.ts`). A pending
+ * locale (currently only `ar`) is mapped through `effectiveLocale` and gets
+ * English copy with the historic fragment HTML; flipping the status on the
+ * single source of truth turns on Arabic + the RTL document automatically.
+ */
 export function renderEmailCopy(
   locale: Locale,
   key: EmailKey,
   params: Record<string, string | number>
 ): EmailCopy {
-  const copy = pick(locale)[key] ?? en[key];
+  const eff = effectiveLocale(locale);
+  const copy = pick(eff)[key] ?? en[key];
   return {
     subject: fill(copy.subject, params),
-    html: "<p>" + fill(copy.html, params),
+    html: wrapHtml(eff, "<p>" + fill(copy.html, params)),
+    text: fill(copy.text, params),
+  };
+}
+
+/**
+ * Status-blind preview of a locale's own copy (used by tests to validate
+ * the Arabic templates while `ar` is still pending). Never used for sends.
+ */
+export function renderEmailCopyForLocale(
+  locale: Locale,
+  key: EmailKey,
+  params: Record<string, string | number>
+): EmailCopy {
+  const copy = dicts[locale]?.[key] ?? en[key];
+  return {
+    subject: fill(copy.subject, params),
+    html: wrapHtml(locale, "<p>" + fill(copy.html, params)),
     text: fill(copy.text, params),
   };
 }

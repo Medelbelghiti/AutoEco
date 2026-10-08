@@ -5,7 +5,7 @@ This glossary is binding for all machine and human-reviewed translations in this
 ## 1. Goals and scope
 - Translate only product UI, emails and PDF labels. Legal pages (`legal/*.md`) remain in English and carry a visible note.
 - Every translated string is machine-generated and marked **"needs native review"** per locale (rule 8). No claim of final translation appears in the product.
-- Formal register is used everywhere: French `vous`, Spanish `usted`, Brazilian Portuguese `você`, German `Sie`. Arabic (COMMIT B) uses formal Modern Standard Arabic.
+- Formal register is used everywhere: French `vous`, Spanish `usted`, Brazilian Portuguese `você`, German `Sie`. Arabic (COMMIT B) uses formal Modern Standard Arabic with a gender-neutral reading preferred (see §2.1).
 - Brand proper nouns (`AutoEco`, `Pro`, `Pro Plus`, `Family`, `Free`) remain untranslated.
 - The `DELETE` confirmation word in the UI forms stays the literal string `DELETE` in all languages (server validates it literally).
 
@@ -35,6 +35,57 @@ This glossary is binding for all machine and human-reviewed translations in this
 | Mixed-currency | Devises mixtes | Divisas mixtas | Moedas mistas | Gemischte Währungen | |
 | Plan (Free/Pro/Family/Pro Plus) | Plan (Free/Pro/Family/Pro Plus) | Plan (Free/Pro/Family/Pro Plus) | Plano (Free/Pro/Family/Pro Plus) | Plan (Free/Pro/Family/Pro Plus) | Proper nouns/plan names unchanged |
 | Locale/language | Langue/Paramètre régional | Idioma/Configuración regional | Idioma/Localidade | Sprache/Region | UI term "Language/Locale" |
+
+### 2.1 Arabic (ar) — COMMIT B canonical mapping
+
+Arabic uses **formal Modern Standard Arabic (الفصحى)** in the database form, never dialects. Brand proper nouns (`AutoEco`, `Financial Twin`, `Ask Your Car`) and plan names (`Free`, `Pro`, `Pro Plus`, `Family`) stay untranscribed. Third-person or impersonal formal phrasing is preferred over a masculine second person where a gender-neutral reading is possible, but the masculine plural/impersonal form is used for the general "you" per standard MSA UI convention.
+
+| English | ar | Notes |
+|---|---|---|
+| Vehicle | مركبة / سيارة | `مركبة` for the entity; `سيارة` acceptable in conversational card copy. Prefer `مركبة` in forms and tables. |
+| Garage | المرآب / سجل المركبات | Product term `المرآب` (garage list), fall back to `سجل المركبات` if ambiguity |
+| Expense | مصروف / نفقة | `مصروف` for an expense record; plural `المصروفات` |
+| Fuel | وقود | Fuel entries: `حتائق الوقود` is the tab/`سجل الوقود`; keep `وقود` for the noun |
+| Fuel log | سجل الوقود | Tab/page title |
+| Trip | رحلة (A) / رحلات (pl) | Trips are a distance/odometer record: `سجل الرحلات` for the page |
+| Trip log | سجل الرحلات | |
+| Report | تقرير | Cost-of-ownership report |
+| Receipt | إيصال | Receipts |
+| Insights | الرؤى / التحليلات | Analytics section; prefer `الرؤى` (insights), `التحليلات` for analytics |
+| Financial Twin | Financial Twin | Proper noun, never translated/transcribed |
+| Ask Your Car | Ask Your Car | Proper noun, never translated/transcribed |
+| Scenarios / What-If | السيناريوهات / ماذا لو | |
+| Dashboard | لوحة المعلومات | |
+| Settings | الإعدادات | |
+| Billing/Subscription | الفوترة / الاشتراك | Highest-risk wording (see `docs/I18N_REVIEW.md`) |
+| Trial | الفترة التجريبية / تجربة مجانية | Riskiest wording — never promise beyond the actual plan |
+| Refund | استرداد المبلغ / استرداد | Riskiest — no invented refund policy |
+| Tax/VAT | ضريبة / ضريبة القيمة المضافة | Do not invent tax specifics or VAT rates |
+| Odometer/Mileage | عداد المسافة / المسافة المقطوعة | `المسافة المقطوعة` for distance driven |
+| Distance unit | وحدة المسافة | km/mi labels stay `km`/`mi` (product units, allowlisted) |
+| Depreciation | الاستهلاك (إهلاك القيمة) | `الاستهلاك` for value depreciation; `إهلاك` in financial tables |
+| Cost per km/mi | التكلفة لكل km / لكل mi | unit placeholder stays `{unit}`; label keeps unit untranslated |
+| ACTUAL / ESTIMATE / FORECAST | تعليمات ثابتة | Status tokens remain the literal codes `ACTUAL`, `ESTIMATE`, `FORECAST` (product codes, allowlisted) |
+| Mixed-currency | عملات مختلطة | |
+| Plan (Free/Pro/Family/Pro Plus) | الخطة (Free/Pro/Family/Pro Plus) | Plan names are proper nouns, unchanged |
+| Subscription | الاشتراك | |
+| Upgrade | الترقية / الترقية إلى خطة | `الترقية` for plan upgrades |
+| Cancel subscription | إلغاء الاشتراك | |
+| Locale/language | اللغة / الإعداد اللغوي | UI term "Language" |
+| Debt/overdue | متأخر / غير مسدد | avoid in billing copy unless server field exists |
+| Trips purpose — personal | شخصي | |
+| Trips purpose — business | عمل | |
+| Odometer entry | قراءة العداد | |
+| Full tank | تعبئة كاملة / ملأت الخزان بالكامل | |
+| Consumption | معدل الاستهلاك | e.g. L/100km |
+
+### 2.2 Arabic script and number rules (ar)
+- **Digits:** Latin digits (`0-9`, forced via `ar-EG-u-nu-latn`) for money, odometer readings, distances, dates and any arithmetic number. Never use Arabic-Indic `٠١٢٣٤٥٦٧٨٩` in UI numeric output for this product (they cannot round-trip through arithmetic/PDF).
+- **Currency codes stay LTR:** USD, EUR, etc. render left-to-right inside RTL text using `<bdi dir="ltr">` or a LTR wrapper.
+- **Calendar:** Gregorian (the product's default). Arabic month/weekday names come from `Intl.DateTimeFormat("ar-EG")`.
+- **Plurals (Arabic has 6 categories):** `zero | one | two | few | many | other`. Any string with `{count}` must supply all six forms. Rules (CLDR, as implemented by `Intl.PluralRules("ar")`): 0→`zero`; 1→`one`; 2→`two`; 3–10→`few`; 11–99→`many`; 100→`other`; 103–999→`few` (any `n % 100` in 3..10); all remaining (e.g. 1000, 1100)→`other`. Tests pin 0, 1, 2, 3, 11, 100. `plural()` routes a pending locale through English rules; the raw categories are exercised via `pluralCategory`.
+- **Bidi:** numbers and `km`/`mi` units embedded in RTL sentences must read correctly; use explicit LTR wraps where the value contains digits.
+- **No Latin transliteration of Arabic text anywhere** (e.g. `al-muraaf`). This is a quality gate in review.
 
 ## 3. Tone, register and punctuation
 - Formal, clear, concise (CLI/UI context). Avoid colloquialisms, humor, marketing superlatives.
@@ -69,7 +120,7 @@ The parity test (`tests/i18n.test.ts`) treats the following as allowed to be ide
 
 Everything else identical to English was translated instead of allowlisted, e.g. `trips.note` → fr `Remarque`, `trips.purpose_personal` → es `Particular` (`Pessoal` pt, `Privat` de), `common.optional` → de `(fakultativ)`, `nav.docs` → fr `Documentation`, `nav.admin` → fr `Administration`, es `Administración`, pt `Administração`, de `Verwaltung`.
 
-Plan names (`Pro`, `Pro Plus`, `Family`, `Free`) are proper nouns and remain untranslated; they do not currently appear as bare values in the locale files. No other phrase may be silently identical to English for a `ready` locale (enforced by a failing test, not a warning). `ar` is exempt while `pending` (full mirror).
+Plan names (`Pro`, `Pro Plus`, `Family`, `Free`) are proper nouns and remain untranslated; they do not currently appear as bare values in the locale files. No other phrase may be silently identical to English for a `ready` locale (enforced by a failing test, not a warning). `ar` carries a full real translation (COMMIT B) but stays `pending` in `LOCALE_STATUS` until a native-speaker review is confirmed — see `docs/I18N_REVIEW.md` §Arabic.
 
 ## 6. Risky strings (must receive heightened review)
 High-risk domains: billing/subscription, trial, refund, tax wording, legal/eligibility language, plan limits, security/2FA, data deletion, mixed-currency warnings, PDF disclaimers. These appear in settings/billing, emails, reports/PDF. Each is listed per locale in `docs/I18N_REVIEW.md` with confidence.

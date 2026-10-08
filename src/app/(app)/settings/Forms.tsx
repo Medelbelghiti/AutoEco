@@ -279,5 +279,3 @@ export function DeleteAccount({ locale }: { locale: string }) {
     </form>
   );
 }
-
-export const SettingsForms = { Profile, Preferences, DeductionRate, ChangePassword, ExportData, DeleteAccount };

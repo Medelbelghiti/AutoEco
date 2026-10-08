@@ -11,13 +11,16 @@ import {
   translator,
   translateEnum,
   plural,
+  pluralCategory,
   dirFor,
   getDictionary,
   errorKey,
   errorText,
+  formatNumber,
+  formatDate,
 } from "@/lib/i18n";
-import { EMAIL_READY_LOCALES, renderEmailCopy } from "@/lib/email-i18n";
-import { trueCostRowKey } from "@/lib/finance";
+import { EMAIL_READY_LOCALES, renderEmailCopy, renderEmailCopyForLocale } from "@/lib/email-i18n";
+import { trueCostRowKey, formatMoney } from "@/lib/finance";
 
 type Dict = Record<string, string>;
 
@@ -224,13 +227,36 @@ describe("plural forms", () => {
   ];
 
   it.each(cases)("%s %i picks the %s form", (locale, count, cat) => {
-    const out = plural(locale as any, count, "ONE", "OTHER", "MANY");
+    const out = plural(locale as any, count, {
+      one: "ONE",
+      many: "MANY",
+      other: "OTHER",
+    });
     expect(out).toBe(cat.toUpperCase());
   });
 
-  it("Arabic degrades to English plural rules while pending", () => {
-    expect(plural("ar", 1, "ONE", "OTHER")).toBe("ONE");
-    expect(plural("ar", 2, "ONE", "OTHER")).toBe("OTHER");
+  it("Arabic exposes all six plural categories via the raw rules", () => {
+    expect(pluralCategory("ar", 0)).toBe("zero");
+    expect(pluralCategory("ar", 1)).toBe("one");
+    expect(pluralCategory("ar", 2)).toBe("two");
+    expect(pluralCategory("ar", 3)).toBe("few");
+    expect(pluralCategory("ar", 10)).toBe("few");
+    expect(pluralCategory("ar", 11)).toBe("many");
+    expect(pluralCategory("ar", 99)).toBe("many");
+    expect(pluralCategory("ar", 100)).toBe("other");
+    expect(pluralCategory("ar", 103)).toBe("few");
+    expect(pluralCategory("ar", 1000)).toBe("other");
+  });
+
+  it("Arabic pending still renders English plural rules through plural()", () => {
+    expect(plural("ar", 1, { one: "ONE", other: "OTHER" })).toBe("ONE");
+    expect(plural("ar", 2, { one: "ONE", other: "OTHER" })).toBe("OTHER");
+  });
+
+  it("a missing Arabic category form falls back to other", () => {
+    // three in Arabic is "few", which is not supplied -> other is used
+    expect(plural("en", 3, { other: "FALLBACK" })).toBe("FALLBACK");
+    expect(pluralCategory("ar", 3)).toBe("few");
   });
 });
 
@@ -269,10 +295,15 @@ describe("trips count plural forms across locales", () => {
     it(`${loc} renders 0/1/2/5 with the correct singular/plural form`, () => {
       const t = translator(loc);
       for (const count of counts) {
-        const one = t("trips.trip_count_one", { count });
-        const other = t("trips.trip_count_other", { count });
-        const rendered = plural(loc, count, one, other);
-        expect(rendered).toBe(expected[loc][count]);
+        const forms = {
+          zero: t("trips.trip_count_zero", { count }),
+          one: t("trips.trip_count_one", { count }),
+          two: t("trips.trip_count_two", { count }),
+          few: t("trips.trip_count_few", { count }),
+          many: t("trips.trip_count_many", { count }),
+          other: t("trips.trip_count_other", { count }),
+        };
+        expect(plural(loc, count, forms)).toBe(expected[loc][count]);
       }
     });
   }
@@ -280,9 +311,37 @@ describe("trips count plural forms across locales", () => {
   it("uses the 'other' form for 2 and 5 in every ready locale", () => {
     for (const loc of ["fr", "es", "pt-BR", "de"] as const) {
       for (const count of [2, 5]) {
-        expect(plural(loc, count, "ONE", "OTHER")).toBe("OTHER");
+        const forms = { one: "ONE", other: "OTHER" };
+        expect(plural(loc, count, forms)).toBe("OTHER");
       }
     }
+  });
+
+  it("Arabic renders every trip-count form from its own keys", () => {
+    // translator("ar") falls back to English while pending, so read the
+    // Arabic JSON directly and drive the forms through pluralCategory("ar").
+    const arDict = loadJson(join(__dirname, "..", "src", "locales", "ar.json"));
+    const valueAt = (dotted: string) => arDict[dotted];
+    const formsFor = (count: number) => {
+      const val = (dotted: string) => valueAt(dotted).replace("{count}", String(count));
+      return {
+        zero: val("trips.trip_count_zero"),
+        one: val("trips.trip_count_one"),
+        two: val("trips.trip_count_two"),
+        few: val("trips.trip_count_few"),
+        many: val("trips.trip_count_many"),
+        other: val("trips.trip_count_other"),
+      };
+    };
+    const render = (count: number) => formsFor(count)[pluralCategory("ar", count)];
+    expect(render(0)).toBe("0 رحلات"); // zero
+    expect(render(1)).toBe("1 رحلة"); // one
+    expect(render(2)).toBe("2 رحلتان"); // two
+    expect(render(3)).toBe("3 رحلات"); // few
+    expect(render(11)).toBe("11 رحلة"); // many
+    expect(render(70)).toBe("70 رحلة"); // many
+    expect(render(100)).toBe("100 رحلة"); // other
+    expect(render(103)).toBe("103 رحلات"); // few
   });
 });
 
@@ -324,8 +383,15 @@ describe("enum translation leaves unknown values alone", () => {
 });
 
 describe("dirFor and ready list stay consistent", () => {
-  it("every locale we can render is LTR (RTL lands with Arabic)", () => {
+  it("every ready locale renders left-to-right", () => {
     for (const loc of READY_LOCALES) {
+      expect(dirFor(loc)).toBe("ltr");
+    }
+  });
+
+  it("Arabic is the only right-to-left locale, regardless of status", () => {
+    expect(dirFor("ar")).toBe("rtl");
+    for (const loc of ["en", "fr", "es", "pt-BR", "de"] as const) {
       expect(dirFor(loc)).toBe("ltr");
     }
   });
@@ -334,6 +400,28 @@ describe("dirFor and ready list stay consistent", () => {
     expect(READY_LOCALES).not.toContain("ar");
     expect(READY_LOCALES).toContain("en");
     expect(READY_LOCALES).toContain("fr");
+  });
+});
+
+describe("Arabic numbers, money and dates use Latin digits", () => {
+  it("formatNumber prints Latin digits for ar (nu-latn), never Arabic-Indic", () => {
+    const out = formatNumber("ar", 12345.5);
+    expect(out).toMatch(/[0-9]/);
+    expect(out).not.toMatch(/[٠-٩]/);
+    expect(out).toContain("12");
+  });
+
+  it("formatDate for ar uses Latin digits and Gregorian default", () => {
+    const date = new Date(2026, 0, 8); // 2026-01-08
+    const out = formatDate("ar", date);
+    expect(out).not.toMatch(/[٠-٩]/);
+    expect(out).toMatch(/[0-9]/);
+  });
+
+  it("money for ar renders with Latin digits via intlLocale (ar-EG-u-nu-latn)", () => {
+    const out = formatMoney(123456, "USD", "ar-EG-u-nu-latn");
+    expect(out).toMatch(/[0-9]/);
+    expect(out).not.toMatch(/[٠-٩]/);
   });
 });
 
@@ -347,9 +435,25 @@ describe("email copy is localized with English fallback", () => {
     endDate: "2026-01-31",
     label: "vehicles",
   };
+  const emailKeys = [
+    "welcome",
+    "emailVerify",
+    "passwordReset",
+    "signupAttemptNotice",
+    "trialStarted",
+    "trialEnding",
+    "paymentSuccess",
+    "paymentFailed",
+    "subscriptionCanceled",
+    "usageLimitReached",
+  ] as const;
 
-  it("ships real copy for exactly the ready locales", () => {
+  it("ships real copy for exactly the ready locales, derived from READY_LOCALES", () => {
+    expect(EMAIL_READY_LOCALES).toEqual(READY_LOCALES);
     expect(EMAIL_READY_LOCALES).toEqual(["en", "fr", "es", "pt-BR", "de"]);
+    // Arabic is modularized and translated, but the readiness gate guards it.
+    expect(LOCALE_STATUS.ar).toBe("pending");
+    expect(EMAIL_READY_LOCALES).not.toContain("ar");
   });
 
   it("renders French copy for a French locale", () => {
@@ -361,18 +465,49 @@ describe("email copy is localized with English fallback", () => {
 
   it("fills placeholders in every shipped locale", () => {
     for (const loc of EMAIL_READY_LOCALES) {
-      for (const key of ["welcome", "trialStarted", "paymentSuccess", "usageLimitReached"] as const) {
+      for (const key of emailKeys) {
         const out = renderEmailCopy(loc, key, params);
         expect(out.subject).not.toMatch(/\{(\w+)\}/);
         expect(out.text).not.toMatch(/\{(\w+)\}/);
-        // html keeps {link} only where the template intentionally has none;
-        // all parameters we pass must be gone from both subject and text.
+        expect(out.html).not.toMatch(/\{(\w+)\}/);
       }
     }
   });
 
   it("a pending locale gets English copy", () => {
+    // effectiveLocale maps ar to en while pending, so the send path never
+    // emits Arabic before the review gate flips.
+    expect(effectiveLocale("ar")).toBe("en");
     const out = renderEmailCopy("ar", "welcome", params);
     expect(out.subject).toBe("Welcome to AutoEco");
+    expect(out.html).not.toContain("dir=\"rtl\"");
+  });
+
+  it("Arabic ships all ten templates, non-English and fully filled", () => {
+    const arabic = /[\u0600-\u06FF]/;
+    for (const key of emailKeys) {
+      const out = renderEmailCopyForLocale("ar", key, params);
+      expect(out.subject).toMatch(arabic);
+      expect(out.subject).not.toMatch(/\{(\w+)\}/);
+      expect(out.text).toMatch(arabic);
+      expect(out.text).not.toMatch(/\{(\w+)\}/);
+      expect(out.html).toMatch(arabic);
+      expect(out.html).not.toMatch(/\{(\w+)\}/);
+    }
+  });
+
+  it("Arabic emails render as a full RTL UTF-8 document and keep links", () => {
+    const out = renderEmailCopyForLocale("ar", "welcome", params);
+    expect(out.html).toContain("<html lang=\"ar\" dir=\"rtl\">");
+    expect(out.html).toContain("<meta charset=\"utf-8\" />");
+    expect(out.html).toContain("dir=\"rtl\"");
+    // URLs and the app domain are embedded LTR inside the RTL body.
+    expect(out.html).toContain("<bdi dir=\"ltr\">");
+    expect(out.html).toContain('href="https://autoeco.app/dashboard"');
+    expect(out.html).toContain("https://autoeco.app/dashboard");
+    // The prepare link stays intact on every template.
+    const reset = renderEmailCopyForLocale("ar", "passwordReset", params);
+    expect(reset.html).toContain('href="https://autoeco.app/verify/tok"');
+    expect(reset.html).toContain("https://autoeco.app/verify/tok");
   });
 });

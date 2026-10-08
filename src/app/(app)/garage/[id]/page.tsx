@@ -21,7 +21,7 @@ export default async function VehicleDetail({ params }: { params: { id: string }
   if (!result.ok && result.error === "mixed_currency") {
     return (
       <div className="max-w-3xl mx-auto p-6">
-        <Link href="/garage" className="text-sm text-charcoal-500 inline-flex items-center gap-1 mb-2"><ArrowLeft className="w-4 h-4" /> {t("garage.back")}</Link>
+<Link href="/garage" className="text-sm text-charcoal-500 inline-flex items-center gap-1 mb-2"><ArrowLeft className="w-4 h-4 rtl-flip" /> {t("garage.back")}</Link>
         <h1 className="text-2xl font-bold mt-2">{vehicle.year} {vehicle.brand} {vehicle.model}</h1>
         <div className="card border-amber-300 bg-amber-50 mt-4">
           <p className="font-semibold text-amber-800">{t("common.mixed_currency_title")}</p>
@@ -55,7 +55,7 @@ export default async function VehicleDetail({ params }: { params: { id: string }
 
   return (
     <div className="max-w-5xl mx-auto p-6">
-      <Link href="/garage" className="text-sm text-charcoal-500 inline-flex items-center gap-1 mb-2"><ArrowLeft className="w-4 h-4" /> {t("garage.back")}</Link>
+      <Link href="/garage" className="text-sm text-charcoal-500 inline-flex items-center gap-1 mb-2"><ArrowLeft className="w-4 h-4 rtl-flip" /> {t("garage.back")}</Link>
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <p className="label">{vehicle.nickname ?? t("common.vehicle")}</p>
@@ -89,7 +89,7 @@ export default async function VehicleDetail({ params }: { params: { id: string }
                   {trueCost.breakdown.map((b) => (
                     <li key={b.id} className="flex justify-between">
                       <span>
-                        <span className="badge badge-info mr-2">{b.source}</span>
+                        <span className="badge badge-info me-2">{b.source}</span>
                         {t(trueCostRowKey(b.id))}
                       </span>
                       <span>{money(b.cents, currency)}</span>
@@ -131,7 +131,7 @@ export default async function VehicleDetail({ params }: { params: { id: string }
       )}
 
       <div className="mt-6 grid md:grid-cols-2 gap-4">
-        <section className="card">
+        <section className="card min-w-0">
           <p className="font-semibold">{t("expenses.recent")}</p>
           {expenses.length === 0 ? (
             <p className="text-sm text-charcoal-500 mt-2">{t("expenses.empty_title")}.</p>
@@ -155,7 +155,7 @@ export default async function VehicleDetail({ params }: { params: { id: string }
           <Link href="/expenses" className="text-sm text-emerald-700 dark:text-emerald-400 underline mt-2 inline-block">{t("expenses.all")} →</Link>
         </section>
 
-        <section className="card">
+        <section className="card min-w-0">
           <p className="font-semibold">{t("fuel.recent")}</p>
           {fuel.length === 0 ? (
             <p className="text-sm text-charcoal-500 mt-2">{t("fuel.empty_title")}.</p>

@@ -52,7 +52,7 @@ export function MobileAppNav({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="inline-flex items-center justify-center w-10 h-10 -mr-1 rounded-lg hover:bg-charcoal-100 dark:hover:bg-charcoal-800"
+          className="inline-flex items-center justify-center w-10 h-10 -me-1 rounded-lg hover:bg-charcoal-100 dark:hover:bg-charcoal-800"
           aria-expanded={open}
           aria-controls="app-drawer"
           aria-label={t("shell.open_menu")}
@@ -72,7 +72,7 @@ export function MobileAppNav({
           />
           <div
             id="app-drawer"
-            className="absolute top-0 left-0 h-full w-72 max-w-[85vw] bg-white dark:bg-charcoal-900 border-r border-charcoal-200 dark:border-charcoal-800 flex flex-col"
+            className="absolute top-0 start-0 h-full w-72 max-w-[85vw] bg-white dark:bg-charcoal-900 border-e border-charcoal-200 dark:border-charcoal-800 flex flex-col"
           >
             <div className="flex items-center justify-between px-4 h-14 border-b border-charcoal-200 dark:border-charcoal-800">
               <span className="font-bold">AutoEco</span>
@@ -106,7 +106,7 @@ export function MobileAppNav({
             </nav>
 
             <div className="border-t border-charcoal-200 dark:border-charcoal-800 p-3 text-xs text-charcoal-500">
-              <p className="truncate">{email}</p>
+              <p className="truncate"><bdi dir="ltr">{email}</bdi></p>
               <p className="capitalize">{t(`shell.role_${role.toLowerCase()}`)}</p>
               <form action="/api/auth/logout" method="post" className="mt-2">
                 <button type="submit" className="text-rose-600 underline">

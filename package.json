@@ -11,6 +11,7 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "screenshots": "playwright test --config=playwright.config.ts",
     "check:launch": "node scripts/launch-check.mjs",
     "check:launch:db": "node scripts/launch-check.mjs --db",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run check:launch",
@@ -38,6 +39,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.16.10",
     "@types/nodemailer": "^8.0.2",

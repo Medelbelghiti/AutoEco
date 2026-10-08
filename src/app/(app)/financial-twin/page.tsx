@@ -69,7 +69,7 @@ export default async function FinancialTwinPage() {
                   <td>{money(s.totalSpent, s.baseCurrency)}</td>
                   <td className="text-emerald-700">{money(f.total, s.baseCurrency)}</td>
                   <td>{formatNumber(locale, s.monthsOfData)}</td>
-                  <td><Link href={`/garage/${v.id}`} className="text-xs underline inline-flex items-center gap-1">{t("common.open")} <ArrowRight className="w-3 h-3" /></Link></td>
+                  <td><Link href={`/garage/${v.id}`} className="text-xs underline inline-flex items-center gap-1">{t("common.open")} <ArrowRight className="w-3 h-3 rtl-flip" /></Link></td>
                 </tr>
               );
             })}

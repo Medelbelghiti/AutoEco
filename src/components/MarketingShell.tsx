@@ -19,7 +19,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen flex flex-col">
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:rounded-lg focus:bg-charcoal-900 focus:text-white"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:start-2 focus:px-4 focus:py-2 focus:rounded-lg focus:bg-charcoal-900 focus:text-white"
       >
         {t("shell.skip_to_content")}
       </a>

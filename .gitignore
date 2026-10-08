@@ -13,3 +13,9 @@ next-env.d.ts
 
 # TypeScript incremental build cache
 tsconfig.tsbuildinfo
+
+# Playwright screenshot capture (generated PNGs + per-run report are not kept
+# in the repo; the README that documents the workflow IS committed)
+docs/screenshots/*
+!docs/screenshots/README.md
+.playwright-artifacts/

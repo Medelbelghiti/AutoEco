@@ -47,7 +47,7 @@ export function renderMarkdown(src: string): React.ReactNode[] {
     if (!list) return;
     const Tag = list.ordered ? "ol" : "ul";
     nodes.push(
-      <Tag key={`l${k++}`} className={`mt-3 ml-6 space-y-1 ${list.ordered ? "list-decimal" : "list-disc"}`}>
+      <Tag key={`l${k++}`} className={`mt-3 ms-6 space-y-1 ${list.ordered ? "list-decimal" : "list-disc"}`}>
         {list.items.map((it, idx) => <li key={idx}>{inline(it, `li${k}-${idx}`)}</li>)}
       </Tag>
     );
@@ -73,7 +73,7 @@ export function renderMarkdown(src: string): React.ReactNode[] {
       list.items.push((ul ?? ol)![1]);
     } else if (bq) {
       flushPara(); flushList();
-      nodes.push(<blockquote key={`q${k++}`} className="mt-3 border-l-4 border-amber-400 bg-amber-50 p-3 text-sm">{inline(bq[1], `q${k}`)}</blockquote>);
+      nodes.push(<blockquote key={`q${k++}`} className="mt-3 border-s-4 border-amber-400 bg-amber-50 p-3 text-sm">{inline(bq[1], `q${k}`)}</blockquote>);
     } else {
       flushList();
       para.push(line.trim());

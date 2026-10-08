@@ -13,8 +13,9 @@ import ar from "@/locales/ar.json";
  * derived from one array is what stops a user from being able to store a
  * locale the app cannot then read back.
  *
- * `ar` is offered as a locale but the PDF cannot render it (see
- * `canPdfRender` in report-pdf.ts) and its RTL layout lands separately.
+ * `ar` is offered as a locale. The PDF cannot render it (see `canPdfRender`
+ * in report-pdf.ts) and its RTL layout still needs the native-speaker review
+ * gate before the copy is offered in selectors.
  */
 export const LOCALES = ["en", "fr", "es", "pt-BR", "de", "ar"] as const;
 
@@ -67,8 +68,31 @@ export const LOCALE_NAMES: Record<Locale, string> = {
  * A pending locale (or a valid locale whose copy is not production-ready)
  * renders English instead. This is what makes "direct URL/cookie for a
  * pending locale" fall back to English without crashing.
+ *
+ * `PREVIEW_PENDING_LOCALES=1` (dev-only, never set by the build or tests)
+ * lets a pending locale render its own real copy anyway, so the screenshot
+ * script can preview `ar` before the status is flipped to `ready` after a
+ * native-speaker review. Without the variable this branch never runs and the
+ * production behaviour is unchanged.
+ *
+ * Client components need the same switch, which is why the `NEXT_PUBLIC_`
+ * twin exists: Next only inlines `NEXT_PUBLIC_*` variables into the client
+ * bundle, so a server-only check would let the server render Arabic while
+ * the hydrated client flipped back to English. The `NEXT_PUBLIC_` var is a
+ * build-time input — it must stay unset for production builds — and the
+ * screenshot server sets both so server and client agree.
  */
+function previewPendingLocalesEnabled(): boolean {
+  return (
+    process.env.PREVIEW_PENDING_LOCALES === "1" ||
+    process.env.NEXT_PUBLIC_PREVIEW_PENDING_LOCALES === "1"
+  );
+}
+
 export function effectiveLocale(locale: Locale): Locale {
+  if (previewPendingLocalesEnabled() && LOCALE_STATUS[locale] === "pending") {
+    return locale;
+  }
   return isLocaleStatus(locale, "ready") ? locale : DEFAULT_LOCALE;
 }
 
@@ -164,35 +188,52 @@ export function translateEnum(t: Translate, prefix: string, value: string): stri
  * Plural clause for a count in a given language.
  *
  * Bundled dicts are flat and locale-shared, so they cannot carry
- * plural-variant keys. For the four shipped languages this picks the
- * right `Intl.PluralRules` category (English/German/Spanish use
- * `one`/`other`, French also has `many` at play in some numeric strings via
- * its own rules, Portuguese does not) and the caller supplies per-form text,
- * e.g. `plural(locale, n, "{count} entry", "{count} entries")`.
+ * plural-variant keys. `Intl.PluralRules` picks the right category for the
+ * language and the caller supplies the per-form text. Most languages only
+ * need `one`/`other`; Arabic needs all six (`zero`/`one`/`two`/`few`/`many`/
+ * `other`), so the forms are keyed by category and any missing form falls
+ * back to `other`:
+ *   `plural(locale, n, { one: t("trip_count_one"), other: t("trip_count_other") })`
+ * While Arabic is pending, `effectiveLocale` makes its rules fall back to
+ * English (as for the rest of the copy) and the `ar` tests cover the full
+ * six-form behaviour separately.
  */
-export function plural(
-  locale: Locale,
-  count: number,
-  one: string,
-  other: string,
-  many?: string
-): string {
+export type PluralForms = {
+  zero?: string;
+  one?: string;
+  two?: string;
+  few?: string;
+  many?: string;
+  other: string;
+};
+
+/**
+ * The raw `Intl.PluralRules` category for a count in a language — without the
+ * pending-locale fallback. Arabic's rules (zero/one/two/few/many/other) are
+ * asserted directly through this in tests, because `plural()` routes a
+ * `pending` locale through English until the review gate flips.
+ */
+export function pluralCategory(locale: Locale, count: number): keyof PluralForms {
+  return new Intl.PluralRules(intlLocale(locale)).select(count) as keyof PluralForms;
+}
+
+export function plural(locale: Locale, count: number, forms: PluralForms): string {
   const eff = effectiveLocale(locale);
   const rule = new Intl.PluralRules(intlLocale(eff)).select(count);
-  if (rule === "one") return one;
-  if (rule === "many" && many !== undefined) return many;
-  return other;
+  return forms[rule as keyof PluralForms] ?? forms.other;
 }
 
 /**
  * Layout direction for a locale.
  *
- * Right-to-left for Arabic is held out of this change: `ar` is a `pending`
- * locale that renders English until the RTL layout lands separately, so
- * every locale that can actually be selected reads left to right.
+ * Arabic (COMMIT B) is a real translated locale again and renders right to
+ * left. Every other shipped locale reads left to right. `dirFor` is
+ * deliberately *not* gated on `LOCALE_STATUS`: the RTL chrome (drawer side,
+ * mirrored icons, logical CSS) activates through `[dir="rtl"]` as soon as
+ * `<html dir>` is set, independent of how far the translation review has got.
  */
-export function dirFor(_locale: Locale): "ltr" | "rtl" {
-  return "ltr";
+export function dirFor(locale: Locale): "ltr" | "rtl" {
+  return locale === "ar" ? "rtl" : "ltr";
 }
 
 /*

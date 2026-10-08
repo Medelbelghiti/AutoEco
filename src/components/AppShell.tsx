@@ -11,7 +11,7 @@ export function AppShell({ user, children }: { user: { id: string; email: string
     <div className="min-h-screen flex flex-col md:flex-row">
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:rounded-lg focus:bg-charcoal-900 focus:text-white"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:start-2 focus:px-4 focus:py-2 focus:rounded-lg focus:bg-charcoal-900 focus:text-white"
       >
         {t("shell.skip_to_content")}
       </a>
@@ -29,7 +29,7 @@ export function AppShell({ user, children }: { user: { id: string; email: string
 function Sidebar({ user }: { user: { id: string; email: string; name: string | null; role: string } }) {
   const t = getT();
   return (
-    <aside className="hidden md:flex md:w-60 border-r border-charcoal-200 bg-white dark:bg-charcoal-900 dark:border-charcoal-800 md:min-h-screen flex-shrink-0 flex-col">
+    <aside className="hidden md:flex md:w-60 border-e border-charcoal-200 bg-white dark:bg-charcoal-900 dark:border-charcoal-800 md:min-h-screen flex-shrink-0 flex-col">
       <div className="p-4 border-b border-charcoal-200 dark:border-charcoal-800">
         <Link href="/dashboard" className="flex items-center gap-2">
           <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-charcoal-900 text-white dark:bg-white dark:text-charcoal-900">
@@ -51,7 +51,7 @@ function Sidebar({ user }: { user: { id: string; email: string; name: string | n
         ))}
       </nav>
       <div className="p-3 border-t border-charcoal-200 dark:border-charcoal-800 text-xs text-charcoal-500">
-        <p className="truncate">{user.email}</p>
+        <p className="truncate"><bdi dir="ltr">{user.email}</bdi></p>
         <p className="capitalize">{t(`shell.role_${user.role.toLowerCase()}`)}</p>
         <form action="/api/auth/logout" method="post" className="mt-2">
           <button type="submit" className="text-rose-600 underline">

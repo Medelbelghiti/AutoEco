@@ -5,10 +5,10 @@ This document lists all machine-translated strings that **need native review** p
 ## 1. Scope and status
 
 - **Locale key set (UI copy):** `en.json` is the superset with **462 keys** (see section breakdown below). Every other locale is verified to match it exactly (no missing, no extra, no empty values, identical `{placeholder}` sets) by `tests/i18n.test.ts`.
-- **Transactional email copy:** 10 templates (`welcome`, `emailVerify`, `passwordReset`, `signupAttemptNotice`, `trialStarted`, `trialEnding`, `paymentSuccess`, `paymentFailed`, `subscriptionCanceled`, `usageLimitReached`) shipped for the 5 ready locales in `src/lib/email-i18n.ts`. Arabic falls back to English (pending).
+- **Transactional email copy:** 10 templates (`welcome`, `emailVerify`, `passwordReset`, `signupAttemptNotice`, `trialStarted`, `trialEnding`, `paymentSuccess`, `paymentFailed`, `subscriptionCanceled`, `usageLimitReached`) shipped for the ready locales in `src/lib/email-i18n.ts`. **COMMIT B** adds a full Arabic set (with `dir="rtl"` full-document rendering) that is gated by the same status rule: `EMAIL_READY_LOCALES` is derived from `READY_LOCALES`, and a pending `ar` still receives English copy on the send path.
 - **Scope of this change:** shell/nav, auth, common chrome, dashboard, garage (list + detail), trips (list/new/edit + forms), receipts, assistant, expenses, fuel, insights, financial-twin, scenarios, settings, reports + 7 `error.*` keys + 8 `status.*` keys + 14 `category.*` keys + product emails.
 - **Pending (not translated now):** marketing sub-pages (features/docs/FAQ — partially covered by keys above but page bodies remain English) and the 12 calculators. These remain English where out of the key set.
-- **Locale readiness for selectors:** selectors show ONLY `ready` locales (`LOCALE_STATUS` in `src/lib/i18n.ts`). `ar` is `pending` until COMMIT B.
+- **Locale readiness for selectors:** selectors show ONLY `ready` locales (`LOCALE_STATUS` in `src/lib/i18n.ts`). `ar` gained full translations + RTL layout in COMMIT B but stays `pending` (not selectable, still renders English in the UI and emails) until a native-speaker review confirms it.
 
 ### en.json key breakdown by section (462 total)
 
@@ -61,7 +61,7 @@ Copies of English (identical and *not* in either set) must be 0 in every ready l
 | es | 462 | **9** | 9 | **0** | ready |
 | pt-BR | 462 | **8** | 8 | **0** | ready |
 | de | 462 | **13** | 13 | **0** | ready |
-| ar | 462 | 462 | 462 (mirror) | n/a (pending) | pending |
+| ar | 462 | **9** | 9 | **0** | pending |
 
 The identical values are exactly:
 - Brands/products (all ready locales): `AutoEco` (`brand.name`, `diff.autoeco.title`), `Financial Twin` (`hero.badge`, `features.twin.title`, `preview.title`, `nav.financial_twin`), `Ask Your Car` (`dashboard.qa_assistant`, `ask.name`).
@@ -121,7 +121,16 @@ Key areas needing review:
 - Mixed-currency warnings
 
 ### ar (Arabic) — status: **pending (not ready)**
-Arabic strings are mirrors of English (`ar.json` duplicates `en.json`, 462/462 identical) so the parity test passes while selectors stay disabled. Arabic content + RTL layout land in **COMMIT B**. Do not expose in UI until ready.
+COMMIT B has replaced the English mirror with a full formal-Modern-Standard-Arabic translation (`ar.json`, 462/462 keys, placeholder parity, no English copies). The RTL layout (logical CSS, mirrored arrows/drawers, `<bdi dir="ltr">` LTR embeds, Arabic-aware font fallbacks) is delivered and `dirFor("ar")` returns `rtl`; the *emails* ship an Arabic set and a `dir="rtl"` UTF-8 document wrapper, all gated behind `LOCALE_STATUS`. `ar` stays **`pending`** — not selectable, still renders English in the UI and sends English emails — until a native-speaker review confirms it. The review can be previewed behind the dev-only `PREVIEW_PENDING_LOCALES=1` env var (screenshots use it; inert in production).
+
+Identical to English: **9, all excluded (brands/codes: `AutoEco`, `Financial Twin`, `Ask Your Car`, `ACTUAL`); 0 copies of English.**
+
+Key areas needing review:
+- RISK: billing/trial/refund/tax — `settings.*` (`settings.trial_ends`, `settings.manage_billing`, `settings.plan`), `status.*`, `error.*`
+- RISK: Arabic email copy in `src/lib/email-i18n.ts` (ar): `paymentFailed`, `trialEnding`, `usageLimitReached`, `signupAttemptNotice`, `subscriptionCanceled`
+- RISK: plural-bearing strings — `trips.trip_count_*` (6 categories), `common.months_short`, `trips.plan_allowance`
+- Mixed-currency warnings (`common.mixed_currency_*`), `reports.*` disclaimer/labels
+- Register/gender consistency across `assistant.*`, `dashboard.*`, `insights.*`
 
 ## 5. Pending (explicitly out of scope for COMMIT A translation)
 - Marketing sub-pages bodies not covered by the key set (features/docs/FAQ detail pages).
@@ -149,20 +158,23 @@ Screens wired: login, signup, forgot-password, reset-password, verify-email, set
 ## 7. Fallback behavior (tested)
 - Missing key in a locale -> English value; a key missing from English -> `""` (never the raw dotted key). `translate()` enforces this.
 - `coerceLocale()` maps legacy/regional values (`pt`, `pt-PT`, `de-DE`) to a shipped locale; unknown values (`zh-CN`, `zz`, `null`, `""`) -> `en`.
-- Pending locale (`ar`) -> renders English (`effectiveLocale`).
+- Pending locale (`ar`) -> renders English (`effectiveLocale`) — UI copy, plural rules and email send path alike. A dev-only `PREVIEW_PENDING_LOCALES=1` flips `effectiveLocale` so the Arabic content/RTL can be reviewed; it is inert without the env var and never set in production. The screenshot server also sets `NEXT_PUBLIC_PREVIEW_PENDING_LOCALES=1`, the client twin Next needs to keep hydrated client components in agreement with the server render (a server-only flag would render Arabic then flip back to English in the browser).
 - Email copy: pending locale (`ar`) -> English; every shipped locale renders fully (no un-filled `{placeholder}` in subject/text).
 - Profile API (`PATCH /api/profile`) rejects any non-ready locale via `StoredLocaleSchema`, so a pending locale can never become a durable preference.
 
 ## 8. Verification notes
-- `tests/i18n.test.ts` (53 tests): parity (missing/extra/empty/placeholders), identical-value detection with allowlist for ready locales, fallback-to-English, legacy-locale coercion, plural selection (`Intl.PluralRules`) for en/fr/es/pt-BR/de including trips-count forms 0/1/2/5, error-code mapping, enum translation, RTL held out, email-copy localization + fallback.
+- `tests/i18n.test.ts` (68 tests): parity (missing/extra/empty/placeholders), identical-value detection with allowlist for ready locales, fallback-to-English, legacy-locale coercion, plural selection (`Intl.PluralRules`) for en/fr/es/pt-BR/de including trips-count forms 0/1/2/5 **plus the six Arabic categories (0,1,2,3-10,few; 11-99 many; 100 other) via `pluralCategory` and the Arabic `trips.trip_count_*` keys**, `dirFor("ar")==="rtl"` (only `ar`), Arabic Latin-digit number/date/money output (`ar-EG-u-nu-latn`), error-code mapping, enum translation, email-copy localization + fallback + full Arabic template set rendered as a `dir="rtl"` UTF-8 document with intact links.
 - `tests/profile-locale.test.ts` (5 tests, real DB): PATCH/GET persist locale, pending `ar` rejected, junk locale rejected, LOCALE_STATUS/READY_LOCALES coherence.
 - Locale selector exposes only `ready` locales. `ar` = pending.
 - Unknown/legacy locale values fall back to `en`. Direct URL/cookie with pending locale falls back to `en`.
 - PDF: fr/es/pt-BR/de translated labels; `ar` uses English PDF with warning only when the PDF cannot render.
+- Playwright screenshot capture (`npm run screenshots`, dev server on 127.0.0.1:3210, seeded demo user `demo@autoeco.app`, `ar`+`fr` at desktop 1280x800 and mobile 390x844, 52 PNGs + open-drawer states in `docs/screenshots/` — git-ignored): all 4 runs pass. Every page's `<html dir>`/body direction matches the locale (`rtl` for ar, `ltr` for fr), no horizontal overflow, no page errors, no bounce to `/login`.
+- Two pre-existing app bugs surfaced by the capture work and fixed while wiring it up (not i18n regressions): `/settings` returned 500 in dev because a *client-component namespace object* (Forms.tsx `SettingsForms.Profile` etc.) cannot be resolved across the RSC boundary — page now imports the named exports directly; the mobile vehicle-detail page overflowed horizontally because the recent-expenses/fuel grid items kept `min-width:auto` from their tables — the two cards now carry `min-w-0` so the tables scroll inside their `overflow-x-auto` wrapper instead.
 
 ## 9. Native review checklist (to complete post-commit)
-- [ ] Verify formal register (`vous`/`usted`/`você`/`Sie`) in all 4 ready locales — automated checks cover the four ready locales in tests, spot-check naturalness.
+- [ ] Verify formal register (`vous`/`usted`/`você`/`Sie`/Modern Standard Arabic) in all ready locales + pending `ar` — automated checks cover the five translated locales in tests, spot-check naturalness.
 - [ ] Review all `RISK:` strings (billing/trial/refund/tax/security/deletion/PDF) per locale block above.
 - [ ] Sanity-check email subjects/bodies (`src/lib/email-i18n.ts`) for clarity and no PII leakage.
-- [ ] Confirm placeholders preserved and counts/plurals sound natural.
+- [ ] Confirm placeholders preserved and counts/plurals sound natural (Arabic: check `trip_count_*` six forms and noun agreement — the `2 رحلتان` dual nuance included).
+- [ ] Approve Arabic: once a native speaker signs off, set `LOCALE_STATUS["ar"] = "ready"` in `src/lib/i18n.ts`, re-run the verification set, and re-run the screenshot script on production copy.
 - [ ] Approve glossary terms for each locale.

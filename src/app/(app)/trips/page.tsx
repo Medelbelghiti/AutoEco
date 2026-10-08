@@ -26,7 +26,14 @@ export default async function TripsPage() {
   const fmt = (value: number) => formatNumber(locale, value);
   const dist = (value: number, unit: string) => `${fmt(Math.round(value * 10) / 10)} ${unit}`;
   const tripCount = (count: number) =>
-    plural(locale, count, t("trips.trip_count_one", { count }), t("trips.trip_count_other", { count }));
+    plural(locale, count, {
+      zero: t("trips.trip_count_zero", { count }),
+      one: t("trips.trip_count_one", { count }),
+      two: t("trips.trip_count_two", { count }),
+      few: t("trips.trip_count_few", { count }),
+      many: t("trips.trip_count_many", { count }),
+      other: t("trips.trip_count_other", { count }),
+    });
 
   const [trips, summary, vehicles, ent] = await Promise.all([
     db.trip.findMany({

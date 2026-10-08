@@ -208,7 +208,7 @@ export default async function PricingPage() {
                         <li key={label} className="flex items-start justify-between gap-3">
                           <span className="text-charcoal-500">{label}</span>
                           <span
-                            className={`text-right font-medium ${included ? "" : "text-charcoal-400"}`}
+                            className={`text-end font-medium ${included ? "" : "text-charcoal-400"}`}
                           >
                             {included ? (
                               <Check className="w-3.5 h-3.5 inline text-emerald-600" aria-hidden="true" />

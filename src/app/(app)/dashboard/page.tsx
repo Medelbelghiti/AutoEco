@@ -87,7 +87,7 @@ export default async function DashboardPage() {
                   <h2 className="text-xl font-bold mt-1">{primary.nickname ?? `${primary.year} ${primary.brand} ${primary.model}`}</h2>
                   <p className="text-xs text-charcoal-500">{primary.fuelType} · {primary.transmission ?? "—"} · {primary.fuelEconomyText ?? "—"}</p>
                 </div>
-                <Link href={`/garage/${primary.id}`} className="btn btn-secondary text-sm">{t("dashboard.view_vehicle")} <ChevronRight className="w-4 h-4" /></Link>
+                <Link href={`/garage/${primary.id}`} className="btn btn-secondary text-sm">{t("dashboard.view_vehicle")} <ChevronRight className="w-4 h-4 rtl-flip" /></Link>
               </div>
               <div className="mt-5 grid md:grid-cols-4 gap-3">
                 <KPI label={t("dashboard.monthly_cost")} value={money(summary.monthlyAverage, summary.baseCurrency)} accent />

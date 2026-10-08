@@ -16,7 +16,7 @@ export default function RepairVsReplacePage() {
         <p className="text-charcoal-600 mt-2">AutoEco is not a mechanical diagnostic service. Compare the financial implications only.</p>
         <div className="card mt-6">
           <p className="font-semibold mb-3">How to think about it</p>
-          <ol className="list-decimal pl-5 text-sm space-y-2 text-charcoal-700">
+          <ol className="list-decimal ps-5 text-sm space-y-2 text-charcoal-700">
             <li>Estimate the cost of the repair.</li>
             <li>Estimate how many months you plan to keep the car.</li>
             <li>Estimate your monthly operating cost.</li>

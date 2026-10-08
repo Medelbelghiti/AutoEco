@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getEntitlements } from "@/lib/plans";
-import { SettingsForms } from "./Forms";
+import { Profile, Preferences, DeductionRate, ChangePassword, ExportData, DeleteAccount } from "./Forms";
 import { getLocale, getT } from "@/lib/server-i18n";
 import { formatDate, translateEnum } from "@/lib/i18n";
 
@@ -17,15 +17,15 @@ export default async function SettingsPage() {
       <div className="mt-6 space-y-6">
         <div className="card">
           <p className="font-semibold">{t("settings.profile")}</p>
-          <SettingsForms.Profile name={user.name ?? ""} email={user.email} locale={user.locale} />
+          <Profile name={user.name ?? ""} email={user.email} locale={user.locale} />
         </div>
         <div className="card">
           <p className="font-semibold">{t("settings.preferences")}</p>
-          <SettingsForms.Preferences userId={user.id} currency={user.currency} distanceUnit={user.distanceUnit} fuelUnit={user.fuelUnit} locale={locale} />
+          <Preferences userId={user.id} currency={user.currency} distanceUnit={user.distanceUnit} fuelUnit={user.fuelUnit} locale={locale} />
         </div>
         <div className="card">
           <p className="font-semibold">{t("settings.deduction")}</p>
-          <SettingsForms.DeductionRate
+          <DeductionRate
             rateCents={user.mileageDeductionRateCents === null ? "" : (user.mileageDeductionRateCents / 100).toString()}
             currency={user.mileageDeductionCurrency ?? user.currency}
             unit={user.mileageDeductionUnit ?? user.distanceUnit}
@@ -34,7 +34,7 @@ export default async function SettingsPage() {
         </div>
         <div className="card">
           <p className="font-semibold">{t("settings.security")}</p>
-          <SettingsForms.ChangePassword locale={locale} />
+          <ChangePassword locale={locale} />
         </div>
         <div className="card">
           <p className="font-semibold">{t("settings.subscription")}</p>
@@ -48,11 +48,11 @@ export default async function SettingsPage() {
 <div className="card">
           <p className="font-semibold">{t("settings.your_data")}</p>
           <p className="text-sm text-charcoal-500 mt-1">{t("settings.export_body")}</p>
-          <SettingsForms.ExportData locale={locale} />
+          <ExportData locale={locale} />
         </div>
         <div className="card border-rose-200">
           <p className="font-semibold text-rose-700">{t("settings.danger")}</p>
-          <SettingsForms.DeleteAccount locale={locale} />
+          <DeleteAccount locale={locale} />
         </div>
       </div>
     </div>
