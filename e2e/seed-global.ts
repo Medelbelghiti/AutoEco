@@ -8,13 +8,35 @@
  */
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { isLocalDatabaseUrl } from "../src/lib/db-url";
 
 export default async function globalSetup(): Promise<void> {
   const prisma = new PrismaClient();
 
-  const dbHost = (process.env.DATABASE_URL ?? "").replace(/\+.*/, "");
+  const databaseUrl = process.env.DATABASE_URL ?? "";
+  const dbHost = databaseUrl.replace(/\+.*/, "");
   const email = (process.env.SCREENSHOT_DEMO_EMAIL || "demo@autoeco.app").toLowerCase();
   const password = process.env.SCREENSHOT_DEMO_PASSWORD;
+
+  // This setup writes demo rows (user, vehicle, fuel, expenses). Refuse to
+  // run against anything but a local database — same guard as the DB-backed
+  // vitest suite — unless the developer explicitly opts in for a remote test
+  // database. Without this, a stray DATABASE_URL could dirty live data.
+  if (!databaseUrl) {
+    await prisma.$disconnect();
+    throw new Error(
+      "SCREENSHOT_CAPTURE (seed-global.ts): DATABASE_URL must be set. Point it at your local test database " +
+        "(e.g. postgresql://autoeco:autoeco@127.0.0.1:5432/autoeco_test)."
+    );
+  }
+  if (!isLocalDatabaseUrl(databaseUrl) && process.env.ALLOW_TEST_DB_WRITES !== "1") {
+    await prisma.$disconnect();
+    throw new Error(
+      "SCREENSHOT_CAPTURE (seed-global.ts): refusing to seed — DATABASE_URL must point at a local database " +
+        "(file:, localhost, 127.0.0.1 or [::1]). Seeding creates the demo user plus vehicle/fuel/expense rows. " +
+        "If this is a remote TEST database, set ALLOW_TEST_DB_WRITES=1 to opt in (never for production)."
+    );
+  }
 
   console.log("Screenshot capture — setup");
   console.log(`  1. Target database: ${dbHost}`);

@@ -155,6 +155,48 @@ describe("no unfinished translations in ready locales", () => {
   }
 });
 
+describe("locale files are free of mojibake", () => {
+  const root = join(__dirname, "..", "src", "locales");
+  const LOCALE_FILES = ["en", "fr", "es", "pt-BR", "de", "ar"] as const;
+  // Signatures of UTF-8 text that was mis-decoded as Latin-1/CP1252 and then
+  // re-saved. Written as escapes so the signatures themselves never appear
+  // literally in this source file.
+  const MOJIBAKE = [
+    /\u00e2\u20ac/, // em/en dash, curly quotes, bullets, ellipsis
+    /\u00c3[\u0080-\u00bf]/, // double-encoded accented letters
+    /\u00c2[\u00a0\u00b7]/, // nbsp or middle dot after A-circumflex
+    /\ufffd/, // visible replacement character
+  ];
+
+  function allStrings(dict: Dict): string[] {
+    const out: string[] = [];
+    for (const v of Object.values(dict)) {
+      if (typeof v === "string") out.push(v);
+      else if (v !== null && typeof v === "object") out.push(...allStrings(v as Dict));
+    }
+    return out;
+  }
+
+  for (const file of LOCALE_FILES) {
+    it(`${file}.json has no mojibake sequences`, () => {
+      const dict = loadJson(join(root, `${file}.json`));
+      const bad: string[] = [];
+      for (const value of allStrings(dict)) {
+        for (const pattern of MOJIBAKE) {
+          if (pattern.test(value)) bad.push(`${pattern} in "${value}"`);
+        }
+        // A question mark that is not the last non-space character is a
+        // corrupt glyph (e.g. "Settings ? Billing"); every real question
+        // across locales is sentence-final. Spanish "¿..." is untouched.
+        if (/\?(?=.*\S)/.test(value)) {
+          bad.push(`mid-string "?" in "${value}"`);
+        }
+      }
+      expect(bad, `${file}.json mojibake`).toEqual([]);
+    });
+  }
+});
+
 describe("English is the safe fallback", () => {
   const root = join(__dirname, "..", "src", "locales");
   const en = loadJson(join(root, "en.json"));

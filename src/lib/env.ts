@@ -148,22 +148,26 @@ export function prodWarnings(): string[] {
  * Production safety audit. Returns a list of problems.
  * Empty array means production deployment is safe.
  *
+ * Reads secrets LIVE from `process.env` (not the module-load snapshot in
+ * `env`) so the check always reflects what this process actually holds, even
+ * when a secret was injected after `env.ts` was first imported — which is
+ * exactly the window a missing AUTH_SECRET tends to slip through.
+ *
  * These are HARD failures (missing/weak secrets) — unlike `prodWarnings()`.
  */
 export function assertProdSafety(): string[] {
   const problems: string[] = [];
-  if (env.isProd) {
-    if (!env.authSecret || env.authSecret.length < 32) {
-      problems.push(
-        "AUTH_SECRET must be set to a strong random value (32+ bytes) in production"
-      );
-    }
-    if (env.paddleApiKey && !env.paddleApiKey.startsWith("pdl_sdbx_") && env.paddleWebhookSecret.length < 16) {
-      problems.push("PADDLE_WEBHOOK_SECRET appears too short");
-    }
-    if (env.paddleApiKey && env.paddleApiKey.startsWith("pdl_sdbx_") && env.isProd) {
-      problems.push("A Paddle SANDBOX API key is configured in production");
-    }
+  if (process.env.NODE_ENV !== "production") return problems;
+
+  const authSecret = process.env.AUTH_SECRET ?? "";
+  if (!authSecret || authSecret.length < 32) {
+    problems.push("AUTH_SECRET must be set to a strong random value (32+ bytes) in production");
+  }
+  if (env.paddleApiKey && !env.paddleApiKey.startsWith("pdl_sdbx_") && (process.env.PADDLE_WEBHOOK_SECRET ?? "").length < 16) {
+    problems.push("PADDLE_WEBHOOK_SECRET appears too short");
+  }
+  if (env.paddleApiKey && env.paddleApiKey.startsWith("pdl_sdbx_")) {
+    problems.push("A Paddle SANDBOX API key is configured in production");
   }
   return problems;
 }

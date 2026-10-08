@@ -181,6 +181,7 @@ const envKeys = new Set();
 const FRAMEWORK_ENV = new Set([
   "NODE_ENV",
   "NEXT_RUNTIME",
+  "NEXT_PHASE",
   "VERCEL",
   "VERCEL_ENV",
   "VERCEL_URL",
@@ -312,6 +313,39 @@ if (CHECK_DB) {
       add("warn", "Database check failed", e instanceof Error ? e.message.slice(0, 300) : String(e));
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// 7. Production runtime safety env vars.
+// ---------------------------------------------------------------------------
+const authSecret = process.env.AUTH_SECRET ?? "";
+if (authSecret.length >= 32) {
+  add("ok", "AUTH_SECRET", "strong random value present (32+ bytes)");
+} else {
+  add(
+    "blocker",
+    "AUTH_SECRET missing or too short",
+    authSecret
+      ? `AUTH_SECRET is only ${authSecret.length} byte(s)`
+      : "AUTH_SECRET is not set",
+    "Generate one with `node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"` and set it in production. The server fails at boot without it."
+  );
+}
+
+// PREVIEW_PENDING_LOCALES and its client twin force pending locales (ar) to
+// render live. That is a dev-only escape hatch and must never ship.
+const previewVars = ["PREVIEW_PENDING_LOCALES", "NEXT_PUBLIC_PREVIEW_PENDING_LOCALES"].filter(
+  (k) => Boolean(process.env[k]) && process.env[k] !== ""
+);
+if (previewVars.length === 0) {
+  add("ok", "Preview locale flags", "both preview env vars unset (production renders the real LOCALE_STATUS gate)");
+} else {
+  add(
+    "blocker",
+    "Preview locale flags set",
+    `${previewVars.join(", ")} present (value ${previewVars.map((k) => JSON.stringify(process.env[k])).join(", ")})`,
+    "Unset PREVIEW_PENDING_LOCALES and NEXT_PUBLIC_PREVIEW_PENDING_LOCALES in production. They exist only so pending locales (ar) can be reviewed in screenshots; shipping them bypasses the LOCALE_STATUS review gate."
+  );
 }
 
 // ---------------------------------------------------------------------------
