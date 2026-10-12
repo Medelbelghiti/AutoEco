@@ -102,6 +102,15 @@ async function applyEvent(payload: PaddleWebhookPayload, eventId: string): Promi
     case "subscription.updated":
       await onSubscriptionUpsert(payload, eventId);
       break;
+    // Authoritative lifecycle transitions. Deliberately NOT routed through
+    // `onSubscriptionUpsert`, which would also fire purchase side effects
+    // (payment-success email/notification + `subscription_created` analytic)
+    // that must only fire for a real payment. See `onSubscriptionLifecycle`.
+    case "subscription.activated":
+    case "subscription.paused":
+    case "subscription.resumed":
+      await onSubscriptionLifecycle(payload, eventId);
+      break;
     case "subscription.canceled":
     case "subscription.expired":
       await onSubscriptionEnded(payload, eventId);
@@ -322,11 +331,7 @@ async function onSubscriptionEnded(payload: PaddleWebhookPayload, eventId: strin
     where: { paddleSubscriptionId: paddleSubId },
     data: { status: "canceled", canceledAt: at, lastEventAt: at },
   });
-  const stillActive = await db.subscription.count({ where: { userId: user.id, status: { in: ["active", "trialing", "lifetime"] } } });
-  if (stillActive === 0) {
-    const free = await db.plan.findFirst({ where: { key: "free" } });
-    if (free) await db.user.update({ where: { id: user.id }, data: { planId: free.id } });
-  }
+  await downgradeToFreeIfInactive(user.id);
 
   if (await tryClaimSideEffect(eventId, "PADDLE_SUBSCRIPTION_CANCELED_NOTIFICATION")) {
     await createNotification({ userId: user.id, type: "SUBSCRIPTION_CANCELED", title: "Your subscription was canceled", link: "/settings/billing" });
@@ -336,6 +341,112 @@ async function onSubscriptionEnded(payload: PaddleWebhookPayload, eventId: strin
     const endDate = sub?.currentPeriodEnd ? sub.currentPeriodEnd.toISOString().slice(0, 10) : "soon";
     await sendEmail({ ...tplSubscriptionCanceled(user.name, endDate, coerceLocale(user.locale)), to: user.email });
   }
+}
+
+/**
+ * Drop the user to the free plan when none of their subscriptions is active.
+ * Shared by `onSubscriptionEnded` and `onSubscriptionLifecycle` so a pause and
+ * a cancellation degrade entitlements identically.
+ */
+async function downgradeToFreeIfInactive(userId: string): Promise<void> {
+  const stillActive = await db.subscription.count({ where: { userId, status: { in: ["active", "trialing", "lifetime"] } } });
+  if (stillActive > 0) return;
+  const free = await db.plan.findFirst({ where: { key: "free" } });
+  if (free) await db.user.update({ where: { id: userId }, data: { planId: free.id } });
+}
+
+/**
+ * Handle the authoritative lifecycle transitions:
+ *   - `subscription.activated` → the trial ended and Paddle billed, or a
+ *     paused subscription was reactivated. Status becomes `active`.
+ *   - `subscription.paused` → status becomes `paused` (access must end).
+ *   - `subscription.resumed` → status becomes `active` (Paddle bills again).
+ *
+ * Why these are handled here and not ignored: Paddle does NOT guarantee a
+ * companion `subscription.updated`. It "typically follows" activation and is
+ * only emitted when a pause/resume is *scheduled* — at the moment an immediate
+ * pause takes effect only `subscription.paused` is delivered. Ignoring these
+ * events would leave a paused customer holding paid access, or a resumed one
+ * locked out, until some unrelated update arrived.
+ *
+ * Why they bypass `onSubscriptionUpsert`: that path emits purchase side
+ * effects (payment-success email/notification, `subscription_created`
+ * analytic). A pause/resume is not a purchase, so those must not fire.
+ *
+ * Reuses the same out-of-order guard as the other handlers, and never mutates
+ * a `lifetime` purchase nor resurrects a `canceled` subscription.
+ */
+async function onSubscriptionLifecycle(payload: PaddleWebhookPayload, eventId: string): Promise<void> {
+  const user = await findUser(payload);
+  if (!user) {
+    await auditLog({
+      action: "paddle.webhook.unresolved_customer",
+      metadata: { eventId, type: payload.event_type, subscriptionId: payload.data?.subscription_id ?? null },
+    });
+    return;
+  }
+
+  const paddleSubId = payload.data?.subscription_id;
+  if (!paddleSubId) return;
+  const status = (payload.data?.status ?? "").toLowerCase();
+  // Only the three statuses these events can carry are meaningful here.
+  if (status !== "active" && status !== "trialing" && status !== "paused") return;
+
+  const at = eventTime(payload);
+  if (await isStaleForSubscription(paddleSubId, at)) {
+    await auditLog({ action: "paddle.webhook.stale_event_ignored", metadata: { eventId, type: payload.event_type, paddleSubId } });
+    return;
+  }
+
+  const existing = await db.subscription.findUnique({ where: { paddleSubscriptionId: paddleSubId } });
+  if (!existing) {
+    await auditLog({ action: "paddle.webhook.lifecycle_unknown_subscription", metadata: { eventId, type: payload.event_type, paddleSubId } });
+    return;
+  }
+  // A lifetime purchase is terminal; a canceled subscription must not be
+  // brought back by a late activation/resume event.
+  if (existing.status === "lifetime" || existing.status === "canceled") {
+    await auditLog({ action: "paddle.webhook.lifecycle_ignored_terminal", metadata: { eventId, type: payload.event_type, paddleSubId, status: existing.status } });
+    return;
+  }
+
+  const data = payload.data ?? {};
+  const periodStart = parsePaddleDate(data.current_billing_period?.starts_at) ?? existing.currentPeriodStart;
+  // A paused subscription has no current billing period; an active/trialing one
+  // takes the window Paddle sends (falling back to the existing values).
+  const periodEnd =
+    status === "paused"
+      ? null
+      : parsePaddleDate(data.current_billing_period?.ends_at) ?? parsePaddleDate(data.next_billed_at) ?? existing.currentPeriodEnd;
+
+  await db.subscription.update({
+    where: { id: existing.id },
+    data: {
+      status,
+      currentPeriodStart: periodStart,
+      currentPeriodEnd: periodEnd,
+      cancelAtPeriodEnd: data.scheduled_change != null,
+      // Resuming/activating clears a previous cancellation; pausing leaves it.
+      canceledAt: status === "paused" ? existing.canceledAt : null,
+      lastEventAt: at,
+    },
+  });
+
+  if (status === "paused") {
+    // Access ends when the last active subscription pauses.
+    await downgradeToFreeIfInactive(user.id);
+  } else {
+    // Reactivation restores the paid pointer (the Subscription row already
+    // knows the plan), so the UI reflects the plan that was just resumed.
+    const plan = await db.plan.findUnique({ where: { id: existing.planId } });
+    if (plan) await db.user.update({ where: { id: user.id }, data: { planId: plan.id } });
+  }
+
+  await auditLog({
+    userId: user.id,
+    action: "paddle.subscription.lifecycle",
+    metadata: { eventId, type: payload.event_type, paddleSubId, status },
+  });
 }
 
 /**

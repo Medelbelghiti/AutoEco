@@ -156,6 +156,13 @@ function parseSignatureHeader(header: string): { ts: number; h1: string } | null
 export type PaddleEventName =
   | "subscription.created"
   | "subscription.updated"
+  // Lifecycle transitions. These are the AUTHORITATIVE notifications for the
+  // corresponding status change — a `subscription.updated` is NOT guaranteed
+  // alongside them (it "typically follows" activation, and is only emitted
+  // when a pause/resume is *scheduled*). See `onSubscriptionLifecycle`.
+  | "subscription.activated"
+  | "subscription.paused"
+  | "subscription.resumed"
   | "subscription.canceled"
   | "subscription.expired"
   | "subscription.past_due"
