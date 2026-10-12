@@ -4,8 +4,7 @@ import { db } from "@/lib/db";
 import { translateEnum } from "@/lib/i18n";
 import { getT } from "@/lib/server-i18n";
 import { ReceiptDeleteForm } from "@/components/receipts/ReceiptDeleteForm";
-
-const RECEIPT_CATEGORIES = ["fuel", "maintenance", "repair", "insurance", "parking", "tolls", "other"];
+import { ReceiptUploadForm } from "@/components/receipts/ReceiptUploadForm";
 
 export default async function ReceiptsPage() {
   const user = await requireUser();
@@ -26,32 +25,9 @@ export default async function ReceiptsPage() {
       ) : (
         <div className="card">
           <p className="font-semibold">{t("receipts.upload_title")}</p>
-          <form action="/api/receipts" method="post" encType="multipart/form-data" className="mt-3 space-y-3 text-sm">
-            <div>
-              <label className="label">{t("common.vehicle")}</label>
-              <select name="vehicleId" className="select" required>
-                {vehicles.map((v) => <option key={v.id} value={v.id}>{v.nickname ?? (v.year + " " + v.brand + " " + v.model)}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="label">{t("receipts.title_optional")}</label>
-              <input className="input" name="title" placeholder={t("receipts.title_placeholder")} />
-            </div>
-            <div>
-              <label className="label">{t("receipts.category_label")}</label>
-              <select name="category" className="select">
-                {RECEIPT_CATEGORIES.map((c) => (
-                  <option key={c} value={c}>{translateEnum(t, "category.", c)}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="label">{t("receipts.file_label")}</label>
-              <input className="input" type="file" name="file" accept="image/jpeg,image/png,image/webp,application/pdf" required />
-            </div>
-            <button type="submit" className="btn btn-accent">{t("receipts.upload_extract")}</button>
-          </form>
-          <p className="text-xs text-charcoal-500 mt-3">{t("receipts.private_note")}</p>
+          <ReceiptUploadForm
+            vehicles={vehicles.map((v) => ({ id: v.id, label: v.nickname ?? `${v.year} ${v.brand} ${v.model}` }))}
+          />
         </div>
       )}
 
