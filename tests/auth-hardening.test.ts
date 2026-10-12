@@ -10,6 +10,7 @@ import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { PrismaClient } from "@prisma/client";
 import { DB_OK } from "./_dbGuard";
 import { ensurePaddleSchema } from "./_ensureSchema";
+import { PLANS, planRow } from "../prisma/plans.data";
 
 const prisma = new PrismaClient();
 
@@ -54,7 +55,22 @@ runSuite("Phase 1 — sessions, enumeration and deletion", () => {
 
   beforeAll(async () => {
     await ensurePaddleSchema(prisma);
-    freePlanId = (await prisma.plan.findFirst({ where: { key: "free" } }))?.id ?? "";
+    // Seed the canonical plans in THIS file. The `free` plan is used as
+    // `planId` below, and vitest runs test files in parallel: relying on
+    // another file (e.g. `paddle-billing.test.ts`) to have seeded it first
+    // made test 7 flaky — a missing `free` row produced `planId: ""` and a
+    // `Subscription_planId_fkey` violation. Owning the fixture removes the
+    // ordering dependence entirely.
+    for (const p of PLANS) {
+      const row = planRow(p);
+      const { key, ...fields } = row;
+      await prisma.plan.upsert({
+        where: { key: key as string },
+        create: { ...row, isDemo: false } as never,
+        update: { ...fields, isDemo: false } as never,
+      });
+    }
+    freePlanId = (await prisma.plan.findUniqueOrThrow({ where: { key: "free" } })).id;
     auth = await import("@/lib/auth");
   });
 
@@ -229,14 +245,16 @@ runSuite("Phase 1 — sessions, enumeration and deletion", () => {
 
   run("7. account deletion cancels Paddle first and aborts if the provider fails", async () => {
     const uid = await makeUser("delete", "delete-me-please-1");
+    // Unique per run: a hard-coded id is a shared fixture, so one run whose
+    // cleanup did not complete would collide on the unique index next time.
+    const paddleSubId = `sub_phase1_delete_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     await prisma.subscription.create({
       data: {
         userId: uid,
         planId: freePlanId,
         status: "active",
-        paddleSubscriptionId: "sub_phase1_delete_me",
-        currentPeriodStart: new Date(),
-        currentPeriodEnd: new Date(Date.now() + 30 * 86_400_000),
+        paddleSubscriptionId: paddleSubId,
+        currentPeriodEnd: new Date(Date.now() + 86_400_000),
       },
     });
 
@@ -263,7 +281,7 @@ runSuite("Phase 1 — sessions, enumeration and deletion", () => {
       const failed = await DELETE(req(), undefined);
       expect(failed.status).toBe(502);
       expect(providerCalls).toHaveLength(1);
-      expect(providerCalls[0]).toContain("/subscriptions/sub_phase1_delete_me/cancel");
+      expect(providerCalls[0]).toContain(`/subscriptions/${paddleSubId}/cancel`);
       // Cancelled before anonymisation, and the account survived intact.
       expect(stateAtProviderCall).toBe(true);
 
