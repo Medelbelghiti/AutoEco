@@ -47,6 +47,23 @@ export async function ensurePaddleSchema(prisma: PrismaClient): Promise<void> {
     `CREATE UNIQUE INDEX IF NOT EXISTS "Subscription_paddleSubscriptionId_key" ON "Subscription"("paddleSubscriptionId")`,
     `ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "paddleOrderId" TEXT`,
     `CREATE UNIQUE INDEX IF NOT EXISTS "Invoice_paddleOrderId_key" ON "Invoice"("paddleOrderId")`,
+    // Paddle refund handling (adjustment.created / adjustment.updated).
+    `ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "paddleSubscriptionId" TEXT`,
+    `ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "refundedAmountCents" INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "paddleBilledAt" TIMESTAMP(3)`,
+    `CREATE INDEX IF NOT EXISTS "Invoice_paddleSubscriptionId_paddleBilledAt_idx" ON "Invoice"("paddleSubscriptionId", "paddleBilledAt")`,
+    `CREATE TABLE IF NOT EXISTS "RefundAdjustment" (
+      "id" TEXT NOT NULL,
+      "adjustmentId" TEXT NOT NULL,
+      "transactionId" TEXT NOT NULL,
+      "amountCents" INTEGER NOT NULL,
+      "currency" TEXT NOT NULL,
+      "type" TEXT NOT NULL,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "RefundAdjustment_pkey" PRIMARY KEY ("id")
+    )`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "RefundAdjustment_adjustmentId_key" ON "RefundAdjustment"("adjustmentId")`,
+    `CREATE INDEX IF NOT EXISTS "RefundAdjustment_transactionId_idx" ON "RefundAdjustment"("transactionId")`,
   ];
   for (const sql of stmts) {
     try {

@@ -162,7 +162,11 @@ export type PaddleEventName =
   | "subscription.payment_failed"
   | "transaction.completed"
   | "transaction.payment_failed"
-  | "transaction.refunded";
+  | "transaction.refunded"
+  // Refunds (and other adjustments) are delivered as `adjustment.*`,
+  // NOT `transaction.refunded` (which is Paddle Classic only).
+  | "adjustment.created"
+  | "adjustment.updated";
 
 /**
  * Minimal Paddle webhook payload shape — only the fields we read.
@@ -177,6 +181,19 @@ export interface PaddleWebhookPayload {
     status?: string;
     customer_id?: string;
     subscription_id?: string;
+    /**
+     * Adjustment-only fields (`adjustment.created` / `adjustment.updated`).
+     * `action` distinguishes a refund from credits/chargebacks; `type` is
+     * "full" | "partial"; `transaction_id` is the transaction being adjusted.
+     */
+    action?: string;
+    type?: string;
+    transaction_id?: string;
+    /** Transaction timestamp (ISO 8601), used to order payments. */
+    created_at?: string;
+    billed_at?: string;
+    /** Adjustment totals, in minor units (strings), same as transactions. */
+    totals?: { total?: number | string; currency_code?: string };
     /**
      * Present on subscription + transaction payloads when the checkout was
      * opened with `custom_data`. This is how a BRAND NEW Paddle customer is

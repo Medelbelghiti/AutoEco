@@ -26,6 +26,7 @@ import {
 } from "@/lib/paddle";
 import { db } from "@/lib/db";
 import { claim, reclaimStale, markProcessed, markFailed, tryClaimSideEffect } from "@/lib/webhook-state";
+import { cancelPaddleSubscription } from "@/lib/paddle-api";
 import { createNotification } from "@/lib/notifications";
 import { sendEmail, tplPaymentSuccess, tplPaymentFailed, tplSubscriptionCanceled } from "@/lib/email";
 import { coerceLocale } from "@/lib/i18n";
@@ -115,6 +116,13 @@ async function applyEvent(payload: PaddleWebhookPayload, eventId: string): Promi
       break;
     case "transaction.refunded":
       await onTransactionRefunded(payload, eventId);
+      break;
+    // Paddle Billing reports refunds (and credits/chargebacks) as adjustments,
+    // NOT as `transaction.refunded`. Only approved refunds are actionable;
+    // see `onAdjustment` for the entitlement rule.
+    case "adjustment.created":
+    case "adjustment.updated":
+      await onAdjustment(payload, eventId);
       break;
     default:
       // Unknown event types are ignored — not an error.
@@ -392,6 +400,11 @@ async function onTransactionCompleted(payload: PaddleWebhookPayload, eventId: st
   // Keep the real ISO 4217 code Paddle charged. Coercing unknown codes to USD
   // recorded revenue in the wrong currency for every non-USD market.
   const invoiceCurrency = normalizeInvoiceCurrency(data.currency_code ?? data.details?.totals?.currency_code);
+  // Link the payment to its subscription and record Paddle's own timestamp so
+  // a later refund can tell whether it covers the latest payment of that
+  // subscription. Both are optional (one-off purchases have no subscription).
+  const paddleSubId = data.subscription_id ?? null;
+  const billedAt = parsePaddleDate(data.billed_at ?? data.created_at);
 
   await db.invoice.upsert({
     where: { paddleOrderId: orderId },
@@ -402,11 +415,15 @@ async function onTransactionCompleted(payload: PaddleWebhookPayload, eventId: st
       amountCents,
       currency: invoiceCurrency,
       status: "paid",
+      paddleSubscriptionId: paddleSubId,
+      paddleBilledAt: billedAt,
     },
     update: {
       amountCents,
       currency: invoiceCurrency,
       status: "paid",
+      ...(paddleSubId ? { paddleSubscriptionId: paddleSubId } : {}),
+      ...(billedAt ? { paddleBilledAt: billedAt } : {}),
     },
   });
 }
@@ -419,4 +436,163 @@ async function onTransactionRefunded(payload: PaddleWebhookPayload, eventId: str
   const inv = await db.invoice.findUnique({ where: { paddleOrderId: orderId } });
   if (!inv) return;
   await db.invoice.update({ where: { id: inv.id }, data: { status: "refunded" } });
+}
+
+/** Parse a Paddle RFC 3339 timestamp; returns null when absent/invalid. */
+function parsePaddleDate(raw: unknown): Date | null {
+  if (typeof raw !== "string") return null;
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function isUniqueViolation(e: unknown): boolean {
+  return typeof e === "object" && e !== null && (e as { code?: string }).code === "P2002";
+}
+
+/**
+ * Refunds and other adjustments arrive as `adjustment.created` /
+ * `adjustment.updated` (Paddle Billing), NOT `transaction.refunded`.
+ *
+ * Entitlement rule (agreed with the owner):
+ *   - Only `action: "refund"` with `status: "approved"` is actionable.
+ *     Credits, chargebacks, reversals and non-approved refunds are ignored.
+ *   - A FULL refund revokes access ONLY when it covers the latest paid
+ *     transaction of that subscription and no later successful payment
+ *     exists. We then cancel the Paddle subscription immediately and let the
+ *     (out-of-order-guarded) `subscription.canceled` event downgrade local
+ *     entitlements.
+ *   - Partial refunds, and refunds of older transactions, only record the
+ *     refunded amount and keep access.
+ *   - Unknown transactions are ignored (not an error).
+ *   - Replays and the created→updated pair are idempotent via
+ *     `RefundAdjustment.adjustmentId`.
+ *   - A failed Paddle cancel never fails the webhook; it is flagged for the
+ *     owner to action by hand.
+ */
+async function onAdjustment(payload: PaddleWebhookPayload, eventId: string): Promise<void> {
+  const data = payload.data ?? {};
+  if (data.action !== "refund") return; // credits/chargebacks/reversals are out of scope
+  if (data.status !== "approved") return; // pending_approval | rejected | reversed
+
+  const adjustmentId = data.id;
+  const transactionId = data.transaction_id;
+  if (!adjustmentId || !transactionId) return;
+
+  const type = data.type === "full" ? "full" : "partial";
+  const refundCents = paddleAmountToCents(data.totals?.total);
+  const currency = normalizeInvoiceCurrency(data.currency_code ?? data.totals?.currency_code);
+
+  const invoice = await db.invoice.findUnique({ where: { paddleOrderId: transactionId } });
+  if (!invoice) {
+    // Not one of ours (or a transaction we never recorded). Not an error.
+    await auditLog({
+      action: "paddle.refund.unknown_transaction",
+      metadata: { eventId, adjustmentId, transactionId },
+    });
+    return;
+  }
+
+  // Idempotency: claim the adjustment once. The UNIQUE index collapses the
+  // created→updated pair and retries into a single application, and the claim
+  // is committed together with the invoice update so a failed transaction is
+  // rolled back and retried as a whole.
+  let refundedTotal: number;
+  try {
+    refundedTotal = await db.$transaction(async (tx) => {
+      await tx.refundAdjustment.create({
+        data: { adjustmentId, transactionId, amountCents: refundCents, currency, type },
+      });
+      const agg = await tx.refundAdjustment.aggregate({
+        where: { transactionId },
+        _sum: { amountCents: true },
+      });
+      const total = agg._sum.amountCents ?? 0;
+      await tx.invoice.update({
+        where: { id: invoice.id },
+        data: {
+          refundedAmountCents: total,
+          status: invoice.amountCents > 0 && total >= invoice.amountCents ? "refunded" : "partially_refunded",
+        },
+      });
+      return total;
+    });
+  } catch (e) {
+    if (isUniqueViolation(e)) return; // already applied: replay / created→updated pair
+    throw e;
+  }
+
+  await auditLog({
+    userId: invoice.userId,
+    action: "paddle.refund.recorded",
+    metadata: { eventId, adjustmentId, transactionId, type, refundedTotal, currency },
+  });
+
+  // Only a FULL refund of the latest successful payment of a subscription
+  // revokes access. Everything else keeps it.
+  if (type !== "full") return;
+
+  const subId = invoice.paddleSubscriptionId;
+  if (!subId) {
+    // One-off / lifetime purchase: there is no subscription to cancel. Flag it
+    // rather than silently keeping access.
+    await auditLog({
+      userId: invoice.userId,
+      action: "paddle.refund.no_subscription",
+      metadata: { eventId, adjustmentId, transactionId },
+    });
+    return;
+  }
+
+  const at = eventTime(payload);
+  if (await isStaleForSubscription(subId, at)) {
+    await auditLog({
+      userId: invoice.userId,
+      action: "paddle.refund.stale_ignored",
+      metadata: { eventId, adjustmentId, subscriptionId: subId },
+    });
+    return;
+  }
+
+  // "Latest paid transaction of that subscription": no later successful
+  // payment may exist. The refunded invoice is included in the candidate set.
+  const latest = await db.invoice.findFirst({
+    where: {
+      paddleSubscriptionId: subId,
+      status: { in: ["paid", "refunded", "partially_refunded"] },
+    },
+    orderBy: [{ paddleBilledAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+    select: { id: true },
+  });
+  if (!latest || latest.id !== invoice.id) {
+    // A later successful payment exists — the customer is still entitled.
+    await auditLog({
+      userId: invoice.userId,
+      action: "paddle.refund.older_transaction",
+      metadata: { eventId, adjustmentId, subscriptionId: subId },
+    });
+    return;
+  }
+
+  try {
+    await cancelPaddleSubscription(subId, false);
+    await auditLog({
+      userId: invoice.userId,
+      action: "paddle.refund.subscription_canceled",
+      metadata: { eventId, adjustmentId, subscriptionId: subId },
+    });
+  } catch (e) {
+    // Do NOT fail the webhook: the invoice state is already consistent and
+    // throwing would make Paddle retry a refund we have already recorded.
+    // Flag it so the owner can cancel by hand.
+    await auditLog({
+      userId: invoice.userId,
+      action: "paddle.refund.cancel_failed",
+      metadata: {
+        eventId,
+        adjustmentId,
+        subscriptionId: subId,
+        error: e instanceof Error ? e.message : String(e),
+      },
+    });
+  }
 }
