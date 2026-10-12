@@ -27,13 +27,15 @@ import { env, paddleWebhookConfigured } from "./env";
  * Plan keys that actually exist as `Plan.key` rows in the database
  * (see `prisma/seed.ts`): free | pro | family | pro_plus.
  *
- * `business` and `lifetime` are retained as DEPRECATED ALIASES only.
- * They were never seeded, so resolving them to themselves silently granted
- * nobody an entitlement. They now resolve to the real plan they were
- * always meant to mean.
+ * `business` is retained as a DEPRECATED ALIAS only: Paddle has no separate
+ * "business" product, so it resolves to the highest paid tier (`pro_plus`).
+ *
+ * Lifetime is intentionally NOT sold (see docs/LAUNCH_STATUS.md): a one-off
+ * "lifetime" price id is an unmapped price id and is treated as such by the
+ * webhook (audited, grants nothing).
  */
 export type PaddlePlanKey = "pro" | "family" | "pro_plus";
-export type PaddlePlanKeyOrAlias = PaddlePlanKey | "business" | "lifetime";
+export type PaddlePlanKeyOrAlias = PaddlePlanKey | "business";
 
 /** Every paid plan key, in display order. */
 export const PADDLE_PLAN_KEYS: PaddlePlanKey[] = ["pro", "family", "pro_plus"];
@@ -48,7 +50,6 @@ export function canonicalPlanKey(k: PaddlePlanKeyOrAlias): PaddlePlanKey {
   // Paddle has no separate "business" product — `PADDLE_BUSINESS_PRICE_ID`
   // is the price id for the highest paid tier, which is `pro_plus`.
   if (k === "business") return "pro_plus";
-  if (k === "lifetime") return "pro_plus";
   return k;
 }
 
@@ -80,8 +81,6 @@ export function planKeyForPriceId(priceId: string | undefined): PaddlePlanKey | 
   if (env.paddleProPriceId && priceId === env.paddleProPriceId) return "pro";
   if (env.paddleFamilyPriceId && priceId === env.paddleFamilyPriceId) return "family";
   if (env.paddleBusinessPriceId && priceId === env.paddleBusinessPriceId) return "pro_plus";
-  // A lifetime price is a one-off payment for the top tier.
-  if (env.paddleLifetimePriceId && priceId === env.paddleLifetimePriceId) return "pro_plus";
   return null;
 }
 
@@ -156,13 +155,24 @@ function parseSignatureHeader(header: string): { ts: number; h1: string } | null
 export type PaddleEventName =
   | "subscription.created"
   | "subscription.updated"
+  // Lifecycle transitions. These are the AUTHORITATIVE notifications for the
+  // corresponding status change — a `subscription.updated` is NOT guaranteed
+  // alongside them (it "typically follows" activation, and is only emitted
+  // when a pause/resume is *scheduled*). See `onSubscriptionLifecycle`.
+  | "subscription.activated"
+  | "subscription.paused"
+  | "subscription.resumed"
   | "subscription.canceled"
   | "subscription.expired"
   | "subscription.past_due"
   | "subscription.payment_failed"
   | "transaction.completed"
   | "transaction.payment_failed"
-  | "transaction.refunded";
+  | "transaction.refunded"
+  // Refunds (and other adjustments) are delivered as `adjustment.*`,
+  // NOT `transaction.refunded` (which is Paddle Classic only).
+  | "adjustment.created"
+  | "adjustment.updated";
 
 /**
  * Minimal Paddle webhook payload shape — only the fields we read.
@@ -177,6 +187,19 @@ export interface PaddleWebhookPayload {
     status?: string;
     customer_id?: string;
     subscription_id?: string;
+    /**
+     * Adjustment-only fields (`adjustment.created` / `adjustment.updated`).
+     * `action` distinguishes a refund from credits/chargebacks; `type` is
+     * "full" | "partial"; `transaction_id` is the transaction being adjusted.
+     */
+    action?: string;
+    type?: string;
+    transaction_id?: string;
+    /** Transaction timestamp (ISO 8601), used to order payments. */
+    created_at?: string;
+    billed_at?: string;
+    /** Adjustment totals, in minor units (strings), same as transactions. */
+    totals?: { total?: number | string; currency_code?: string };
     /**
      * Present on subscription + transaction payloads when the checkout was
      * opened with `custom_data`. This is how a BRAND NEW Paddle customer is

@@ -192,6 +192,16 @@ export function ChangePassword({ locale }: { locale: string }) {
   );
 }
 
+export function SignOutAllDevices({ locale }: { locale: string }) {
+  const t = translator(coerceLocale(locale));
+  return (
+    <form action="/api/auth/logout-all" method="post" className="mt-3 space-y-2">
+      <p className="text-sm text-charcoal-500">{t("settings.sign_out_all_body")}</p>
+      <button className="btn btn-secondary" type="submit">{t("settings.sign_out_all")}</button>
+    </form>
+  );
+}
+
 export function ExportData({ locale }: { locale: string }) {
   const t = translator(coerceLocale(locale));
   const [busy, setBusy] = useState<string | null>(null);

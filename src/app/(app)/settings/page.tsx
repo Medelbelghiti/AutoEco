@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getEntitlements } from "@/lib/plans";
-import { Profile, Preferences, DeductionRate, ChangePassword, ExportData, DeleteAccount } from "./Forms";
+import { Profile, Preferences, DeductionRate, ChangePassword, SignOutAllDevices, ExportData, DeleteAccount } from "./Forms";
 import { getLocale, getT } from "@/lib/server-i18n";
 import { formatDate, translateEnum } from "@/lib/i18n";
 
@@ -35,6 +35,7 @@ export default async function SettingsPage() {
         <div className="card">
           <p className="font-semibold">{t("settings.security")}</p>
           <ChangePassword locale={locale} />
+          <SignOutAllDevices locale={locale} />
         </div>
         <div className="card">
           <p className="font-semibold">{t("settings.subscription")}</p>

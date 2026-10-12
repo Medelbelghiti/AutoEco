@@ -24,10 +24,10 @@ safe to drive.
 | Scenarios | Financial what-ifs (e.g. fuel price change). Financial comparison only. |
 | Reports | Ownership reports with retention limits per plan. |
 | Ask Your Car | Answers questions from your own recorded data. |
-| Receipts | Receipt scanning/OCR, quota-limited per plan. |
+| Receipts | Upload and store receipt images (quota-limited per plan). OCR/auto-scanning is not implemented yet. |
 | Data export | Download vehicles, fuel entries and expenses as CSV from Settings. |
 | API | Hashed, revocable, rate-limited API keys on the highest plan. |
-| i18n | English and French (`src/locales`). |
+| i18n | English, French, Spanish, Portuguese (BR) and German; Arabic translated but pending native-speaker review (`LOCALE_STATUS` in `src/lib/i18n.ts`). |
 
 ### Ask Your Car
 
@@ -68,7 +68,6 @@ Landing page → Free calculators (no signup) → Signup → Dashboard
 | Database | Prisma 5 — SQLite (dev) / PostgreSQL (prod) |
 | Auth | Custom JWT (`jose`) in `HttpOnly` cookies + bcryptjs |
 | Payments | Paddle (primary) — client-side Paddle.js checkout, server-verified webhooks |
-| Payments (legacy) | Stripe — retained for existing subscriptions and webhook handling |
 | Styling | Tailwind CSS |
 | Email | Nodemailer (`console` default, or SMTP) |
 | Exports | CSV (hand-rolled) |
@@ -149,10 +148,8 @@ See `.env.example`. The core app — tracking, cost engine, calculators, export 
 | `PADDLE_PRO_PRICE_ID` | for the Pro plan | Paddle price id |
 | `PADDLE_FAMILY_PRICE_ID` | for the Family plan | Paddle price id |
 | `PADDLE_BUSINESS_PRICE_ID` | for Pro Plus | Paddle price id for the top tier |
-| `PADDLE_LIFETIME_PRICE_ID` | optional | One-off top-tier price |
 | `PADDLE_ENV` / `NEXT_PUBLIC_PADDLE_ENV` | no | `sandbox` (default) or `live` |
 | `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` | for browser checkout | Paddle.js client token (public) |
-| `STRIPE_*` | no | Legacy Stripe subscriptions |
 | `EMAIL_PROVIDER` | no | `console` (default) or `smtp` |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | for SMTP | Email delivery |
 | `OPENAI_API_KEY` | no | Optional LLM phrasing layer for Ask Your Car |
@@ -185,7 +182,14 @@ npm run build
 6. Configure SMTP (`EMAIL_PROVIDER=smtp`) — otherwise all transactional email is only logged.
 7. `npm run build` (runs migrations via `scripts/build-with-migrate.js`).
 8. `npm run prisma:seed` on first run (idempotent).
-9. Ensure your proxy sets a correct `X-Forwarded-For`; IP-based rate limiting depends on it.
+9. Set `CRON_SECRET` (16+ random chars). Every `/api/cron/*` route (subscription expiry,
+   trial-ending email, account purge) fails closed with 503 without it, and `/api/health`
+   reports it as degraded.
+10. Ensure your proxy forwards a client IP header (`X-Forwarded-For`, or the platform header
+    such as `X-Vercel-Forwarded-For`). IP-based rate limiting reads it through `getClientIp()`,
+    which ignores a client-spoofable `X-Forwarded-For` prefix.
+11. Point an uptime monitor at `GET /api/health` (200 when healthy, 503 when the database or a
+    required schema column is broken). `?verbose=1` adds the configuration warnings.
 
 ---
 
@@ -195,7 +199,12 @@ npm run build
 * Sessions are JWT (`jose`) in `HttpOnly`, `Secure` (production), `SameSite=Lax` cookies.
 * API keys are HMAC-SHA-256-hashed at rest and never stored in plaintext.
 * Every API route enforces auth (`requireUser` / `requireAdmin`) and ownership checks.
-* Rate limiting is DB-backed and applied to signup, login and data export.
+* Rate limiting is DB-backed and applied to signup, login, forgot/reset password, data export,
+  analytics ingestion and the CSP report sink. Keys derive from `getClientIp()`, so a forged
+  `X-Forwarded-For` prefix cannot be used to bypass a limit.
+* Sessions can be revoked everywhere at once: Settings → Security → **Sign out of all devices**
+  bumps `User.sessionVersion`, invalidating every issued JWT (including the current device).
+  The action is `POST`-only; a `GET` is refused to avoid a logout CSRF.
 * Paddle webhook signatures are verified with a constant-time HMAC compare plus a timestamp
   tolerance check.
 * Unexpected API errors are logged server-side and returned to the client only as
@@ -218,7 +227,7 @@ npm run build
 
 ## Known limitations
 
-* Receipt OCR and Ask Your Car quotas are per plan and reset monthly.
+* Receipt OCR is not implemented yet; uploaded receipt images are stored but not parsed. Ask Your Car quotas are per plan and reset monthly.
 * The default email provider is `console`. Configure SMTP for production.
 * Paid plans require Paddle to be configured; without it the pricing page shows real prices but
   checkout is unavailable rather than pretending to work.

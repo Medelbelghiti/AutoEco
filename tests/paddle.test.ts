@@ -205,17 +205,14 @@ describe("10. Malformed payload → safely rejected", () => {
     const prev = {
       pro: process.env.PADDLE_PRO_PRICE_ID,
       biz: process.env.PADDLE_BUSINESS_PRICE_ID,
-      life: process.env.PADDLE_LIFETIME_PRICE_ID,
     };
     delete process.env.PADDLE_PRO_PRICE_ID;
     delete process.env.PADDLE_BUSINESS_PRICE_ID;
-    delete process.env.PADDLE_LIFETIME_PRICE_ID;
     try {
       expect(() => getPriceIdFor("pro" as PaddlePlanKey)).toThrow();
     } finally {
       process.env.PADDLE_PRO_PRICE_ID = prev.pro;
       process.env.PADDLE_BUSINESS_PRICE_ID = prev.biz;
-      process.env.PADDLE_LIFETIME_PRICE_ID = prev.life;
     }
   });
 

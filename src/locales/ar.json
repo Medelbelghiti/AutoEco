@@ -303,6 +303,8 @@
   "settings.current_password": "كلمة المرور الحالية",
   "settings.new_password": "كلمة المرور الجديدة",
   "settings.password_updated": "تم تحديث كلمة المرور",
+  "settings.sign_out_all": "تسجيل الخروج من جميع الأجهزة",
+  "settings.sign_out_all_body": "أنهِ جلستك على جميع الأجهزة، بما في ذلك هذا الجهاز. ستحتاج إلى تسجيل الدخول مرة أخرى.",
   "settings.subscription": "الاشتراك",
   "settings.plan": "الخطة",
   "settings.trial_ends": "تنتهي الفترة التجريبية في {date}",

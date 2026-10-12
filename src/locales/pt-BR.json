@@ -318,6 +318,8 @@
   "settings.current_password": "Senha atual",
   "settings.new_password": "Nova senha",
   "settings.password_updated": "Senha atualizada",
+  "settings.sign_out_all": "Sair de todos os dispositivos",
+  "settings.sign_out_all_body": "Encerre sua sessão em todos os dispositivos, incluindo este. Você precisará entrar novamente.",
   "settings.subscription": "Assinatura",
   "settings.plan": "Plano",
   "settings.trial_ends": "O teste termina em {date}",

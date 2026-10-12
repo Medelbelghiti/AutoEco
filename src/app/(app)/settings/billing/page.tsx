@@ -11,7 +11,6 @@ import { BillingClient } from "./Client";
 const PERIOD_SUFFIX: Record<string, string> = {
   MONTHLY: "/mo",
   YEARLY: "/yr",
-  LIFETIME: " one-time",
 };
 
 /**
@@ -103,7 +102,7 @@ export default async function BillingPage() {
             <dt className="text-charcoal-500">Billing period</dt>
             <dd className="font-medium">{ent.billingPeriod.toLowerCase()}</dd>
           </div>
-          {!ent.isLifetime && ent.currentPeriodEnd && (
+          {ent.currentPeriodEnd && (
             <div className="flex justify-between gap-3 sm:block">
               <dt className="text-charcoal-500">
                 {sub?.cancelAtPeriodEnd ? "Access ends" : "Renews"}
@@ -112,12 +111,6 @@ export default async function BillingPage() {
                 {ent.currentPeriodEnd.toISOString().slice(0, 10)}
                 {sub?.cancelAtPeriodEnd && " (cancelled — you keep access until then)"}
               </dd>
-            </div>
-          )}
-          {ent.isLifetime && (
-            <div className="flex justify-between gap-3 sm:block">
-              <dt className="text-charcoal-500">Renewal</dt>
-              <dd className="font-medium">None — lifetime</dd>
             </div>
           )}
           {ent.isTrial && ent.trialEndsAt && (
@@ -139,7 +132,6 @@ export default async function BillingPage() {
         <BillingClient
           hasSubscription={Boolean(sub && sub.status !== "lifetime" && sub.status !== "canceled")}
           subCancelAtEnd={sub?.cancelAtPeriodEnd ?? false}
-          isLifetime={ent.isLifetime}
           email={user.email}
         />
       </section>

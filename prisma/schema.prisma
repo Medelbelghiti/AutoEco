@@ -177,6 +177,26 @@ model Subscription {
   @@index([userId, status])
 }
 
+// ----------------------------- Refund adjustments -----------------------------
+// One row per approved Paddle `refund` adjustment that we applied. The unique
+// `adjustmentId` makes refund handling idempotent across the
+// `adjustment.created` + `adjustment.updated` pair, and across webhook retries.
+model RefundAdjustment {
+  id            String   @id @default(cuid())
+  // Paddle adjustment id (adj_...). UNIQUE: the same adjustment is applied once.
+  adjustmentId  String   @unique
+  // Paddle transaction id (txn_...) the refund belongs to.
+  transactionId String
+  // Refunded amount in the transaction currency's minor units.
+  amountCents   Int
+  currency      String
+  // Paddle adjustment type: "full" | "partial".
+  type          String
+  createdAt     DateTime @default(now())
+
+  @@index([transactionId])
+}
+
 model Invoice {
   id              String    @id @default(cuid())
   userId          String
@@ -186,6 +206,14 @@ model Invoice {
   lemonOrderId    String?   @unique
   // Paddle transaction / order id (server-side correlation key).
   paddleOrderId   String?   @unique
+  // Paddle subscription this payment belongs to (from transaction.completed).
+  // Nullable: one-off purchases and rows created before this field existed.
+  paddleSubscriptionId String?
+  // Cumulative amount refunded on this invoice, in minor units.
+  refundedAmountCents  Int       @default(0)
+  // Paddle's transaction timestamp, used to order payments deterministically
+  // (webhook arrival order is not reliable).
+  paddleBilledAt       DateTime?
   number          String?
   amountCents     Int
   currency        String    @default("usd")
@@ -198,6 +226,7 @@ model Invoice {
   createdAt       DateTime  @default(now())
 
   @@index([userId])
+  @@index([paddleSubscriptionId, paddleBilledAt])
 }
 
 model WebhookEvent {

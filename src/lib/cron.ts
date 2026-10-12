@@ -9,6 +9,7 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { auditLog } from "@/lib/audit";
+import { getClientIp } from "@/lib/utils";
 
 export function cronSecret(): string {
   return process.env.CRON_SECRET ?? "";
@@ -46,14 +47,8 @@ export async function verifyCronRequest(req: Request): Promise<NextResponse | nu
 
   const ok = a.length === b.length && crypto.timingSafeEqual(a, b);
   if (!ok) {
-    await auditLog({ action: "cron.unauthorized", ip: clientIp(req) }).catch(() => {});
+    await auditLog({ action: "cron.unauthorized", ip: getClientIp(req) }).catch(() => {});
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   return null;
-}
-
-export function clientIp(req: Request): string | undefined {
-  const fwd = req.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0]?.trim();
-  return req.headers.get("x-real-ip") ?? undefined;
 }

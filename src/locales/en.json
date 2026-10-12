@@ -303,6 +303,8 @@
   "settings.current_password": "Current password",
   "settings.new_password": "New password",
   "settings.password_updated": "Password updated",
+  "settings.sign_out_all": "Sign out of all devices",
+  "settings.sign_out_all_body": "End your session on every device, including this one. You will need to sign in again.",
   "settings.subscription": "Subscription",
   "settings.plan": "Plan",
   "settings.trial_ends": "Trial ends {date}",

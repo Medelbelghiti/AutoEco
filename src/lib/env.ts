@@ -13,7 +13,6 @@ export const env = {
   paddleProPriceId: process.env.PADDLE_PRO_PRICE_ID ?? "",
   paddleFamilyPriceId: process.env.PADDLE_FAMILY_PRICE_ID ?? "",
   paddleBusinessPriceId: process.env.PADDLE_BUSINESS_PRICE_ID ?? "",
-  paddleLifetimePriceId: process.env.PADDLE_LIFETIME_PRICE_ID ?? "",
   // The Paddle.js client-side token (browser). NEXT_PUBLIC_ so it ends up
   // in the client bundle; do NOT put the API key here.
   paddleClientToken: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN ?? "",
@@ -65,7 +64,7 @@ export function paddleConfigured(): boolean {
     env.paddleApiKey &&
       env.paddleWebhookSecret &&
       env.paddleSellerId &&
-      (env.paddleProPriceId || env.paddleFamilyPriceId || env.paddleBusinessPriceId || env.paddleLifetimePriceId)
+      (env.paddleProPriceId || env.paddleFamilyPriceId || env.paddleBusinessPriceId)
   );
 }
 
@@ -139,6 +138,14 @@ export function prodWarnings(): string[] {
   if (!env.captchaProvider) {
     w.push(
       "CAPTCHA_PROVIDER is not configured — signup/login are protected only by IP rate limiting."
+    );
+  }
+  // Read live rather than through `env`: CRON_SECRET is compared against a
+  // minimum length in `lib/cron.ts`, and this keeps the two in step without
+  // importing the (server-only) cron module here.
+  if ((process.env.CRON_SECRET ?? "").length < 16) {
+    w.push(
+      "CRON_SECRET is unset or shorter than 16 characters — every /api/cron/* route returns 503, so subscription expiry, trial-ending email and account purges will not run."
     );
   }
   return w;

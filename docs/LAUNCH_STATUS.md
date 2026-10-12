@@ -10,8 +10,8 @@ era and declared the product READY. They were stale and are removed.
 - **Out-of-order Paddle webhooks**: `Subscription.lastEventAt` ignores stale events (a late `updated` can no longer resurrect a canceled sub).
 - **Paddle self-service**: new `lib/paddle-api.ts`; cancel / resume / customer portal now work for Paddle customers (they were Stripe-only, and `Paddle.CustomerPortal.open` does not exist in Paddle.js).
 - **Account deletion** cancels Paddle subscriptions first (aborts if the provider call fails) so deleted users are never billed.
-- **Sessions**: `User.sessionVersion` revokes all JWTs on password change/reset.
-- **Abuse**: rate limits on forgot/reset password; Turnstile on signup (activates when keys are set); trial entitlements require a verified email; `/api/track` limiter is now shared (DB) instead of per-instance memory; client IP prefers platform headers.
+- **Sessions**: `User.sessionVersion` revokes all JWTs on password change/reset. Settings → Security now also has **Sign out of all devices** (`POST /api/auth/logout-all`), which bumps the version to revoke every device and clears this one; GET is refused (no CSRF logout).
+- **Abuse**: rate limits on forgot/reset password; Turnstile on signup (activates when keys are set); trial entitlements require a verified email; `/api/track` limiter is now shared (DB) instead of per-instance   memory; every rate-limit key derives from `getClientIp()`, which prefers the platform-set header and ignores a spoofable `X-Forwarded-For` prefix (the unauthenticated `/api/csp-report` limiter keyed on the forgeable first hop and could be bypassed with a fresh fake IP per request).
 - **Uploads**: refuse uploads on serverless without a persistent `STORAGE_DIR` (receipts were silently lost on every deploy); magic-byte check vs declared MIME; downloads served with `sandbox` CSP.
 - **Schema drift fixed**: `User.lemonCustomerId`, `Subscription.lemonSubscriptionId` and `Invoice.lemonOrderId` were declared in `schema.prisma` but created by no migration, so a freshly migrated database disagreed with the Prisma Client. Migration `20261005130000_add_lemon_identifiers` closes the gap; `prisma migrate diff --from-migrations --to-schema-datamodel` now exits 0.
 - **Seed fixed**: `prisma/seed.ts` wrote `fuelEconomyText` on `VehicleCatalogEntry`, which only exists on `Vehicle` — Prisma rejected it and the seed always aborted before creating the admin.
@@ -22,18 +22,31 @@ era and declared the product READY. They were stale and are removed.
 - **Deps**: Next 14.2.35, nodemailer 10, removed unused `xlsx`.
 - **Headers**: CSP shipped as Report-Only (enforce after a week of clean console reports).
 - **CI** now runs the real-Postgres concurrency/webhook tests (they were skipping).
+- **Lifetime not sold**: the one-off lifetime plan was never actually grantable
+  (a one-off `transaction.completed` only recorded an invoice). Its price id,
+  alias and feature flag are removed; a price id that maps to no plan is now
+  audited (`paddle.webhook.unmapped_price_id`) and grants nothing instead of
+  silently falling back to `pro`. Pre-existing `lifetime` subscription rows keep
+  their `pro_plus` access.
+- **Cron jobs actually run**: the three `/api/cron/*` routes exported only
+  `POST`, but Vercel Cron triggers a **GET**, so every scheduled run would have
+  answered 405 and never executed. Both GET and POST are now handled behind the
+  same `CRON_SECRET` bearer guard (which fails closed with 503 when unset). All
+  three schedules are daily, which is Hobby-compatible.
 
 ## Still BLOCKING launch (cannot be fixed in code)
 1. Legal entity + `[BRACKETED]` placeholders in `legal/*.md` (run `npm run check:launch`). Needs a lawyer / your company details.
-2. Paddle: complete seller verification, create products/prices, set `PADDLE_*` + `NEXT_PUBLIC_PADDLE_*`, `PADDLE_ENV=live`, webhook endpoint. Test the full cycle in sandbox first (checkout, renewal, failed payment, cancel, refund).
+2. Paddle: complete seller verification, create products/prices, set `PADDLE_*` + `NEXT_PUBLIC_PADDLE_*`, `PADDLE_ENV=live`, webhook endpoint. Test the full cycle in sandbox first (checkout, renewal, failed payment, cancel, refund). Only the monthly Pro / Family / Pro Plus prices are sold — lifetime is intentionally not offered.
 3. Email: `EMAIL_PROVIDER=smtp` + domain SPF/DKIM/DMARC. Verification + reset emails currently reach nobody.
 4. Persistent receipt storage (S3/R2 or mounted volume) before re-enabling uploads on Vercel.
 5. Custom domain; update `NEXT_PUBLIC_APP_URL`.
 6. Rotate any secrets that were ever committed (see git history) and enable secret scanning.
 7. ~~Run `npx prisma migrate deploy` and `npm test` against a real Postgres.~~
    **Done**: verified against a local PostgreSQL (17.4) — 9 migrations applied,
-   `migrate diff` reports no drift, typecheck/lint/build green, 139/139 tests
-   pass with the real-DB integration tests actually running (previously skipped).
+   `migrate diff` reports no drift, typecheck/lint/build green, and the full
+   suite passes with the real-DB integration tests actually running (previously
+   skipped). Final pass: **443/443 tests across 40 files, three consecutive
+   runs**.
 
 ## Verified, do not regress
 - `tests/paddle-billing.test.ts` — real Paddle Billing payloads through the real
@@ -53,11 +66,15 @@ era and declared the product READY. They were stale and are removed.
 ## Known gaps / next
 - ~~Stripe code is still present as a legacy fallback~~ Removed in 2.2: no
   Stripe subscribers exist, so `lib/stripe*.ts`, the Stripe webhook route and
-  the `stripe` dependency are gone. The DB columns are kept untouched.
+  the `stripe` dependency are gone. The DB columns (`stripeCustomerId`,
+  `stripeInvoiceId`) are kept untouched — the Paddle path nulls the former and
+  reuses the latter. README no longer documents `STRIPE_*`, and
+  `tests/stripe-removed.test.ts` guards against a dependency, module, import or
+  `.env.example` entry coming back.
 - ~~Account enumeration: signup returns 409 for existing emails~~ Fixed in 2.4:
   signup returns the same envelope as a real signup and notifies the owner.
-- OCR, family sharing, API access, PDF reports: not built.
-- Only EN/FR UI; `dirFor()` always returns ltr (no RTL).
+- OCR, family sharing and API access: not built (marked "Coming soon"; the Family plan stays hidden). The cost-of-ownership PDF report *is* built.
+- Locales: English, French, Spanish, Portuguese (BR) and German are `ready`; Arabic is translated but `pending` native-speaker review, so it degrades to English in selectors. The RTL chrome itself ships (`dirFor("ar")` = rtl).
 - No annual plans yet (needs Paddle yearly prices + `YEARLY` plan rows).
 - `npm audit` still reports advisories whose fix is a major upgrade (Next 15/16, Tailwind 4, Vitest 5 dev-only).
 - ~~The cookie is still named `lg_session` and API keys use `lgk_`~~ Rotated in
@@ -71,6 +88,16 @@ era and declared the product READY. They were stale and are removed.
   sink now writes through `db` directly, because `auditLog()` swallows its own
   errors and would have hidden a failed insert; a stale `userId` is retried
   un-attributed rather than losing the record. CSP reports reach the same sink.
+- `/api/health` now also reports **cron** readiness (degraded when `CRON_SECRET`
+  is unset or under 16 chars, since every `/api/cron/*` route then fails closed)
+  and **error monitoring** (Sentry DSN set or local-only; optional so never a
+  failure). `prodWarnings()` logs the missing-cron-secret warning on boot.
+  Covered by `tests/health.test.ts`.
+- This hardening pass adds real-DB coverage for every fix in this document —
+  `tests/paddle-refunds.test.ts`, `tests/paddle-subscription-lifecycle.test.ts`,
+  `tests/paddle-lifetime-audit.test.ts`, `tests/cron-auth.test.ts`,
+  `tests/logout-all.test.ts`, `tests/rate-limit-ip.test.ts` and
+  `tests/health.test.ts` — plus the pure `tests/stripe-removed.test.ts`.
 - Remaining observability gap: no source maps are uploaded, since the adapter is
   a hand-rolled envelope POST rather than `@sentry/nextjs`. Stack traces arrive
   minified. Adding the vendor SDK is a contained change if that becomes a

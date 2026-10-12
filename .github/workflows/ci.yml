@@ -88,6 +88,12 @@ jobs:
     # unrelated pull requests from merging.
     continue-on-error: true
 
+    env:
+      # Obviously-fake, non-secret literal so `check:launch` reports only
+      # genuine pre-launch blockers (like the legal placeholders) instead of a
+      # missing CI-only secret.
+      AUTH_SECRET: ci-only-not-a-real-secret-000000000000
+
     steps:
       - uses: actions/checkout@v4
 

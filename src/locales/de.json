@@ -318,6 +318,8 @@
   "settings.current_password": "Aktuelles Passwort",
   "settings.new_password": "Neues Passwort",
   "settings.password_updated": "Passwort aktualisiert",
+  "settings.sign_out_all": "Von allen Geräten abmelden",
+  "settings.sign_out_all_body": "Beenden Sie Ihre Sitzung auf allen Geräten, auch auf diesem. Sie müssen sich erneut anmelden.",
   "settings.subscription": "Abonnement",
   "settings.plan": "Plan",
   "settings.trial_ends": "Testphase endet am {date}",

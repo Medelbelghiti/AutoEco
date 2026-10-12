@@ -303,6 +303,8 @@
   "settings.current_password": "Mot de passe actuel",
   "settings.new_password": "Nouveau mot de passe",
   "settings.password_updated": "Mot de passe mis à jour",
+  "settings.sign_out_all": "Déconnecter tous les appareils",
+  "settings.sign_out_all_body": "Mettez fin à votre session sur tous les appareils, y compris celui-ci. Vous devrez vous reconnecter.",
   "settings.subscription": "Abonnement",
   "settings.plan": "Offre",
   "settings.trial_ends": "L'essai se termine le {date}",
