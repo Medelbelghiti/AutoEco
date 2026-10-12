@@ -449,6 +449,7 @@
   "receipts.uploaded_col": "تاريخ الرفع",
   "receipts.delete_confirm": "هل تريد حذف هذا الإيصال؟",
   "receipts.delete": "حذف",
+  "receipts.delete_failed": "تعذّر حذف هذا الإيصال.",
   "assistant.title": "اسأل عن مال سيارتك",
   "assistant.subtitle": "تُحسب الإجابات من بيانات AutoEco الفعلية، ولا نختلق الأرقام أبدًا.",
   "assistant.placeholder": "اسأل عن شؤون سيارتك المالية…",

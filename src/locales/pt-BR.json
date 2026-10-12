@@ -449,6 +449,7 @@
   "receipts.uploaded_col": "Enviado",
   "receipts.delete_confirm": "Excluir este recibo?",
   "receipts.delete": "Excluir",
+  "receipts.delete_failed": "Não foi possível excluir este recibo.",
   "assistant.title": "Perguntas sobre o dinheiro do meu carro",
   "assistant.subtitle": "As respostas são calculadas a partir dos seus dados reais do AutoEco. Nunca inventamos números.",
   "assistant.placeholder": "Pergunte sobre as finanças do seu carro…",

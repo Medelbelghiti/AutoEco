@@ -449,6 +449,7 @@
   "receipts.uploaded_col": "Uploaded",
   "receipts.delete_confirm": "Delete this receipt?",
   "receipts.delete": "Delete",
+  "receipts.delete_failed": "Could not delete this receipt.",
   "assistant.title": "Ask My Car's Money",
   "assistant.subtitle": "Answers are computed from your actual AutoEco data. We never invent numbers.",
   "assistant.placeholder": "Ask about your car finances…",

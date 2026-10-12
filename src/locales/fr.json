@@ -449,6 +449,7 @@
   "receipts.uploaded_col": "Importé le",
   "receipts.delete_confirm": "Supprimer ce reçu ?",
   "receipts.delete": "Supprimer",
+  "receipts.delete_failed": "Impossible de supprimer ce reçu.",
   "assistant.title": "Questions sur l'argent de ma voiture",
   "assistant.subtitle": "Les réponses sont calculées à partir de vos données AutoEco réelles. Nous n'inventons jamais de chiffres.",
   "assistant.placeholder": "Interrogez les finances de votre voiture…",
