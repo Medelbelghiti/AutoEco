@@ -43,8 +43,10 @@ era and declared the product READY. They were stale and are removed.
 6. Rotate any secrets that were ever committed (see git history) and enable secret scanning.
 7. ~~Run `npx prisma migrate deploy` and `npm test` against a real Postgres.~~
    **Done**: verified against a local PostgreSQL (17.4) — 9 migrations applied,
-   `migrate diff` reports no drift, typecheck/lint/build green, 139/139 tests
-   pass with the real-DB integration tests actually running (previously skipped).
+   `migrate diff` reports no drift, typecheck/lint/build green, and the full
+   suite passes with the real-DB integration tests actually running (previously
+   skipped). Final pass: **443/443 tests across 40 files, three consecutive
+   runs**.
 
 ## Verified, do not regress
 - `tests/paddle-billing.test.ts` — real Paddle Billing payloads through the real
@@ -71,8 +73,8 @@ era and declared the product READY. They were stale and are removed.
   `.env.example` entry coming back.
 - ~~Account enumeration: signup returns 409 for existing emails~~ Fixed in 2.4:
   signup returns the same envelope as a real signup and notifies the owner.
-- OCR, family sharing, API access, PDF reports: not built.
-- Only EN/FR UI; `dirFor()` always returns ltr (no RTL).
+- OCR, family sharing and API access: not built (marked "Coming soon"; the Family plan stays hidden). The cost-of-ownership PDF report *is* built.
+- Locales: English, French, Spanish, Portuguese (BR) and German are `ready`; Arabic is translated but `pending` native-speaker review, so it degrades to English in selectors. The RTL chrome itself ships (`dirFor("ar")` = rtl).
 - No annual plans yet (needs Paddle yearly prices + `YEARLY` plan rows).
 - `npm audit` still reports advisories whose fix is a major upgrade (Next 15/16, Tailwind 4, Vitest 5 dev-only).
 - ~~The cookie is still named `lg_session` and API keys use `lgk_`~~ Rotated in
@@ -86,11 +88,16 @@ era and declared the product READY. They were stale and are removed.
   sink now writes through `db` directly, because `auditLog()` swallows its own
   errors and would have hidden a failed insert; a stale `userId` is retried
   un-attributed rather than losing the record. CSP reports reach the same sink.
-- `/api/health` now also reports **cron** readiness (degraded when
-  `CRON_SECRET` is unset or under 16 chars, since every `/api/cron/*` route then
-  fails closed) and **error monitoring** (Sentry DSN set or local-only; optional
-  so never a failure). `prodWarnings()` logs the missing-cron-secret warning on
-  boot. Covered by `tests/health.test.ts`.
+- `/api/health` now also reports **cron** readiness (degraded when `CRON_SECRET`
+  is unset or under 16 chars, since every `/api/cron/*` route then fails closed)
+  and **error monitoring** (Sentry DSN set or local-only; optional so never a
+  failure). `prodWarnings()` logs the missing-cron-secret warning on boot.
+  Covered by `tests/health.test.ts`.
+- This hardening pass adds real-DB coverage for every fix in this document —
+  `tests/paddle-refunds.test.ts`, `tests/paddle-subscription-lifecycle.test.ts`,
+  `tests/paddle-lifetime-audit.test.ts`, `tests/cron-auth.test.ts`,
+  `tests/logout-all.test.ts`, `tests/rate-limit-ip.test.ts` and
+  `tests/health.test.ts` — plus the pure `tests/stripe-removed.test.ts`.
 - Remaining observability gap: no source maps are uploaded, since the adapter is
   a hand-rolled envelope POST rather than `@sentry/nextjs`. Stack traces arrive
   minified. Adding the vendor SDK is a contained change if that becomes a
