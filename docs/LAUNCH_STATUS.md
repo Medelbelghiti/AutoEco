@@ -64,7 +64,11 @@ era and declared the product READY. They were stale and are removed.
 ## Known gaps / next
 - ~~Stripe code is still present as a legacy fallback~~ Removed in 2.2: no
   Stripe subscribers exist, so `lib/stripe*.ts`, the Stripe webhook route and
-  the `stripe` dependency are gone. The DB columns are kept untouched.
+  the `stripe` dependency are gone. The DB columns (`stripeCustomerId`,
+  `stripeInvoiceId`) are kept untouched — the Paddle path nulls the former and
+  reuses the latter. README no longer documents `STRIPE_*`, and
+  `tests/stripe-removed.test.ts` guards against a dependency, module, import or
+  `.env.example` entry coming back.
 - ~~Account enumeration: signup returns 409 for existing emails~~ Fixed in 2.4:
   signup returns the same envelope as a real signup and notifies the owner.
 - OCR, family sharing, API access, PDF reports: not built.

@@ -68,7 +68,6 @@ Landing page → Free calculators (no signup) → Signup → Dashboard
 | Database | Prisma 5 — SQLite (dev) / PostgreSQL (prod) |
 | Auth | Custom JWT (`jose`) in `HttpOnly` cookies + bcryptjs |
 | Payments | Paddle (primary) — client-side Paddle.js checkout, server-verified webhooks |
-| Payments (legacy) | Stripe — retained for existing subscriptions and webhook handling |
 | Styling | Tailwind CSS |
 | Email | Nodemailer (`console` default, or SMTP) |
 | Exports | CSV (hand-rolled) |
@@ -151,7 +150,6 @@ See `.env.example`. The core app — tracking, cost engine, calculators, export 
 | `PADDLE_BUSINESS_PRICE_ID` | for Pro Plus | Paddle price id for the top tier |
 | `PADDLE_ENV` / `NEXT_PUBLIC_PADDLE_ENV` | no | `sandbox` (default) or `live` |
 | `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` | for browser checkout | Paddle.js client token (public) |
-| `STRIPE_*` | no | Legacy Stripe subscriptions |
 | `EMAIL_PROVIDER` | no | `console` (default) or `smtp` |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | for SMTP | Email delivery |
 | `OPENAI_API_KEY` | no | Optional LLM phrasing layer for Ask Your Car |
