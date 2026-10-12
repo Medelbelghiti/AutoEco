@@ -12,6 +12,7 @@
 import { NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { captureEvent } from "@/lib/error-capture";
+import { getClientIp } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,11 @@ export async function POST(req: Request): Promise<NextResponse> {
   // Unauthenticated write endpoint: without a limit, anyone could spam reports
   // and fill the audit log. Reports arrive in bursts from one page load, so the
   // ceiling is generous.
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  //
+  // The key must come from a header the caller cannot forge: reading the first
+  // `x-forwarded-for` entry would let a spammer send a fresh fake IP per request
+  // and never hit the limit. `getClientIp` prefers the platform-set header.
+  const ip = getClientIp(req);
   const rl = await checkRateLimit({ key: `csp:${ip}`, limit: 60, windowSeconds: 60 });
   if (!rl.allowed) return new NextResponse(null, { status: 429 });
 
