@@ -30,7 +30,7 @@ const prisma = new PrismaClient();
 
 const SECRET = "pdl_test_webhook_secret_for_refunds";
 const PRO_PRICE = "pri_paddle_pro_monthly_refund_test";
-const API_KEY = "pdl_sdbx_apikey_refund_fake";
+const API_KEY = "local-test-apikey-refund-fake";
 
 // The route and `@/lib/env` snapshot process.env at import time.
 process.env.PADDLE_WEBHOOK_SECRET = SECRET;
