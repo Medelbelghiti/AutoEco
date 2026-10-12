@@ -30,6 +30,7 @@ import {
 import { auditLog } from "@/lib/audit";
 import { externalAnalyticsConfigured } from "@/lib/analytics";
 import { storageDriver, s3MissingConfig } from "@/lib/storage";
+import { cronConfigured } from "@/lib/cron";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +84,25 @@ export async function GET(req: Request): Promise<NextResponse> {
     detail: env.paddleClientToken ? "present" : "NEXT_PUBLIC_PADDLE_CLIENT_TOKEN missing — Paddle.js cannot open a checkout",
   };
   // Stripe is gone as of 2.2 and is no longer reported here.
+
+  // --- Scheduled jobs: without the shared secret every /api/cron/* route
+  // --- fails closed (503), so expiry, trial reminders and purges silently
+  // --- stop running. Degraded, not fatal: the request-serving app is fine.
+  checks.cron = {
+    ok: cronConfigured(),
+    detail: cronConfigured()
+      ? "CRON_SECRET set — scheduled jobs can run"
+      : "CRON_SECRET unset or shorter than 16 chars — every /api/cron/* route returns 503",
+  };
+
+  // --- Error monitoring: optional. Local-only is the expected default, so it
+  // --- is never a failure — the detail is what makes a missing DSN visible.
+  checks.errorMonitoring = {
+    ok: true,
+    detail: env.sentryDsn
+      ? "sentry DSN set — errors also forwarded off-site (scrubbed)"
+      : "local only — errors go to the platform log and the AuditLog table (set SENTRY_DSN to also forward)",
+  };
 
   // --- Migrations: the ledger answers "is a migration in flight?", while the
   // --- information_schema check above answers "does the code match the DB?".

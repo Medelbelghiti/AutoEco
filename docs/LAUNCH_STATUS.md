@@ -86,6 +86,11 @@ era and declared the product READY. They were stale and are removed.
   sink now writes through `db` directly, because `auditLog()` swallows its own
   errors and would have hidden a failed insert; a stale `userId` is retried
   un-attributed rather than losing the record. CSP reports reach the same sink.
+- `/api/health` now also reports **cron** readiness (degraded when
+  `CRON_SECRET` is unset or under 16 chars, since every `/api/cron/*` route then
+  fails closed) and **error monitoring** (Sentry DSN set or local-only; optional
+  so never a failure). `prodWarnings()` logs the missing-cron-secret warning on
+  boot. Covered by `tests/health.test.ts`.
 - Remaining observability gap: no source maps are uploaded, since the adapter is
   a hand-rolled envelope POST rather than `@sentry/nextjs`. Stack traces arrive
   minified. Adding the vendor SDK is a contained change if that becomes a

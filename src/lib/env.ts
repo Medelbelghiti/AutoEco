@@ -140,6 +140,14 @@ export function prodWarnings(): string[] {
       "CAPTCHA_PROVIDER is not configured — signup/login are protected only by IP rate limiting."
     );
   }
+  // Read live rather than through `env`: CRON_SECRET is compared against a
+  // minimum length in `lib/cron.ts`, and this keeps the two in step without
+  // importing the (server-only) cron module here.
+  if ((process.env.CRON_SECRET ?? "").length < 16) {
+    w.push(
+      "CRON_SECRET is unset or shorter than 16 characters — every /api/cron/* route returns 503, so subscription expiry, trial-ending email and account purges will not run."
+    );
+  }
   return w;
 }
 
