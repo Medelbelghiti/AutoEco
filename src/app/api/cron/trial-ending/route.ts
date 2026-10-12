@@ -1,5 +1,8 @@
 /**
- * POST /api/cron/trial-ending
+ * GET|POST /api/cron/trial-ending
+ *
+ * Vercel Cron triggers this with a GET (a POST is kept for manual/curl use).
+ * Both are guarded by the same `CRON_SECRET` bearer check.
  *
  * Sends the "your trial ends in N days" email and in-app notification.
  *
@@ -28,7 +31,7 @@ export const dynamic = "force-dynamic";
 /** How many days ahead of expiry we warn. One email per threshold. */
 const THRESHOLDS_DAYS = [3, 1];
 
-export async function POST(req: Request): Promise<NextResponse> {
+async function handle(req: Request): Promise<NextResponse> {
   const denied = await verifyCronRequest(req);
   if (denied) return denied;
 
@@ -95,4 +98,13 @@ export async function POST(req: Request): Promise<NextResponse> {
   });
 
   return NextResponse.json({ ok: true, ...summary });
+}
+
+// Vercel Cron triggers this with a GET (POST is kept for manual/curl use).
+export async function GET(req: Request): Promise<NextResponse> {
+  return handle(req);
+}
+
+export async function POST(req: Request): Promise<NextResponse> {
+  return handle(req);
 }

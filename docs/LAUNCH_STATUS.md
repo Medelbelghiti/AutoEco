@@ -28,6 +28,11 @@ era and declared the product READY. They were stale and are removed.
   audited (`paddle.webhook.unmapped_price_id`) and grants nothing instead of
   silently falling back to `pro`. Pre-existing `lifetime` subscription rows keep
   their `pro_plus` access.
+- **Cron jobs actually run**: the three `/api/cron/*` routes exported only
+  `POST`, but Vercel Cron triggers a **GET**, so every scheduled run would have
+  answered 405 and never executed. Both GET and POST are now handled behind the
+  same `CRON_SECRET` bearer guard (which fails closed with 503 when unset). All
+  three schedules are daily, which is Hobby-compatible.
 
 ## Still BLOCKING launch (cannot be fixed in code)
 1. Legal entity + `[BRACKETED]` placeholders in `legal/*.md` (run `npm run check:launch`). Needs a lawyer / your company details.

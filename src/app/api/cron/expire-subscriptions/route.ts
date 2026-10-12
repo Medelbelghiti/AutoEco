@@ -1,5 +1,8 @@
 /**
- * POST /api/cron/expire-subscriptions
+ * GET|POST /api/cron/expire-subscriptions
+ *
+ * Vercel Cron triggers this with a GET (a POST is kept for manual/curl use).
+ * Both are guarded by the same `CRON_SECRET` bearer check.
  *
  * Paddle is the source of truth for subscription state, but it will not
  * re-deliver a webhook we already acknowledged. If `subscription.past_due`
@@ -26,7 +29,7 @@ import { env } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request): Promise<NextResponse> {
+async function handle(req: Request): Promise<NextResponse> {
   const denied = await verifyCronRequest(req);
   if (denied) return denied;
 
@@ -101,4 +104,13 @@ export async function POST(req: Request): Promise<NextResponse> {
     metadata: summary as unknown as Record<string, unknown>,
   });
   return NextResponse.json({ ok: summary.failed === 0, ...summary });
+}
+
+// Vercel Cron triggers this with a GET (POST is kept for manual/curl use).
+export async function GET(req: Request): Promise<NextResponse> {
+  return handle(req);
+}
+
+export async function POST(req: Request): Promise<NextResponse> {
+  return handle(req);
 }

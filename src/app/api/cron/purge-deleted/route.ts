@@ -1,5 +1,8 @@
 /**
- * POST /api/cron/purge-deleted
+ * GET|POST /api/cron/purge-deleted
+ *
+ * Vercel Cron triggers this with a GET (a POST is kept for manual/curl use).
+ * Both are guarded by the same `CRON_SECRET` bearer check.
  *
  * Completes the "right to erasure" that account deletion starts.
  *
@@ -50,7 +53,7 @@ function retentionDays(): number {
   return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_RETENTION_DAYS;
 }
 
-export async function POST(req: Request): Promise<NextResponse> {
+async function handle(req: Request): Promise<NextResponse> {
   const denied = await verifyCronRequest(req);
   if (denied) return denied;
 
@@ -171,4 +174,13 @@ export async function POST(req: Request): Promise<NextResponse> {
     ok: summary.failed === 0 && summary.fileErrors === 0,
     ...summary,
   });
+}
+
+// Vercel Cron triggers this with a GET (POST is kept for manual/curl use).
+export async function GET(req: Request): Promise<NextResponse> {
+  return handle(req);
+}
+
+export async function POST(req: Request): Promise<NextResponse> {
+  return handle(req);
 }
