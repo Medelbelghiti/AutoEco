@@ -8,7 +8,17 @@
  *   - Expense / Fuel currency
  *   - Savings goals / Reports
  */
-export const SUPPORTED_CURRENCIES = ["USD", "EUR", "MAD", "GBP", "CAD"] as const;
+/**
+ * ONLY currencies with exactly 2 minor-unit digits belong here: every amount
+ * in the app is stored as integer "cents" and divided by 100 for display.
+ * Zero-decimal (JPY, KRW, ...) and three-decimal (KWD, BHD, ...) currencies need
+ * per-currency minor-unit handling in formatMoney() first.
+ */
+export const SUPPORTED_CURRENCIES = [
+  "USD", "EUR", "GBP", "CAD", "AUD", "NZD", "CHF", "SEK", "NOK", "DKK", "PLN", "CZK", "RON",
+  "MAD", "DZD", "EGP", "AED", "SAR", "QAR", "TRY", "ILS", "ZAR", "NGN", "KES",
+  "INR", "SGD", "HKD", "MYR", "THB", "PHP", "BRL", "MXN", "ARS",
+] as const;
 export type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number];
 
 export function isSupportedCurrency(v: unknown): v is SupportedCurrency {

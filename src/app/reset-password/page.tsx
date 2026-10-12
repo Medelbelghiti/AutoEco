@@ -3,8 +3,11 @@
 import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useT } from "@/components/LocaleProvider";
+import { errorText } from "@/lib/i18n";
 
 function ResetPasswordForm() {
+  const t = useT();
   const router = useRouter();
   const params = useSearchParams();
   const token = params.get("token") ?? "";
@@ -20,7 +23,7 @@ function ResetPasswordForm() {
     e.preventDefault();
     setError(null);
     if (password !== confirm) {
-      setError("The two passwords do not match.");
+      setError(t("auth.reset.mismatch"));
       return;
     }
     setBusy(true);
@@ -32,7 +35,7 @@ function ResetPasswordForm() {
     setBusy(false);
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
-      setError(typeof j?.error === "string" ? j.error : "This reset link is invalid or has expired.");
+      setError(errorText(t, j?.code));
       return;
     }
     setDone(true);
@@ -43,10 +46,10 @@ function ResetPasswordForm() {
   if (!token) {
     return (
       <div className="card mt-6" role="alert">
-        <p className="font-semibold">This link is incomplete</p>
+        <p className="font-semibold">{t("auth.reset.incomplete")}</p>
         <p className="text-sm text-charcoal-600 dark:text-charcoal-300 mt-1">
-          The reset link is missing its token. Request a new one from the{" "}
-          <Link href="/forgot-password" className="underline">forgot password</Link> page.
+          {t("auth.reset.incomplete_body")}{" "}
+          <Link href="/forgot-password" className="underline">{t("auth.forgot.title")}</Link>
         </p>
       </div>
     );
@@ -55,11 +58,11 @@ function ResetPasswordForm() {
   if (done) {
     return (
       <div className="card mt-6" role="status">
-        <p className="font-semibold text-emerald-700 dark:text-emerald-300">Password updated</p>
+        <p className="font-semibold text-emerald-700 dark:text-emerald-300">{t("settings.password_updated")}</p>
         <p className="text-sm text-charcoal-600 dark:text-charcoal-300 mt-1">
-          You have been signed out. Redirecting you to log in…
+          {t("auth.reset.signed_out")}
         </p>
-        <Link href="/login" className="btn btn-primary mt-4 w-full">Log in</Link>
+        <Link href="/login" className="btn btn-primary mt-4 w-full">{t("nav.login")}</Link>
       </div>
     );
   }
@@ -67,7 +70,7 @@ function ResetPasswordForm() {
   return (
     <form onSubmit={submit} className="card mt-6 space-y-3">
       <div>
-        <label htmlFor="new-password" className="label">New password</label>
+        <label htmlFor="new-password" className="label">{t("settings.new_password")}</label>
         <input
           id="new-password"
           name="new-password"
@@ -81,11 +84,11 @@ function ResetPasswordForm() {
           aria-describedby="password-help"
         />
         <p id="password-help" className="mt-1 text-xs text-charcoal-500">
-          At least 8 characters.
+          {t("auth.signup.password_hint")}
         </p>
       </div>
       <div>
-        <label htmlFor="confirm-password" className="label">Confirm new password</label>
+        <label htmlFor="confirm-password" className="label">{t("auth.reset.confirm")}</label>
         <input
           id="confirm-password"
           name="confirm-password"
@@ -98,22 +101,23 @@ function ResetPasswordForm() {
           onChange={(e) => setConfirm(e.target.value)}
           aria-invalid={mismatch || undefined}
         />
-        {mismatch && <p className="mt-1 text-xs text-rose-600" role="alert">The two passwords do not match.</p>}
+        {mismatch && <p className="mt-1 text-xs text-rose-600" role="alert">{t("auth.reset.mismatch")}</p>}
       </div>
       {error && <p className="text-sm text-rose-600" role="alert">{error}</p>}
       <button className="btn btn-primary w-full" disabled={busy || mismatch}>
-        {busy ? "Updating…" : "Set new password"}
+        {busy ? t("common.updating") : t("auth.reset.submit")}
       </button>
     </form>
   );
 }
 
 export default function ResetPasswordPage() {
+  const t = useT();
   return (
     <main className="min-h-screen flex items-center justify-center bg-charcoal-50 dark:bg-charcoal-950 p-6">
       <div className="w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center">Choose a new password</h1>
-        <Suspense fallback={<p className="text-sm text-center text-charcoal-500 mt-6">Loading…</p>}>
+        <h1 className="text-2xl font-bold text-center">{t("auth.reset.title")}</h1>
+        <Suspense fallback={<p className="text-sm text-center text-charcoal-500 mt-6">{t("common.loading")}</p>}>
           <ResetPasswordForm />
         </Suspense>
       </div>

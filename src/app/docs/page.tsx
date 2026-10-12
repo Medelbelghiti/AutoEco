@@ -65,7 +65,7 @@ export default function DocsPage() {
           {SECTIONS.map((s) => (
             <div key={s.title}>
               <h2 className="text-xl font-semibold">{s.title}</h2>
-              <ul className="mt-2 space-y-1 text-charcoal-700 list-disc pl-5">
+              <ul className="mt-2 space-y-1 text-charcoal-700 list-disc ps-5">
                 {s.body.map((b) => <li key={b}>{b}</li>)}
               </ul>
             </div>

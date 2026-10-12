@@ -5,11 +5,6 @@ export const env = {
   authSecret: process.env.AUTH_SECRET ?? "",
   appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
 
-  stripeMode: process.env.STRIPE_MODE ?? "test",
-  stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? "",
-  stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
-  stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "",
-
   // ---- Paddle (production payment provider) ----
   // The API key + webhook secret are server-only.
   paddleApiKey: process.env.PADDLE_API_KEY ?? "",
@@ -30,6 +25,23 @@ export const env = {
   smtpUser: process.env.SMTP_USER ?? "",
   smtpPass: process.env.SMTP_PASS ?? "",
 
+  // ---- Error monitoring (optional) ----
+  // Leave SENTRY_DSN empty to keep error reporting local-only. The adapter is
+  // inert unless a DSN is present.
+  sentryDsn: process.env.SENTRY_DSN ?? "",
+  sentryEnvironment: process.env.SENTRY_ENVIRONMENT ?? "",
+  sentryRelease: process.env.SENTRY_RELEASE ?? "",
+
+  // ---- Object storage (uploads: receipts, documents) ----
+  // STORAGE_DRIVER forces "local" or "s3". Left empty, the driver is inferred:
+  // s3 when a bucket and credentials are present, local otherwise.
+  storageDriver: process.env.STORAGE_DRIVER ?? "",
+  s3Endpoint: process.env.S3_ENDPOINT ?? "",
+  s3Region: process.env.S3_REGION ?? "auto",
+  s3Bucket: process.env.S3_BUCKET ?? "",
+  s3AccessKeyId: process.env.S3_ACCESS_KEY_ID ?? "",
+  s3SecretAccessKey: process.env.S3_SECRET_ACCESS_KEY ?? "",
+
   googlePlacesApiKey: process.env.GOOGLE_PLACES_API_KEY ?? "",
   osmNominatimUrl: process.env.OSM_NOMINATIM_URL ?? "https://nominatim.openstreetmap.org",
   osmOverpassUrl: process.env.OSM_OVERPASS_URL ?? "https://overpass-api.de/api/interpreter",
@@ -42,10 +54,6 @@ export const env = {
 
   isProd: process.env.NODE_ENV === "production",
 };
-
-export function stripeConfigured(): boolean {
-  return Boolean(env.stripeSecretKey);
-}
 
 /**
  * Paddle is configured when the API key, webhook secret, seller id, and
@@ -140,25 +148,26 @@ export function prodWarnings(): string[] {
  * Production safety audit. Returns a list of problems.
  * Empty array means production deployment is safe.
  *
+ * Reads secrets LIVE from `process.env` (not the module-load snapshot in
+ * `env`) so the check always reflects what this process actually holds, even
+ * when a secret was injected after `env.ts` was first imported — which is
+ * exactly the window a missing AUTH_SECRET tends to slip through.
+ *
  * These are HARD failures (missing/weak secrets) — unlike `prodWarnings()`.
  */
 export function assertProdSafety(): string[] {
   const problems: string[] = [];
-  if (env.isProd) {
-    if (!env.authSecret || env.authSecret.length < 32) {
-      problems.push(
-        "AUTH_SECRET must be set to a strong random value (32+ bytes) in production"
-      );
-    }
-    if (env.stripeMode === "live" && env.stripeSecretKey.startsWith("sk_test")) {
-      problems.push("STRIPE_MODE=live but a test Stripe key is configured");
-    }
-    if (env.stripeMode === "test" && env.stripeSecretKey.startsWith("sk_live")) {
-      problems.push("STRIPE_MODE=test but a live Stripe key is configured");
-    }
-    if (env.stripeWebhookSecret && env.stripeSecretKey && env.stripeWebhookSecret.length < 16) {
-      problems.push("STRIPE_WEBHOOK_SECRET appears too short");
-    }
+  if (process.env.NODE_ENV !== "production") return problems;
+
+  const authSecret = process.env.AUTH_SECRET ?? "";
+  if (!authSecret || authSecret.length < 32) {
+    problems.push("AUTH_SECRET must be set to a strong random value (32+ bytes) in production");
+  }
+  if (env.paddleApiKey && !env.paddleApiKey.startsWith("pdl_sdbx_") && (process.env.PADDLE_WEBHOOK_SECRET ?? "").length < 16) {
+    problems.push("PADDLE_WEBHOOK_SECRET appears too short");
+  }
+  if (env.paddleApiKey && env.paddleApiKey.startsWith("pdl_sdbx_")) {
+    problems.push("A Paddle SANDBOX API key is configured in production");
   }
   return problems;
 }

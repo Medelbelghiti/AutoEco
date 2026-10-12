@@ -1,5 +1,6 @@
 "use client";
 
+import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -28,7 +29,7 @@ export function OnboardingForm({ defaults }: { defaults: Defaults }) {
         <div>
           <p className="label">Step 1 / 3 — Currency</p>
           <select className="select mt-2" value={currency} onChange={(e) => setCurrency(e.target.value)}>
-            <option>USD</option><option>EUR</option><option>MAD</option><option>GBP</option><option>CAD</option>
+            {SUPPORTED_CURRENCIES.map((c) => (<option key={c} value={c}>{c}</option>))}
           </select>
           <button onClick={() => setStep(2)} className="btn btn-primary mt-3">Continue</button>
         </div>

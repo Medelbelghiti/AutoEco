@@ -121,16 +121,16 @@ async function PublicReport({ token }: { token: string }) {
             <thead>
               <tr>
                 <th>Category</th>
-                <th className="text-right">Amount</th>
-                <th className="text-right">%</th>
+                <th className="text-end">Amount</th>
+                <th className="text-end">%</th>
               </tr>
             </thead>
             <tbody>
               {summary.breakdown.map((b) => (
                 <tr key={b.category}>
                   <td className="capitalize">{b.category}</td>
-                  <td className="text-right">{formatMoney(b.amount, currency)}</td>
-                  <td className="text-right">{b.percent}%</td>
+                  <td className="text-end">{formatMoney(b.amount, currency)}</td>
+                  <td className="text-end">{b.percent}%</td>
                 </tr>
               ))}
             </tbody>

@@ -17,6 +17,7 @@ import { db } from "@/lib/db";
 import { verifyCronRequest } from "@/lib/cron";
 import { getTrialSettings } from "@/lib/settings";
 import { sendEmail, tplTrialEnding } from "@/lib/email";
+import { coerceLocale } from "@/lib/i18n";
 import { createNotification } from "@/lib/notifications";
 import { auditLog } from "@/lib/audit";
 import { captureException } from "@/lib/error-capture";
@@ -48,7 +49,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       trialUsed: false,
       trialEndsAt: { gt: now, lte: horizon },
     },
-    select: { id: true, name: true, email: true, trialEndsAt: true },
+    select: { id: true, name: true, email: true, locale: true, trialEndsAt: true },
     take: 500,
   });
   summary.eligible = users.length;
@@ -75,7 +76,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       summary.notified++;
 
       const result = await sendEmail({
-        ...tplTrialEnding(user.name, daysLeft, env.appUrl),
+        ...tplTrialEnding(user.name, daysLeft, env.appUrl, coerceLocale(user.locale)),
         to: user.email,
       });
       if (result.ok) summary.emailed++;

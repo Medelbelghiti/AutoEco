@@ -52,7 +52,15 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        sans: [
+          "var(--font-sans)",
+          "system-ui",
+          "-apple-system",
+          "Segoe UI",
+          "Noto Sans Arabic",
+          "Tahoma",
+          "sans-serif",
+        ],
         mono: ["ui-monospace", "SFMono-Regular", "monospace"],
       },
       boxShadow: {

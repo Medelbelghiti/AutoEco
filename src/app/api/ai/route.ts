@@ -6,11 +6,15 @@ import { computeVehicleCost } from "@/lib/compute-cost";
 import { formatMoney, projectCost, type CostSummary } from "@/lib/finance";
 import { getEntitlements } from "@/lib/plans";
 import { buildPeriodKey, tryConsume, type QuotaMetric } from "@/lib/quota";
+import { coerceLocale, effectiveLocale, type Locale } from "@/lib/i18n";
 
 interface ChatMsg { role: "system" | "user" | "assistant"; content: string; }
 
 export const POST = withErrorHandling(async (req) => {
   const user = await requireUser();
+  // The assistant answers in the user's UI language (fallback: English for a
+  // pending locale like `ar`, which renders English until RTL ships).
+  const locale = effectiveLocale(coerceLocale(user.locale));
   const body = await req.json().catch(() => ({}));
   const question = String(body?.question ?? body?.q ?? "").trim();
   if (!question) return NextResponse.json({ error: "Missing question" }, { status: 400 });
@@ -76,7 +80,7 @@ export const POST = withErrorHandling(async (req) => {
       const apiKey = process.env.OPENAI_API_KEY;
       if (apiKey) {
         try {
-          answerText = await callLlm(apiKey, question, facts);
+          answerText = await callLlm(apiKey, question, facts, locale);
           source = "llm";
         } catch (e) {
           // Deterministic fallback when LLM fails. Quota already consumed
@@ -119,12 +123,24 @@ async function persistConversation(
   });
 }
 
-async function callLlm(apiKey: string, question: string, facts: Record<string, unknown>): Promise<string> {
+const LLM_LANGUAGE: Record<Locale, string> = {
+  en: "English",
+  fr: "French",
+  es: "Spanish",
+  "pt-BR": "Portuguese",
+  de: "German",
+  ar: "Arabic",
+};
+
+async function callLlm(apiKey: string, question: string, facts: Record<string, unknown>, locale: Locale): Promise<string> {
+  const language = LLM_LANGUAGE[effectiveLocale(locale)];
   const sys = "You are the AutoEco financial assistant. Answer using ONLY the JSON facts provided. " +
     "Never invent numbers. Never fabricate vehicle specifications, mileage, expenses, or forecasts. " +
     "If facts are insufficient respond: \"I don't have enough data to calculate that yet.\" " +
     "Never diagnose mechanical safety, claim a car is safe or unsafe, or recommend driving decisions. " +
-    "Label ACTUAL vs ESTIMATE vs FORECAST clearly.";
+    "Label ACTUAL vs ESTIMATE vs FORECAST clearly. " +
+    `Write your answer in ${language}. If you cannot answer naturally in ${language}, answer in English instead. ` +
+    "Quote the facts exactly as given: numbers, currencies, units (km/mi), and labels such as ACTUAL/ESTIMATE/FORECAST must never be translated or reformatted — they are cited sources, not copy.";
   const user = `FACTS (JSON): ${JSON.stringify(facts)}\n\nQUESTION: ${question}`;
   const messages: ChatMsg[] = [{ role: "system", content: sys }, { role: "user", content: user }];
   const res = await fetch("https://api.openai.com/v1/chat/completions", {

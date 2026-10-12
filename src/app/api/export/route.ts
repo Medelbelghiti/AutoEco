@@ -4,18 +4,19 @@ import { auditLog } from "@/lib/audit";
 import { withErrorHandling } from "@/lib/http";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { csvCell, getClientIp } from "@/lib/utils";
+import { tripCsvSection } from "@/lib/trips";
 
 /**
- * GET /api/export?dataset=all|vehicles|fuel|expenses
+ * GET /api/export?dataset=all|vehicles|fuel|expenses|trips
  *
  * Lets a user download everything they have entered as CSV. This backs the
  * "export your data any time" promise, so it must stay dependency-free and
  * must never include another user's rows.
  */
 
-type Dataset = "all" | "vehicles" | "fuel" | "expenses";
+type Dataset = "all" | "vehicles" | "fuel" | "expenses" | "trips";
 
-const DATASETS: Dataset[] = ["all", "vehicles", "fuel", "expenses"];
+const DATASETS: Dataset[] = ["all", "vehicles", "fuel", "expenses", "trips"];
 
 function iso(d: Date | null | undefined): string {
   return d ? d.toISOString() : "";
@@ -117,6 +118,26 @@ export const GET = withErrorHandling(async (req) => {
     );
   }
 
+  if (dataset === "all" || dataset === "trips") {
+    const trips = await db.trip.findMany({
+      where: { userId: user.id },
+      orderBy: { date: "asc" },
+    });
+    const vehicles = await db.vehicle.findMany({
+      where: { userId: user.id },
+      select: { id: true, nickname: true, brand: true, model: true, year: true },
+    });
+    const label = new Map(
+      vehicles.map((v) => [
+        v.id,
+        v.nickname ?? [v.year, v.brand, v.model].filter(Boolean).join(" "),
+      ])
+    );
+    rowCount += trips.length;
+    const { columns, rows } = tripCsvSection(trips, (id) => label.get(id) ?? "");
+    sections.push(section("Trips", columns, rows));
+  }
+
   const stamp = new Date().toISOString().slice(0, 10);
   const header = [
     `# AutoEco data export`,
@@ -125,6 +146,7 @@ export const GET = withErrorHandling(async (req) => {
     `# rows: ${rowCount}`,
     `# Rows marked isDemo=true are sample data seeded into your account, not entries you typed.`,
     `# Receipt images are not included; only their references.`,
+    `# A trip's deduction is your own rate, snapshotted when you logged it. Blank means you had no rate set.`,
   ].join("\n");
 
   const body = sections.join("\n\n");

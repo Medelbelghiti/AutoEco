@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useT } from "@/components/LocaleProvider";
+import { errorText } from "@/lib/i18n";
 
 /**
  * Forgot-password request form.
@@ -9,6 +11,7 @@ import { useState } from "react";
  * reveal whether an email exists. The same confirmation is shown either way.
  */
 export default function ForgotPasswordPage() {
+  const t = useT();
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
@@ -26,7 +29,7 @@ export default function ForgotPasswordPage() {
     setBusy(false);
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
-      setError(typeof j?.error === "string" ? j.error : "Could not send the reset email. Try again.");
+      setError(errorText(t, j?.code));
       return;
     }
     setSent(true);
@@ -35,27 +38,26 @@ export default function ForgotPasswordPage() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-charcoal-50 dark:bg-charcoal-950 p-6">
       <div className="w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center">Reset your password</h1>
+        <h1 className="text-2xl font-bold text-center">{t("auth.forgot.title")}</h1>
 
         {sent ? (
           <div className="card mt-6 text-center" role="status">
-            <p className="font-semibold">Check your inbox</p>
+            <p className="font-semibold">{t("auth.forgot.check_inbox")}</p>
             <p className="text-sm text-charcoal-600 dark:text-charcoal-300 mt-2">
-              If an account exists for <strong>{email}</strong>, we sent a link to set a new password.
-              The link expires in 1 hour.
+              {t("auth.forgot.sent_body", { email })}
             </p>
             <Link href="/login" className="btn btn-primary mt-5 w-full">
-              Back to log in
+              {t("auth.login.back_to_login")}
             </Link>
           </div>
         ) : (
           <>
             <p className="text-sm text-center text-charcoal-500 mt-2">
-              Enter the email you use for AutoEco and we&apos;ll send you a reset link.
+              {t("auth.forgot.intro")}
             </p>
             <form onSubmit={submit} className="card mt-6 space-y-3">
               <div>
-                <label htmlFor="email" className="label">Email</label>
+                <label htmlFor="email" className="label">{t("common.email")}</label>
                 <input
                   id="email"
                   name="email"
@@ -69,11 +71,11 @@ export default function ForgotPasswordPage() {
               </div>
               {error && <p className="text-sm text-rose-600" role="alert">{error}</p>}
               <button className="btn btn-primary w-full" disabled={busy}>
-                {busy ? "Sending…" : "Send reset link"}
+                {busy ? t("common.sending") : t("auth.forgot.send")}
               </button>
             </form>
             <p className="text-sm mt-4 text-center text-charcoal-500">
-              <Link href="/login" className="underline">Back to log in</Link>
+              <Link href="/login" className="underline">{t("auth.login.back_to_login")}</Link>
             </p>
           </>
         )}

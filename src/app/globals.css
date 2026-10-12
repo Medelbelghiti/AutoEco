@@ -89,6 +89,6 @@ html, body {
 
 table.basic { width: 100%; border-collapse: collapse; }
 table.basic th, table.basic td {
-  text-align: left; padding: 10px 12px; border-bottom: 1px solid rgb(var(--border)); font-size: 14px;
+  text-align: start; padding: 10px 12px; border-bottom: 1px solid rgb(var(--border)); font-size: 14px;
 }
 table.basic th { background: rgb(var(--bg)); font-weight: 600; color: rgb(var(--muted)); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }

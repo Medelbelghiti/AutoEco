@@ -82,7 +82,7 @@ export function MarketingNav({
           />
           <div
             id="mobile-nav"
-            className="absolute top-0 right-0 h-full w-72 max-w-[85vw] bg-white dark:bg-charcoal-900 border-l border-charcoal-200 dark:border-charcoal-800 flex flex-col"
+            className="absolute top-0 end-0 h-full w-72 max-w-[85vw] bg-white dark:bg-charcoal-900 border-s border-charcoal-200 dark:border-charcoal-800 flex flex-col"
           >
             <div className="flex items-center justify-between px-4 h-16 border-b border-charcoal-200 dark:border-charcoal-800">
               <span className="font-semibold">Menu</span>

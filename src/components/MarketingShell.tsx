@@ -1,14 +1,12 @@
 import Link from "next/link";
-import { DEFAULT_LOCALE, isLocale, type Locale, translate } from "@/lib/i18n";
 import { Car } from "lucide-react";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { MarketingNav } from "@/components/MarketingNav";
-import { cookies } from "next/headers";
+import { getLocale, getT } from "@/lib/server-i18n";
 
 export function MarketingShell({ children }: { children: React.ReactNode }) {
-  const cookie = cookies().get("lg_locale")?.value;
-  const locale: Locale = isLocale(cookie) ? cookie : DEFAULT_LOCALE;
-  const t = (k: string) => translate(locale, k);
+  const locale = getLocale();
+  const t = getT();
 
   const links = [
     { href: "/features", label: t("nav.features") },
@@ -21,9 +19,9 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen flex flex-col">
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:rounded-lg focus:bg-charcoal-900 focus:text-white"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:start-2 focus:px-4 focus:py-2 focus:rounded-lg focus:bg-charcoal-900 focus:text-white"
       >
-        Skip to content
+        {t("shell.skip_to_content")}
       </a>
 
       <header className="sticky top-0 z-30 backdrop-blur bg-white/80 dark:bg-charcoal-950/80 border-b border-charcoal-200/70 dark:border-charcoal-800">
@@ -39,7 +37,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
             links={links}
             headerActions={
               <>
-                <LocaleSwitcher current={locale} />
+                <LocaleSwitcher current={locale} label={t("settings.language")} />
                 <Link href="/login" className="btn btn-ghost text-sm px-3">
                   {t("nav.login")}
                 </Link>
@@ -50,7 +48,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
             }
             panelActions={
               <>
-                <LocaleSwitcher current={locale} />
+                <LocaleSwitcher current={locale} label={t("settings.language")} />
                 <Link href="/login" className="btn btn-secondary w-full">
                   {t("nav.login")}
                 </Link>
@@ -77,9 +75,15 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
               AutoEco
             </Link>
             <p className="mt-3 text-charcoal-500">{t("brand.tagline")}</p>
+            <div className="mt-4">
+              <label className="label" htmlFor="footer-locale">
+                {t("settings.language")}
+              </label>
+              <LocaleSwitcher current={locale} id="footer-locale" />
+            </div>
           </div>
           <FooterCol
-            title="Product"
+            title={t("footer.product")}
             links={[
               { href: "/features", label: t("nav.features") },
               { href: "/calculators/car-cost", label: t("nav.calculators") },
@@ -88,7 +92,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
             ]}
           />
           <FooterCol
-            title="Company"
+            title={t("footer.company")}
             links={[
               { href: "/terms", label: t("legal.terms") },
               { href: "/privacy", label: t("legal.privacy") },
@@ -98,11 +102,11 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
             ]}
           />
           <FooterCol
-            title="Account"
+            title={t("footer.account")}
             links={[
               { href: "/login", label: t("nav.login") },
               { href: "/signup", label: t("nav.signup") },
-              { href: "/faq", label: "FAQ" },
+              { href: "/faq", label: t("nav.faq") },
             ]}
           />
         </div>

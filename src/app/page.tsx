@@ -72,7 +72,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-14 pb-16 md:pt-20 md:pb-24 grid md:grid-cols-2 gap-10 md:gap-12 items-center">
           <div>
             <span className="badge badge-ok mb-4">
-              <Sparkles className="w-3 h-3 mr-1" aria-hidden="true" /> {t("hero.badge")}
+              <Sparkles className="w-3 h-3 me-1" aria-hidden="true" /> {t("hero.badge")}
             </span>
             <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.05]">
               {t("hero.title")}
@@ -88,7 +88,7 @@ export default function HomePage() {
                 href="/calculators/car-cost"
                 className="btn btn-accent px-6 py-3 text-base"
               >
-                {t("hero.cta_primary")} <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                {t("hero.cta_primary")} <ArrowRight className="w-4 h-4 rtl-flip" aria-hidden="true" />
               </TrackedLink>
               <a href="#how-it-works" className="btn btn-secondary px-6 py-3 text-base">
                 {t("hero.cta_secondary")}
@@ -155,7 +155,7 @@ export default function HomePage() {
         <div className="grid md:grid-cols-2 gap-8 items-center">
           <div>
             <span className="badge badge-ok">
-              <MessageSquare className="w-3 h-3 mr-1" aria-hidden="true" /> {t("ask.name")}
+              <MessageSquare className="w-3 h-3 me-1" aria-hidden="true" /> {t("ask.name")}
             </span>
             <h2 id="ask-heading" className="text-2xl md:text-3xl font-bold mt-3">{t("ask.title")}</h2>
             <p className="mt-3 text-charcoal-600 dark:text-charcoal-300 max-w-xl">{t("ask.subtitle")}</p>
@@ -163,7 +163,7 @@ export default function HomePage() {
               {t("ask.badge")}
             </p>
             <Link href="/pricing" className="btn btn-primary mt-4">
-              {t("ask.cta")} <ArrowRight className="w-4 h-4" aria-hidden="true" />
+              {t("ask.cta")} <ArrowRight className="w-4 h-4 rtl-flip" aria-hidden="true" />
             </Link>
           </div>
           <div className="card shadow-elevated">
@@ -271,7 +271,7 @@ export default function HomePage() {
                 href="/signup"
                 className="btn btn-accent px-6 py-3 text-base whitespace-nowrap"
               >
-                {t("cta.button")} <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                {t("cta.button")} <ArrowRight className="w-4 h-4 rtl-flip" aria-hidden="true" />
               </TrackedLink>
             </div>
           </div>

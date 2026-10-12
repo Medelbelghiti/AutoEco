@@ -23,6 +23,12 @@ const { spawn } = require("node:child_process");
 const { writeFileSync, readFileSync, unlinkSync, createWriteStream } = require("node:fs");
 const isWindows = process.platform === "win32";
 
+// `prisma migrate` prefers the datasource `directUrl` (DIRECT_URL) so it can
+// bypass PgBouncer. Production sets DIRECT_URL to the non-pooled Neon endpoint;
+// when it is unset (CI, local, preview deploys) fall back to DATABASE_URL so
+// the migration step still runs instead of aborting on a missing env var.
+if (!process.env.DIRECT_URL) process.env.DIRECT_URL = process.env.DATABASE_URL ?? "";
+
 function runSafe(cmd, args, opts = {}) {
   return new Promise((resolve) => {
     const child = spawn(cmd, args, { shell: true, ...opts });

@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/finance";
 import { safeJsonParse } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/auth";
-import { getEntitlements } from "@/lib/plans";
+import { getEntitlements, COMING_SOON_FEATURES, UNAVAILABLE_PLAN_KEYS } from "@/lib/plans";
 import { paddleConfigured } from "@/lib/env";
 import { getPriceIdFor, PADDLE_PLAN_KEYS, isPaddlePlanKey } from "@/lib/paddle";
 import { pageMeta } from "@/lib/seo";
@@ -40,6 +40,7 @@ function limitRows(p: {
   enableShareableReports: boolean;
   enableFamilySharing: boolean;
   enableApiAccess: boolean;
+  enablePdfReports: boolean;
 }): Array<[string, string]> {
   return [
     ["Vehicles", p.maxVehicles === 1 ? "1 vehicle" : `Up to ${p.maxVehicles} vehicles`],
@@ -49,11 +50,12 @@ function limitRows(p: {
     ["Future cost forecast", `${p.forecastHorizonMonths}-month horizon`],
     ["Report history", `${p.reportRetentionDays >= 365 ? `${Math.round(p.reportRetentionDays / 365)}+ year${p.reportRetentionDays >= 730 ? "s" : ""}` : `${p.reportRetentionDays} days`}`],
     ["Ask Your Car (grounded Q&A)", p.aiConversationsPerMonth > 0 ? `${p.aiConversationsPerMonth} questions / month` : "Not included"],
-    ["AI receipt scanning", p.aiReceiptScansPerMonth > 0 ? `${p.aiReceiptScansPerMonth} scans / month` : "Not included"],
+    ["AI receipt scanning", p.aiReceiptScansPerMonth > 0 && !COMING_SOON_FEATURES.receiptScanning ? `${p.aiReceiptScansPerMonth} scans / month` : p.aiReceiptScansPerMonth > 0 ? "Coming soon" : "Not included"],
     ["What-if scenarios", p.enableAdvancedScenarios ? "Included" : "Not included"],
     ["Shareable reports", p.enableShareableReports ? "Included" : "Not included"],
-    ["Family sharing", p.enableFamilySharing ? "Included" : "Not included"],
-    ["API access", p.enableApiAccess ? "Included" : "Not included"],
+    ["PDF report download", p.enablePdfReports ? "Included" : "Not included"],
+    ["Family sharing", p.enableFamilySharing ? (COMING_SOON_FEATURES.familySharing ? "Coming soon" : "Included") : "Not included"],
+    ["API access", p.enableApiAccess ? (COMING_SOON_FEATURES.apiAccess ? "Coming soon" : "Included") : "Not included"],
   ];
 }
 
@@ -68,7 +70,7 @@ export default async function PricingPage() {
   // Defense in depth: `isDemo` marks rows created by tests. They must
   // never reach a pricing page or a billing flow.
   const plans = await db.plan.findMany({
-    where: { active: true, isDemo: false },
+    where: { active: true, isDemo: false, key: { notIn: UNAVAILABLE_PLAN_KEYS } },
     orderBy: { sortOrder: "asc" },
   });
 
@@ -206,7 +208,7 @@ export default async function PricingPage() {
                         <li key={label} className="flex items-start justify-between gap-3">
                           <span className="text-charcoal-500">{label}</span>
                           <span
-                            className={`text-right font-medium ${included ? "" : "text-charcoal-400"}`}
+                            className={`text-end font-medium ${included ? "" : "text-charcoal-400"}`}
                           >
                             {included ? (
                               <Check className="w-3.5 h-3.5 inline text-emerald-600" aria-hidden="true" />

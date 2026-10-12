@@ -55,7 +55,7 @@ export default function CarCostPage() {
           </p>
           <div className="mt-4 flex flex-col sm:flex-row gap-2">
             <Link href="/signup" className="btn btn-accent">
-              Track my real costs — free <ArrowRight className="w-4 h-4" />
+              Track my real costs — free <ArrowRight className="w-4 h-4 rtl-flip" />
             </Link>
             <Link href="/features" className="btn btn-secondary">
               See what AutoEco does

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Sparkles, Send } from "lucide-react";
+import { useT } from "@/components/LocaleProvider";
 
 /**
  * Ask My Car's Money — V1 grounded-answer engine.
@@ -12,6 +13,7 @@ import { Sparkles, Send } from "lucide-react";
  * If information is missing, we say so explicitly.
  */
 export default function AssistantPage() {
+  const t = useT();
   const [input, setInput] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -31,40 +33,40 @@ export default function AssistantPage() {
       });
       const j = await res.json();
       setData(j);
-      setAnswer(j.answer ?? "I don't have an answer for that yet.");
+      setAnswer(j.answer ?? t("assistant.no_answer"));
     } catch {
-      setAnswer("Something went wrong.");
+      setAnswer(t("common.failed"));
     }
     setLoading(false);
   };
 
   const suggestions = [
-    "How much did I spend this month?",
-    "What is my cost per kilometer?",
-    "How much did fuel cost me?",
-    "What is my most expensive category?",
-    "What will I spend in 12 months?",
+    t("assistant.s1"),
+    t("assistant.s2"),
+    t("assistant.s3"),
+    t("assistant.s4"),
+    t("assistant.s5"),
   ];
 
   return (
     <div className="max-w-3xl mx-auto p-6">
       <div className="flex items-center gap-2">
         <Sparkles className="w-5 h-5 text-emerald-600" />
-        <h1 className="text-2xl font-bold">Ask My Car's Money</h1>
+        <h1 className="text-2xl font-bold">{t("assistant.title")}</h1>
       </div>
-      <p className="text-sm text-charcoal-500 mt-1">Answers are computed from your actual AutoEco data. We never invent numbers.</p>
+      <p className="text-sm text-charcoal-500 mt-1">{t("assistant.subtitle")}</p>
 
       <div className="card mt-6">
         <div className="flex gap-2">
           <input
             className="input"
-            placeholder="Ask about your car finances…"
+            placeholder={t("assistant.placeholder")}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && ask()}
           />
           <button className="btn btn-accent" disabled={loading} onClick={() => ask()}>
-            <Send className="w-4 h-4" /> Ask
+            <Send className="w-4 h-4" /> {t("assistant.ask")}
           </button>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -74,7 +76,7 @@ export default function AssistantPage() {
         </div>
       </div>
 
-      {loading && <div className="card mt-4 text-sm text-charcoal-500">Thinking…</div>}
+      {loading && <div className="card mt-4 text-sm text-charcoal-500">{t("assistant.thinking")}</div>}
 
       {answer && (
         <div className="card mt-4">
@@ -85,7 +87,7 @@ export default function AssistantPage() {
             </ul>
           )}
           {data?.vehicleId && (
-            <p className="text-xs text-charcoal-500 mt-3">Based on vehicle {data.vehicleId}.</p>
+            <p className="text-xs text-charcoal-500 mt-3">{t("assistant.based_on", { id: data.vehicleId })}</p>
           )}
         </div>
       )}

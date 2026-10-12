@@ -16,6 +16,9 @@ export const GET = withErrorHandling(async (_req: Request, ctx: { params: { id: 
       "Content-Type": doc.mimeType,
       "Content-Disposition": "inline; filename=\"" + encodeURIComponent(doc.title) + "\"",
       "Cache-Control": "private, no-store",
+      // Uploaded content must never execute in our origin.
+      "Content-Security-Policy": "sandbox; default-src 'none'",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 });

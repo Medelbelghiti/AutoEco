@@ -31,7 +31,7 @@ const FAQS = [
   },
   {
     q: "What are the plans?",
-    a: "Free (1 vehicle), Pro ($6.99/month, up to 5 vehicles), Family ($12.99/month, up to 12 vehicles with sharing), Pro Plus ($19.99/month, 50 vehicles and API access).",
+    a: "Free (1 vehicle), Pro ($6.99/month, up to 5 vehicles) and Pro Plus ($19.99/month, up to 50 vehicles). Receipt scanning, family sharing and API access are on the roadmap and are not sold yet.",
   },
   {
     q: "Is there a free trial?",
@@ -51,7 +51,7 @@ const FAQS = [
   },
   {
     q: "Is my data shared?",
-    a: "No. Your vehicle and financial data is private by default. We never share it with third parties. Stripe processes payments; we do not store payment card data.",
+    a: "No. Your vehicle and financial data is private by default. We never share it with third parties. Payments are processed by Paddle; we do not store payment card data.",
   },
 ];
 

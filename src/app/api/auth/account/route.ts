@@ -4,9 +4,29 @@ import { db } from "@/lib/db";
 import { destroySession, requireUser, hashPassword } from "@/lib/auth";
 import { auditLog } from "@/lib/audit";
 import { randomBytes } from "node:crypto";
+import { cancelPaddleSubscription } from "@/lib/paddle-api";
 
 export const DELETE = withErrorHandling(async () => {
   const user = await requireUser();
+
+  // Stop billing BEFORE anonymising: a deleted account must never be charged
+  // again. If the provider call fails we abort and keep the account intact so
+  // the user can retry (or cancel from the billing portal) instead of being
+  // silently billed with no way to log in.
+  const activePaddle = await db.subscription.findMany({
+    where: { userId: user.id, paddleSubscriptionId: { not: null }, status: { in: ["active", "trialing", "past_due"] } },
+    select: { paddleSubscriptionId: true },
+  });
+  for (const s of activePaddle) {
+    try {
+      await cancelPaddleSubscription(s.paddleSubscriptionId!, false);
+    } catch {
+      return NextResponse.json(
+        { error: "We could not cancel your subscription with the billing provider, so your account was not deleted. Please try again or cancel from Settings → Billing first." },
+        { status: 502 }
+      );
+    }
+  }
 
   // `passwordHash` is NOT NULL in the schema, so the credential cannot simply
   // be set to null. Instead it is overwritten with a hash of a fresh random

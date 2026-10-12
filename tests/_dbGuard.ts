@@ -13,12 +13,7 @@
  * when the developer explicitly opts in for a specific remote database.
  */
 import { PrismaClient } from "@prisma/client";
-
-/** SQLite files, and loopback hosts, are considered safe to write to. */
-function isLocalDatabase(url: string): boolean {
-  if (url.startsWith("file:")) return true;
-  return /@(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.test(url);
-}
+import { isLocalDatabaseUrl } from "@/lib/db-url";
 
 export const DB_URL = process.env.DATABASE_URL ?? "";
 
@@ -27,9 +22,10 @@ const OPTED_IN = process.env.ALLOW_TEST_DB_WRITES === "1";
 
 /**
  * True when it is safe to run write-capable integration tests.
- * Read-only/unit tests must not use this.
+ * Read-only/unit tests must not use this. Same rule as the Playwright demo
+ * seed: local (file:/loopback) unless the developer explicitly opts in.
  */
-export const DB_OK = DB_URL.length > 0 && (isLocalDatabase(DB_URL) || OPTED_IN);
+export const DB_OK = DB_URL.length > 0 && (isLocalDatabaseUrl(DB_URL) || OPTED_IN);
 
 if (DB_URL.length > 0 && !DB_OK) {
   // eslint-disable-next-line no-console
@@ -37,7 +33,7 @@ if (DB_URL.length > 0 && !DB_OK) {
     [
       "",
       "  SKIPPING real-DB integration tests.",
-      `  DATABASE_URL points at a remote database (${isLocalDatabase(DB_URL) ? "unrecognised" : "non-local"}).`,
+      `  DATABASE_URL points at a remote database (${isLocalDatabaseUrl(DB_URL) ? "unrecognised" : "non-local"}).`,
       "  These tests INSERT/UPDATE/DELETE rows and run ALTER TABLE statements.",
       "  If this database is production, running them will modify live data.",
       "",

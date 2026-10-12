@@ -1,7 +1,8 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import { cookies } from "next/headers";
-import { DEFAULT_LOCALE, dirFor, isLocale, type Locale } from "@/lib/i18n";
+import { dirFor } from "@/lib/i18n";
+import { getLocale } from "@/lib/server-i18n";
+import { LocaleProvider } from "@/components/LocaleProvider";
 import { BRAND, DEFAULT_DESCRIPTION, DEFAULT_TITLE, SITE_KEYWORDS, siteOrigin } from "@/lib/seo";
 
 export const metadata: Metadata = {
@@ -53,12 +54,13 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const cookie = cookies().get("lg_locale")?.value;
-  const locale: Locale = isLocale(cookie) ? cookie : DEFAULT_LOCALE;
+  const locale = getLocale();
   const dir = dirFor(locale);
   return (
     <html lang={locale} dir={dir}>
-      <body>{children}</body>
+      <body>
+        <LocaleProvider locale={locale}>{children}</LocaleProvider>
+      </body>
     </html>
   );
 }

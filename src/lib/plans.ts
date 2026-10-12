@@ -4,6 +4,20 @@ import { safeJsonParse } from "./utils";
 import { currentMonthKey } from "./utils";
 import type { Plan, User } from "@prisma/client";
 
+/**
+ * Features that are modelled in the database (limits, flags) but NOT built
+ * yet. They must never be sold as available. Remove an entry here the day
+ * the feature actually ships.
+ */
+export const COMING_SOON_FEATURES = {
+  receiptScanning: true, // OCR provider is not wired (DefaultOcrProvider is "disabled")
+  familySharing: true, // no invite / shared-household code exists
+  apiAccess: true, // API-key auth exists in lib/api-keys.ts but no route uses it
+} as const;
+
+/** Plans whose headline feature is not built; hidden from pricing and checkout. */
+export const UNAVAILABLE_PLAN_KEYS: string[] = ["family"];
+
 export interface Entitlements {
   planKey: string;
   planName: string;
@@ -16,12 +30,14 @@ export interface Entitlements {
 
   maxVehicles: number;
   maxExpensesPerMonth: number;
+  maxTripsPerMonth: number;
   aiReceiptScansPerMonth: number;
   aiConversationsPerMonth: number;
   reportRetentionDays: number;
   forecastHorizonMonths: number;
   enableAdvancedScenarios: boolean;
   enableShareableReports: boolean;
+  enablePdfReports: boolean;
   enableFamilySharing: boolean;
   enableApiAccess: boolean;
 
@@ -35,11 +51,12 @@ export async function getFreePlan(): Promise<Plan | null> {
 
 /**
  * Grace period for a `past_due` subscription (failed renewal payment).
- * Paddle/Stripe will keep retrying; we keep access during dunning but not
+ * Paddle will keep retrying; we keep access during dunning but not
  * indefinitely. Without a bound, a permanently failed card would grant paid
  * access forever.
  */
-const PAST_DUE_GRACE_DAYS = 14;
+export { isPastDueGraceActive, PAST_DUE_GRACE_DAYS } from "./grace";
+import { isPastDueGraceActive } from "./grace";
 
 export async function getEntitlements(user: User): Promise<Entitlements> {
   const now = new Date();
@@ -75,19 +92,23 @@ export async function getEntitlements(user: User): Promise<Entitlements> {
   }
 
   if (subscription && subscription.status === "past_due") {
-    const periodEnd = subscription.currentPeriodEnd;
-    const graceEnd = new Date(now.getTime() + PAST_DUE_GRACE_DAYS * 24 * 60 * 60 * 1000);
-    if (!periodEnd || periodEnd > graceEnd) {
+    // Grace is measured FROM the end of the paid period (or from the moment
+    // the subscription was last updated if no period end is known). The old
+    // check compared periodEnd against now+14d, which revoked access the
+    // moment a renewal failed.
+    if (isPastDueGraceActive(subscription.currentPeriodEnd, subscription.updatedAt, now)) {
       return planEntitlements(subscription.plan, {
         subscriptionStatus: "past_due",
-        currentPeriodEnd: periodEnd,
+        currentPeriodEnd: subscription.currentPeriodEnd,
         trialEndsAt: null,
       });
     }
   }
 
   const trial = await getTrialSettings();
-  if (trial.trial_enabled && !user.trialUsed && user.trialEndsAt && user.trialEndsAt > now) {
+  if (trial.trial_enabled && !user.trialUsed && user.trialEndsAt && user.trialEndsAt > now && user.emailVerifiedAt) {
+    // Trial entitlements (AI/OCR quotas, extra vehicles) require a verified
+    // email, otherwise throwaway signups farm free AI usage.
     const free = await getFreePlan();
     const base = free ?? (await db.plan.findFirst({ where: { key: "free" } }));
     if (base) {
@@ -137,12 +158,14 @@ export async function getEntitlements(user: User): Promise<Entitlements> {
     currentPeriodEnd: null,
     maxVehicles: 1,
     maxExpensesPerMonth: 50,
+    maxTripsPerMonth: 25,
     aiReceiptScansPerMonth: 0,
     aiConversationsPerMonth: 0,
     reportRetentionDays: 30,
     forecastHorizonMonths: 12,
     enableAdvancedScenarios: false,
     enableShareableReports: false,
+    enablePdfReports: false,
     enableFamilySharing: false,
     enableApiAccess: false,
     features: ["1 vehicle", "Basic tracking"],
@@ -165,12 +188,14 @@ function planEntitlements(
     currentPeriodEnd: extra.currentPeriodEnd,
     maxVehicles: plan.maxVehicles,
     maxExpensesPerMonth: plan.maxExpensesPerMonth,
+    maxTripsPerMonth: plan.maxTripsPerMonth,
     aiReceiptScansPerMonth: plan.aiReceiptScansPerMonth,
     aiConversationsPerMonth: plan.aiConversationsPerMonth,
     reportRetentionDays: plan.reportRetentionDays,
     forecastHorizonMonths: plan.forecastHorizonMonths,
     enableAdvancedScenarios: plan.enableAdvancedScenarios,
     enableShareableReports: plan.enableShareableReports,
+    enablePdfReports: plan.enablePdfReports,
     enableFamilySharing: plan.enableFamilySharing,
     enableApiAccess: plan.enableApiAccess,
     features: safeJsonParse<string[]>(plan.features, []),

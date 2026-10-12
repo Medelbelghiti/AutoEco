@@ -18,6 +18,7 @@ import { db } from "@/lib/db";
 import { verifyCronRequest } from "@/lib/cron";
 import { getFreePlan } from "@/lib/plans";
 import { sendEmail, tplPaymentFailed } from "@/lib/email";
+import { coerceLocale } from "@/lib/i18n";
 import { createNotification } from "@/lib/notifications";
 import { auditLog } from "@/lib/audit";
 import { captureException } from "@/lib/error-capture";
@@ -78,7 +79,7 @@ export async function POST(req: Request): Promise<NextResponse> {
           link: "/pricing",
         });
         await sendEmail({
-          ...tplPaymentFailed(sub.user.name, env.appUrl),
+          ...tplPaymentFailed(sub.user.name, env.appUrl, coerceLocale(sub.user.locale)),
           to: sub.user.email,
         });
         summary.notified++;

@@ -15,7 +15,8 @@
  */
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { auditLog } from "@/lib/audit";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -36,30 +37,22 @@ const ALLOWED = [
 
 type AllowedEvent = (typeof ALLOWED)[number];
 
-// Simple in-process limiter. Good enough to blunt casual abuse; the database
-// is the source of truth for real analysis.
-const WINDOW_MS = 60_000;
-const MAX_PER_WINDOW = 60;
-const hits = new Map<string, { count: number; resetAt: number }>();
-
-function rateLimited(key: string): boolean {
-  const now = Date.now();
-  const entry = hits.get(key);
-  if (!entry || now > entry.resetAt) {
-    hits.set(key, { count: 1, resetAt: now + WINDOW_MS });
+// Shared limiter (DB-backed). The previous in-memory Map was per serverless
+// instance, so it limited nothing on Vercel. Analytics must never break a
+// page, so any limiter failure is treated as "allowed".
+async function rateLimited(key: string): Promise<boolean> {
+  try {
+    const r = await checkRateLimit({ key: `track:${key}`, limit: 60, windowSeconds: 60 });
+    return !r.allowed;
+  } catch {
     return false;
   }
-  entry.count++;
-  return entry.count > MAX_PER_WINDOW;
 }
 
 export async function POST(req: Request): Promise<NextResponse> {
-  const ip =
-    (req.headers.get("x-forwarded-for") ?? "").split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    "unknown";
+  const ip = getClientIp(req);
 
-  if (rateLimited(ip)) {
+  if (await rateLimited(ip)) {
     return new NextResponse(null, { status: 204 });
   }
 

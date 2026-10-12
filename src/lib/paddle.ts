@@ -190,6 +190,8 @@ export interface PaddleWebhookPayload {
     };
     /** Next scheduled billing date (ISO 8601). */
     next_billed_at?: string | null;
+    /** Current billing window (ISO 8601). */
+    current_billing_period?: { starts_at?: string; ends_at?: string } | null;
     /** Set when the customer has scheduled a cancellation. */
     scheduled_change?: string | null;
     items?: Array<{
@@ -205,4 +207,19 @@ export interface PaddleWebhookPayload {
       };
     };
   };
+}
+
+/**
+ * Paddle Billing sends every amount as a STRING in the currency's lowest
+ * denomination ("699" = $6.99). It is already "cents": never multiply by 100.
+ */
+export function paddleAmountToCents(raw: unknown): number {
+  const n = Number(raw ?? 0);
+  return Number.isFinite(n) ? Math.max(0, Math.round(n)) : 0;
+}
+
+/** Keep the real ISO 4217 code Paddle charged; fall back to USD only for garbage. */
+export function normalizeInvoiceCurrency(raw: unknown): string {
+  const c = String(raw ?? "USD").toUpperCase();
+  return /^[A-Z]{3}$/.test(c) ? c : "USD";
 }

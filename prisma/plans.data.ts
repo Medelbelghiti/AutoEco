@@ -23,12 +23,14 @@ export interface PlanDefinition {
   billingPeriod: "FREE" | "MONTHLY" | "YEARLY";
   maxVehicles: number;
   maxExpensesPerMonth: number;
+  maxTripsPerMonth: number;
   aiReceiptScansPerMonth: number;
   aiConversationsPerMonth: number;
   reportRetentionDays: number;
   forecastHorizonMonths: number;
   enableAdvancedScenarios: boolean;
   enableShareableReports: boolean;
+  enablePdfReports: boolean;
   enableFamilySharing: boolean;
   enableApiAccess: boolean;
   features: string[];
@@ -44,12 +46,14 @@ export const PLANS: PlanDefinition[] = [
     billingPeriod: "FREE",
     maxVehicles: 1,
     maxExpensesPerMonth: 50,
+    maxTripsPerMonth: 25,
     aiReceiptScansPerMonth: 0,
     aiConversationsPerMonth: 0,
     reportRetentionDays: 30,
     forecastHorizonMonths: 12,
     enableAdvancedScenarios: false,
     enableShareableReports: false,
+    enablePdfReports: false,
     enableFamilySharing: false,
     enableApiAccess: false,
     features: ["1 vehicle", "Expense tracking"],
@@ -63,15 +67,17 @@ export const PLANS: PlanDefinition[] = [
     billingPeriod: "MONTHLY",
     maxVehicles: 5,
     maxExpensesPerMonth: 1000,
+    maxTripsPerMonth: 500,
     aiReceiptScansPerMonth: 50,
     aiConversationsPerMonth: 100,
     reportRetentionDays: 365,
     forecastHorizonMonths: 60,
     enableAdvancedScenarios: true,
     enableShareableReports: true,
+    enablePdfReports: true,
     enableFamilySharing: false,
     enableApiAccess: false,
-    features: ["Up to 5 vehicles", "AI receipt scan", "Financial Twin"],
+    features: ["Up to 5 vehicles", "Ask Your Car", "Financial Twin", "What-if scenarios"],
     sortOrder: 1,
   },
   {
@@ -82,34 +88,38 @@ export const PLANS: PlanDefinition[] = [
     billingPeriod: "MONTHLY",
     maxVehicles: 12,
     maxExpensesPerMonth: 2500,
+    maxTripsPerMonth: 1000,
     aiReceiptScansPerMonth: 200,
     aiConversationsPerMonth: 300,
     reportRetentionDays: 730,
     forecastHorizonMonths: 60,
     enableAdvancedScenarios: true,
     enableShareableReports: true,
+    enablePdfReports: true,
     enableFamilySharing: true,
     enableApiAccess: false,
-    features: ["Up to 12 vehicles", "Family sharing"],
+    features: ["Up to 12 vehicles"],
     sortOrder: 2,
   },
   {
     key: "pro_plus",
     name: "Pro Plus",
-    description: "Power users + API.",
+    description: "Power users and small fleets.",
     priceCents: 1999,
     billingPeriod: "MONTHLY",
     maxVehicles: 50,
     maxExpensesPerMonth: 10000,
+    maxTripsPerMonth: 5000,
     aiReceiptScansPerMonth: 1000,
     aiConversationsPerMonth: 1000,
     reportRetentionDays: 3650,
     forecastHorizonMonths: 120,
     enableAdvancedScenarios: true,
     enableShareableReports: true,
+    enablePdfReports: true,
     enableFamilySharing: true,
     enableApiAccess: true,
-    features: ["Up to 50 vehicles", "API access"],
+    features: ["Up to 50 vehicles", "Ask Your Car", "Financial Twin"],
     sortOrder: 3,
   },
 ];
@@ -125,12 +135,14 @@ export function planRow(p: PlanDefinition): Record<string, unknown> {
     billingPeriod: p.billingPeriod,
     maxVehicles: p.maxVehicles,
     maxExpensesPerMonth: p.maxExpensesPerMonth,
+    maxTripsPerMonth: p.maxTripsPerMonth,
     aiReceiptScansPerMonth: p.aiReceiptScansPerMonth,
     aiConversationsPerMonth: p.aiConversationsPerMonth,
     reportRetentionDays: p.reportRetentionDays,
     forecastHorizonMonths: p.forecastHorizonMonths,
     enableAdvancedScenarios: p.enableAdvancedScenarios,
     enableShareableReports: p.enableShareableReports,
+    enablePdfReports: p.enablePdfReports,
     enableFamilySharing: p.enableFamilySharing,
     enableApiAccess: p.enableApiAccess,
     features: JSON.stringify(p.features),

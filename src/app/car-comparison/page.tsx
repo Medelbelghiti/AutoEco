@@ -16,7 +16,7 @@ export default function CarComparisonPage() {
         <p className="text-charcoal-600 mt-3">AutoEco lets you compare up to 5 vehicles side by side using your actual cost data.</p>
         <div className="card mt-6">
           <p className="font-semibold">How comparison works</p>
-          <ol className="mt-3 space-y-2 text-sm text-charcoal-700 list-decimal pl-5">
+          <ol className="mt-3 space-y-2 text-sm text-charcoal-700 list-decimal ps-5">
             <li>Open your garage and select two or more vehicles.</li>
             <li>AutoEco aggregates monthly cost, annual cost, cost per km, and 3-year ownership cost for each.</li>
             <li>Estimates are based on your ACTUAL recorded expenses and clearly labeled assumptions.</li>

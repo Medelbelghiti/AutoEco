@@ -3,17 +3,21 @@ import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { computeVehicleCost } from "@/lib/compute-cost";
 import ScenarioForm from "./ScenarioForm";
+import { formatDate } from "@/lib/i18n";
+import { getLocale, getT } from "@/lib/server-i18n";
 
 export default async function ScenariosPage() {
   const user = await requireUser();
+  const locale = getLocale();
+  const t = getT();
   const vehicles = await db.vehicle.findMany({ where: { userId: user.id, archived: false }, orderBy: [{ isPrimary: "desc" }] });
 
   if (vehicles.length === 0) {
     return (
       <div className="max-w-3xl mx-auto p-6">
-        <h1 className="text-2xl font-bold">What-If Scenarios</h1>
-        <p className="text-sm text-charcoal-500 mt-2">Add a vehicle to start running scenarios.</p>
-        <Link href="/garage/new" className="btn btn-accent mt-4 inline-flex">Add a vehicle</Link>
+        <h1 className="text-2xl font-bold">{t("nav.scenarios")}</h1>
+        <p className="text-sm text-charcoal-500 mt-2">{t("scenarios.empty_body")}</p>
+        <Link href="/garage/new" className="btn btn-accent mt-4 inline-flex">{t("common.add_vehicle")}</Link>
       </div>
     );
   }
@@ -25,10 +29,10 @@ export default async function ScenariosPage() {
   if (!result.ok) {
     return (
       <div className="max-w-3xl mx-auto p-6">
-        <h1 className="text-2xl font-bold">What-If Scenarios</h1>
+        <h1 className="text-2xl font-bold">{t("nav.scenarios")}</h1>
         <div className="card border-amber-300 bg-amber-50 mt-4">
-          <p className="font-semibold text-amber-800">Mixed-currency data</p>
-          <p className="text-sm text-amber-700 mt-1">Cannot run scenarios until your entries use a single currency.</p>
+          <p className="font-semibold text-amber-800">{t("common.mixed_currency_title")}</p>
+          <p className="text-sm text-amber-700 mt-1">{t("scenarios.mixed_body")}</p>
         </div>
       </div>
     );
@@ -36,17 +40,17 @@ export default async function ScenariosPage() {
 
   return (
     <div className="max-w-3xl mx-auto p-6">
-      <h1 className="text-2xl font-bold">What-If Scenarios</h1>
-      <p className="text-sm text-charcoal-500">Compare the cost of keeping your current car vs replacing it. All assumptions are shown.</p>
+      <h1 className="text-2xl font-bold">{t("nav.scenarios")}</h1>
+      <p className="text-sm text-charcoal-500">{t("scenarios.subtitle")}</p>
       <ScenarioForm summary={result.summary} vehicle={primary} />
       {saved.length > 0 && (
         <div className="card mt-6">
-          <p className="font-semibold">Saved scenarios</p>
+          <p className="font-semibold">{t("scenarios.saved")}</p>
           <ul className="mt-3 space-y-2 text-sm">
             {saved.map((s) => (
               <li key={s.id} className="flex items-center justify-between border-b pb-2 last:border-0">
                 <span>{s.name} - {s.type}</span>
-                <span className="text-xs text-charcoal-500">{new Date(s.createdAt).toLocaleDateString()}</span>
+                <span className="text-xs text-charcoal-500">{formatDate(locale, s.createdAt)}</span>
               </li>
             ))}
           </ul>

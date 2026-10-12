@@ -1,8 +1,8 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { LOCALES } from "@/lib/i18n";
+import { READY_LOCALES, LOCALE_NAMES } from "@/lib/i18n";
 
-export function LocaleSwitcher({ current }: { current: string }) {
+export function LocaleSwitcher({ current, id, label }: { current: string; id?: string; label?: string }) {
   const router = useRouter();
   const onChange = async (v: string) => {
     document.cookie = `lg_locale=${v}; path=/; max-age=${60 * 60 * 24 * 365}`;
@@ -20,15 +20,16 @@ export function LocaleSwitcher({ current }: { current: string }) {
   };
   return (
     <select
-      aria-label="Language"
+      id={id}
+      aria-label={label ?? "Language"}
       value={current}
       onChange={(e) => onChange(e.target.value)}
       className="select"
-      style={{ width: 80 }}
+      style={{ minWidth: 132 }}
     >
-      {LOCALES.map((l) => (
+      {READY_LOCALES.map((l) => (
         <option key={l} value={l}>
-          {l === "en" ? "EN" : "FR"}
+          {LOCALE_NAMES[l]}
         </option>
       ))}
     </select>
