@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requireUser, assertOwnership } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { EditExpenseForm } from "./Form";
+import { DeleteExpenseForm } from "./DeleteExpenseForm";
 
 export default async function EditExpense({ params }: { params: { id: string } }) {
   const user = await requireUser();
@@ -16,10 +17,7 @@ export default async function EditExpense({ params }: { params: { id: string } }
       <Link href="/expenses" className="text-sm text-charcoal-500 underline">← Back to expenses</Link>
       <h1 className="text-2xl font-bold mt-2">Edit expense</h1>
       <EditExpenseForm expense={expense} vehicles={vehicles.map((v) => ({ id: v.id, label: v.nickname ?? `${v.year} ${v.brand} ${v.model}` }))} />
-      <form action={`/api/expenses/${expense.id}`} method="post" onSubmit={(e) => { if (!confirm("Delete this expense?")) e.preventDefault(); }} className="mt-3">
-        <input type="hidden" name="_method" value="DELETE" />
-        <button type="submit" className="text-rose-600 text-sm underline">Delete expense</button>
-      </form>
+      <DeleteExpenseForm id={expense.id} />
     </div>
   );
 }
