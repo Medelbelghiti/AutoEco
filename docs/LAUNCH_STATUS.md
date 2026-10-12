@@ -10,7 +10,7 @@ era and declared the product READY. They were stale and are removed.
 - **Out-of-order Paddle webhooks**: `Subscription.lastEventAt` ignores stale events (a late `updated` can no longer resurrect a canceled sub).
 - **Paddle self-service**: new `lib/paddle-api.ts`; cancel / resume / customer portal now work for Paddle customers (they were Stripe-only, and `Paddle.CustomerPortal.open` does not exist in Paddle.js).
 - **Account deletion** cancels Paddle subscriptions first (aborts if the provider call fails) so deleted users are never billed.
-- **Sessions**: `User.sessionVersion` revokes all JWTs on password change/reset.
+- **Sessions**: `User.sessionVersion` revokes all JWTs on password change/reset. Settings → Security now also has **Sign out of all devices** (`POST /api/auth/logout-all`), which bumps the version to revoke every device and clears this one; GET is refused (no CSRF logout).
 - **Abuse**: rate limits on forgot/reset password; Turnstile on signup (activates when keys are set); trial entitlements require a verified email; `/api/track` limiter is now shared (DB) instead of per-instance memory; client IP prefers platform headers.
 - **Uploads**: refuse uploads on serverless without a persistent `STORAGE_DIR` (receipts were silently lost on every deploy); magic-byte check vs declared MIME; downloads served with `sandbox` CSP.
 - **Schema drift fixed**: `User.lemonCustomerId`, `Subscription.lemonSubscriptionId` and `Invoice.lemonOrderId` were declared in `schema.prisma` but created by no migration, so a freshly migrated database disagreed with the Prisma Client. Migration `20261005130000_add_lemon_identifiers` closes the gap; `prisma migrate diff --from-migrations --to-schema-datamodel` now exits 0.

@@ -318,6 +318,8 @@
   "settings.current_password": "Contraseña actual",
   "settings.new_password": "Nueva contraseña",
   "settings.password_updated": "Contraseña actualizada",
+  "settings.sign_out_all": "Cerrar sesión en todos los dispositivos",
+  "settings.sign_out_all_body": "Finaliza tu sesión en todos los dispositivos, incluido este. Deberás iniciar sesión de nuevo.",
   "settings.subscription": "Suscripción",
   "settings.plan": "Plan",
   "settings.trial_ends": "La prueba termina el {date}",
