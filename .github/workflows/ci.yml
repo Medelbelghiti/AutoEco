@@ -50,9 +50,12 @@ jobs:
         run: npm ci
 
       # DATABASE_URL points at the throwaway localhost service above, which the
-      # test guard treats as safe to write to.
+      # test guard treats as safe to write to. That Postgres is not pooled, so
+      # DIRECT_URL falls back to DATABASE_URL for the migration.
       - name: Apply migrations to the test database
         run: npx prisma migrate deploy
+        env:
+          DIRECT_URL: ${{ env.DATABASE_URL }}
 
       - name: Typecheck
         run: npm run typecheck

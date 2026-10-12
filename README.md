@@ -140,6 +140,7 @@ See `.env.example`. The core app — tracking, cost engine, calculators, export 
 | Variable | Required | Purpose |
 | -------- | -------- | ------- |
 | `DATABASE_URL` | yes | Prisma connection string |
+| `DIRECT_URL` | production | NON-pooled Neon connection string, used only by `prisma migrate` (falls back to `DATABASE_URL` in scripts, CI and local) |
 | `AUTH_SECRET` | yes | 32+ byte random hex for session signing |
 | `NEXT_PUBLIC_APP_URL` | yes | Public base URL (emails, redirects, sitemap, robots) |
 | `PADDLE_API_KEY` | for paid plans | Paddle API key (server only) |

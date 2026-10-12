@@ -349,6 +349,28 @@ if (previewVars.length === 0) {
 }
 
 // ---------------------------------------------------------------------------
+// 8. Migration connection: DIRECT_URL must bypass the pooler in production.
+//    On Neon, DATABASE_URL points at the PgBouncer pooler, which can make
+//    `prisma migrate deploy` hang and fail with P1002 (advisory lock timeout).
+//    DIRECT_URL points at the direct, non-pooled endpoint and is used only by
+//    `prisma migrate`. Scripts, CI and local dev fall back to DATABASE_URL;
+//    production must set it explicitly.
+// ---------------------------------------------------------------------------
+if (process.env.NODE_ENV === "production") {
+  const directUrl = (process.env.DIRECT_URL ?? "").trim();
+  if (directUrl) {
+    add("ok", "DIRECT_URL", "non-pooled migration connection configured");
+  } else {
+    add(
+      "warn",
+      "DIRECT_URL not set",
+      "prisma migrate deploy will use the pooled DATABASE_URL, which can hang and fail with P1002 on Neon",
+      "Set DIRECT_URL to the NON-pooled Neon connection string in production."
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Report
 // ---------------------------------------------------------------------------
 const ICON = { blocker: "BLOCKER", warn: "WARN   ", ok: "ok     " };

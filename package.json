@@ -16,8 +16,8 @@
     "check:launch:db": "node scripts/launch-check.mjs --db",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run check:launch",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:deploy": "prisma migrate deploy",
+    "prisma:migrate": "node scripts/prisma-migrate.mjs dev",
+    "prisma:deploy": "node scripts/prisma-migrate.mjs deploy",
     "prisma:seed": "tsx prisma/seed.ts",
     "postinstall": "prisma generate"
   },
