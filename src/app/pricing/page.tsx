@@ -22,7 +22,6 @@ export const metadata = pageMeta({
 const PERIOD_SUFFIX: Record<string, string> = {
   MONTHLY: "/month",
   YEARLY: "/year",
-  LIFETIME: "one-time",
 };
 
 /**
@@ -125,13 +124,11 @@ export default async function PricingPage() {
             <p className="text-sm text-charcoal-600 dark:text-charcoal-300 mt-1">
               {ent.isTrial && ent.trialEndsAt
                 ? `Free trial — ends ${ent.trialEndsAt.toISOString().slice(0, 10)}.`
-                : ent.isLifetime
-                  ? "Lifetime plan — no renewal."
-                  : activeSub?.cancelAtPeriodEnd && ent.currentPeriodEnd
-                    ? `Cancels at the end of the current period (${ent.currentPeriodEnd.toISOString().slice(0, 10)}). You keep access until then.`
-                    : activeSub
-                      ? `Renews ${ent.currentPeriodEnd ? ent.currentPeriodEnd.toISOString().slice(0, 10) : "each period"}.`
-                      : "Free plan."}{" "}
+                : activeSub?.cancelAtPeriodEnd && ent.currentPeriodEnd
+                  ? `Cancels at the end of the current period (${ent.currentPeriodEnd.toISOString().slice(0, 10)}). You keep access until then.`
+                  : activeSub
+                    ? `Renews ${ent.currentPeriodEnd ? ent.currentPeriodEnd.toISOString().slice(0, 10) : "each period"}.`
+                    : "Free plan."}{" "}
               <Link href="/settings/billing" className="underline">
                 Manage billing
               </Link>

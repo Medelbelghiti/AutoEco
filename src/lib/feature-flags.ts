@@ -8,7 +8,6 @@ export const FEATURE_FLAGS = {
   API_ACCESS: "api_access",
   REFERRAL_SYSTEM: "referral_system",
   AFFILIATE_SYSTEM: "affiliate_system",
-  LIFETIME_PLAN: "lifetime_plan",
   TEAM_ACCOUNTS: "team_accounts",
   REGISTRATION: "registration",
 } as const;
@@ -23,7 +22,6 @@ const DEFAULT_FLAG_STATE: Record<string, boolean> = {
   api_access: true,
   referral_system: true,
   affiliate_system: true,
-  lifetime_plan: true,
   team_accounts: true,
   registration: true,
 };

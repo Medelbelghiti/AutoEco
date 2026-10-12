@@ -27,13 +27,15 @@ import { env, paddleWebhookConfigured } from "./env";
  * Plan keys that actually exist as `Plan.key` rows in the database
  * (see `prisma/seed.ts`): free | pro | family | pro_plus.
  *
- * `business` and `lifetime` are retained as DEPRECATED ALIASES only.
- * They were never seeded, so resolving them to themselves silently granted
- * nobody an entitlement. They now resolve to the real plan they were
- * always meant to mean.
+ * `business` is retained as a DEPRECATED ALIAS only: Paddle has no separate
+ * "business" product, so it resolves to the highest paid tier (`pro_plus`).
+ *
+ * Lifetime is intentionally NOT sold (see docs/LAUNCH_STATUS.md): a one-off
+ * "lifetime" price id is an unmapped price id and is treated as such by the
+ * webhook (audited, grants nothing).
  */
 export type PaddlePlanKey = "pro" | "family" | "pro_plus";
-export type PaddlePlanKeyOrAlias = PaddlePlanKey | "business" | "lifetime";
+export type PaddlePlanKeyOrAlias = PaddlePlanKey | "business";
 
 /** Every paid plan key, in display order. */
 export const PADDLE_PLAN_KEYS: PaddlePlanKey[] = ["pro", "family", "pro_plus"];
@@ -48,7 +50,6 @@ export function canonicalPlanKey(k: PaddlePlanKeyOrAlias): PaddlePlanKey {
   // Paddle has no separate "business" product — `PADDLE_BUSINESS_PRICE_ID`
   // is the price id for the highest paid tier, which is `pro_plus`.
   if (k === "business") return "pro_plus";
-  if (k === "lifetime") return "pro_plus";
   return k;
 }
 
@@ -80,8 +81,6 @@ export function planKeyForPriceId(priceId: string | undefined): PaddlePlanKey | 
   if (env.paddleProPriceId && priceId === env.paddleProPriceId) return "pro";
   if (env.paddleFamilyPriceId && priceId === env.paddleFamilyPriceId) return "family";
   if (env.paddleBusinessPriceId && priceId === env.paddleBusinessPriceId) return "pro_plus";
-  // A lifetime price is a one-off payment for the top tier.
-  if (env.paddleLifetimePriceId && priceId === env.paddleLifetimePriceId) return "pro_plus";
   return null;
 }
 

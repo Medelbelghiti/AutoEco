@@ -149,7 +149,6 @@ See `.env.example`. The core app — tracking, cost engine, calculators, export 
 | `PADDLE_PRO_PRICE_ID` | for the Pro plan | Paddle price id |
 | `PADDLE_FAMILY_PRICE_ID` | for the Family plan | Paddle price id |
 | `PADDLE_BUSINESS_PRICE_ID` | for Pro Plus | Paddle price id for the top tier |
-| `PADDLE_LIFETIME_PRICE_ID` | optional | One-off top-tier price |
 | `PADDLE_ENV` / `NEXT_PUBLIC_PADDLE_ENV` | no | `sandbox` (default) or `live` |
 | `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` | for browser checkout | Paddle.js client token (public) |
 | `STRIPE_*` | no | Legacy Stripe subscriptions |

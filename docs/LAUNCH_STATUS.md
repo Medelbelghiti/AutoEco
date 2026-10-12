@@ -22,10 +22,16 @@ era and declared the product READY. They were stale and are removed.
 - **Deps**: Next 14.2.35, nodemailer 10, removed unused `xlsx`.
 - **Headers**: CSP shipped as Report-Only (enforce after a week of clean console reports).
 - **CI** now runs the real-Postgres concurrency/webhook tests (they were skipping).
+- **Lifetime not sold**: the one-off lifetime plan was never actually grantable
+  (a one-off `transaction.completed` only recorded an invoice). Its price id,
+  alias and feature flag are removed; a price id that maps to no plan is now
+  audited (`paddle.webhook.unmapped_price_id`) and grants nothing instead of
+  silently falling back to `pro`. Pre-existing `lifetime` subscription rows keep
+  their `pro_plus` access.
 
 ## Still BLOCKING launch (cannot be fixed in code)
 1. Legal entity + `[BRACKETED]` placeholders in `legal/*.md` (run `npm run check:launch`). Needs a lawyer / your company details.
-2. Paddle: complete seller verification, create products/prices, set `PADDLE_*` + `NEXT_PUBLIC_PADDLE_*`, `PADDLE_ENV=live`, webhook endpoint. Test the full cycle in sandbox first (checkout, renewal, failed payment, cancel, refund).
+2. Paddle: complete seller verification, create products/prices, set `PADDLE_*` + `NEXT_PUBLIC_PADDLE_*`, `PADDLE_ENV=live`, webhook endpoint. Test the full cycle in sandbox first (checkout, renewal, failed payment, cancel, refund). Only the monthly Pro / Family / Pro Plus prices are sold — lifetime is intentionally not offered.
 3. Email: `EMAIL_PROVIDER=smtp` + domain SPF/DKIM/DMARC. Verification + reset emails currently reach nobody.
 4. Persistent receipt storage (S3/R2 or mounted volume) before re-enabling uploads on Vercel.
 5. Custom domain; update `NEXT_PUBLIC_APP_URL`.

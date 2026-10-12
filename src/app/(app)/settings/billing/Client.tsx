@@ -22,7 +22,6 @@ import { PaddleButton } from "@/components/PaddleButton";
 interface Props {
   hasSubscription?: boolean;
   subCancelAtEnd?: boolean;
-  isLifetime?: boolean;
   /** Plan picker mode. */
   isPlanPicker?: boolean;
   planName?: string;
@@ -124,18 +123,18 @@ export function BillingClient(props: Props) {
         <button type="button" onClick={openCustomerPortal} disabled={busy} className="btn btn-secondary">
           Manage billing
         </button>
-        {props.hasSubscription && !props.isLifetime && !props.subCancelAtEnd && (
+        {props.hasSubscription && !props.subCancelAtEnd && (
           <button type="button" onClick={() => cancel(true)} disabled={busy} className="btn btn-secondary">
             Cancel at period end
           </button>
         )}
-        {props.hasSubscription && !props.isLifetime && props.subCancelAtEnd && (
+        {props.hasSubscription && props.subCancelAtEnd && (
           <button type="button" onClick={resume} disabled={busy} className="btn btn-primary">
             Resume subscription
           </button>
         )}
       </div>
-      {props.hasSubscription && !props.isLifetime && (
+      {props.hasSubscription && (
         <details className="text-xs">
           <summary className="cursor-pointer select-none text-charcoal-500">
             End my subscription immediately

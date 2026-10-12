@@ -22,7 +22,6 @@ import {
   paddleAmountToCents,
   normalizeInvoiceCurrency,
   type PaddleWebhookPayload,
-  type PaddlePlanKey,
 } from "@/lib/paddle";
 import { db } from "@/lib/db";
 import { claim, reclaimStale, markProcessed, markFailed, tryClaimSideEffect } from "@/lib/webhook-state";
@@ -178,22 +177,6 @@ async function findUser(payload: PaddleWebhookPayload): Promise<{ id: string; em
 }
 
 /**
- * Map a Paddle price id to an internal Plan key.
- *
- * `planKeyForPriceId` returns null for a price id that is not one of ours.
- * We then fall back to "pro": the customer demonstrably paid us in this
- * Paddle account and locking them out would be worse than granting the
- * entry tier. The unmapped price id is recorded in the audit log so the
- * misconfiguration is visible rather than silent.
- */
-function priceIdToPlanKey(priceId: string | undefined): PaddlePlanKey {
-  const mapped = planKeyForPriceId(priceId);
-  if (mapped) return mapped;
-  return "pro";
-}
-
-
-/**
  * Out-of-order protection. Paddle does not guarantee delivery order, so an
  * older `subscription.updated` arriving after a newer `subscription.canceled`
  * must NOT resurrect the subscription. We compare the event's `occurred_at`
@@ -241,12 +224,19 @@ async function onSubscriptionUpsert(payload: PaddleWebhookPayload, eventId: stri
     return;
   }
 
-  // Determine the plan from the price id of the first item (if any).
+  // The plan is determined SOLELY by the price id of the first item. A price
+  // id we cannot map to one of our plans (including a former lifetime price id)
+  // must NOT grant any entitlement, and must not throw — otherwise Paddle would
+  // retry it forever. It is logged for the owner to reconcile by hand instead.
   const priceId = data.items?.[0]?.price?.id;
-  if (priceId && !planKeyForPriceId(priceId)) {
-    await auditLog({ action: "paddle.webhook.unmapped_price_id", metadata: { eventId, priceId } });
+  const planKey = planKeyForPriceId(priceId);
+  if (!planKey) {
+    await auditLog({
+      action: "paddle.webhook.unmapped_price_id",
+      metadata: { eventId, priceId: priceId ?? null, transactionId: data.transaction_id ?? null, subscriptionId: paddleSubId },
+    });
+    return;
   }
-  const planKey = priceIdToPlanKey(priceId);
   const plan = await db.plan.findUnique({ where: { key: planKey } });
   if (!plan) {
     await auditLog({ action: "paddle.webhook.plan_missing", metadata: { eventId, planKey } });
@@ -504,6 +494,16 @@ async function onTransactionCompleted(payload: PaddleWebhookPayload, eventId: st
   if (!user) return;
   const orderId = data.id;
   if (!orderId) return;
+  // A transaction whose price id does not map to any of our plans (including a
+  // former lifetime price id) must not be ignored: log it for the owner to
+  // reconcile. It never grants entitlement and never fails the webhook.
+  const txPriceId = data.items?.[0]?.price?.id;
+  if (!planKeyForPriceId(txPriceId)) {
+    await auditLog({
+      action: "paddle.webhook.unmapped_price_id",
+      metadata: { eventId, priceId: txPriceId ?? null, transactionId: orderId },
+    });
+  }
   // Paddle Billing reports every amount as a STRING in the lowest
   // denomination of the currency (e.g. "699" = $6.99). It is already "cents":
   // multiplying by 100 again made invoices 100x too large.
