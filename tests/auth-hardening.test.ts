@@ -71,6 +71,15 @@ runSuite("Phase 1 — sessions, enumeration and deletion", () => {
       });
     }
     freePlanId = (await prisma.plan.findUniqueOrThrow({ where: { key: "free" } })).id;
+    // Rate limits are keyed by client IP, which is the constant "unknown" in
+    // tests. Clear the per-IP buckets this file exercises so counts left by an
+    // earlier run inside the same window cannot leak in. The 1h
+    // `reset-password:${ip}` bucket (limit 10) was never cleaned by afterAll,
+    // so test 5b intermittently 429'd once 11 suite runs happened within the
+    // hour.
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM "RateLimitEntry" WHERE "key" LIKE 'reset-password:%' OR "key" LIKE 'forgot:%'`
+    );
     auth = await import("@/lib/auth");
   });
 
@@ -79,7 +88,7 @@ runSuite("Phase 1 — sessions, enumeration and deletion", () => {
     await prisma.$executeRawUnsafe(`DELETE FROM "Subscription" WHERE "userId" IN (SELECT id FROM "User" WHERE "email" LIKE 'phase1-%@autoeco.test' OR "email" LIKE 'deleted-%@deleted.invalid')`);
     await prisma.$executeRawUnsafe(`DELETE FROM "AuditLog" WHERE "userId" IN (SELECT id FROM "User" WHERE "email" LIKE 'phase1-%@autoeco.test' OR "email" LIKE 'deleted-%@deleted.invalid')`);
     await prisma.$executeRawUnsafe(`DELETE FROM "User" WHERE "email" LIKE 'phase1-%@autoeco.test' OR "email" LIKE 'deleted-%@deleted.invalid'`);
-    await prisma.$executeRawUnsafe(`DELETE FROM "RateLimitEntry" WHERE "key" LIKE 'forgot:%'`);
+    await prisma.$executeRawUnsafe(`DELETE FROM "RateLimitEntry" WHERE "key" LIKE 'forgot:%' OR "key" LIKE 'reset-password:%'`);
     await prisma.$disconnect();
   });
 
