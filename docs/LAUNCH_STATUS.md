@@ -4,6 +4,62 @@ The previous AUTOECO_PROGRESS.md / FINAL_PRODUCTION_AUDIT.md described the Strip
 era and declared the product READY. They were stale and are removed.
 `npm run check:launch` is the live source of truth for blockers.
 
+## Closure pass — post-merge hardening (PR #2)
+
+PR #2 (`post-merge-hardening`) is **merged into `main`** (merge commit
+`6420fba`), and the Production Vercel deploy on that commit succeeded. The
+closure work landed on branch `final-audit` and adds the operational safety net
+plus the audit record:
+
+- **`scripts/smoke.mjs`** — black-box HTTP smoke test against the real
+  production build (local disposable DB). **29/29 checks pass**: anonymous
+  health, signup/login, vehicle/expense/trip, receipt upload to local disk, PDF
+  **free 403 / pro 200**, language switch, sign-out-of-all-devices, logout,
+  forged Paddle webhook rejected, signed webhook + replay idempotent, cron fails
+  closed. See `scripts/README.md`.
+- **`scripts/paddle-dry-run.mjs`** — replays the full Paddle Billing lifecycle
+  through the real webhook with locally signed fixtures. **Every step passes**:
+  created → completed `"699"` USD (→ 699 cents) → past_due → recovered →
+  partial refund → full refund (cancel attempted) → canceled, plus out-of-order
+  replay (cannot resurrect a canceled sub), exact replay (skipped), and an
+  unknown price id (grants nothing).
+- **`docs/GO_LIVE_CHECKLIST.md`**, **`docs/OPERATIONS.md`**,
+  **`docs/LEGAL_TODO.md`** — the operator go-live sequence, the on-call runbook,
+  and the legal punch-list.
+
+### Security re-audit (this pass)
+- 38 route handlers, 0 server actions. Every protected route uses
+  `requireUser()` + an ownership check (`assertOwnership`/`where:{userId}`). The
+  only state-changing `GET`s are the three `CRON_SECRET`-guarded cron routes.
+- **Flag**: `requireAdmin` (`src/lib/auth.ts`) and `authenticateApiKey`
+  (`src/lib/api-keys.ts`) are defined but never called by any route. Dead code;
+  no exposure today, but either wire them or remove them.
+- **Flag**: `/api/health` is anonymous and, on failure, can include the DB error
+  message, the storage bucket name and the S3 endpoint. Booleans on the happy
+  path; consider restricting if that detail matters.
+- **Flag**: CSP ships **Report-Only** (documented, deliberate — see
+  `next.config.mjs`). Enforce after a clean week and only after confirming a
+  live Paddle checkout still opens.
+- Secrets scan of tree + history: clean (only benign provider-string literals in
+  `src/lib/env.ts`; no tracked `.env`/key/pem). Pre-existing synthetic test
+  fixtures (`pdl_sdbx_apikey_phase1_fake`) remain in
+  `tests/paddle-billing.test.ts` / `tests/auth-hardening.test.ts` — harmless,
+  noted for completeness.
+- `npm audit --omit=dev`: 3 advisories (2 high, 1 critical) — Next.js RCE
+  advisories (the Windows-hosted one is **not applicable** on Vercel's Linux
+  runtime; the AVIF one applies), plus transitive `postcss` / `source-map-js`.
+  The fix is a breaking `next@16` upgrade; do **not** `--force` without a full
+  regression pass.
+
+### Closure verification on the merge commit
+Typecheck ✅ · lint ✅ · full suite **443/443 across 40 files** (×3) ✅ ·
+`next build` ✅ · `prisma migrate diff` no drift ✅ · `check:launch` reports
+**only** the legal-placeholder blocker ✅.
+
+> **The single remaining launch blocker is legal** (placeholders + lawyer
+> review). Everything else that can be verified without the live providers is
+> green. See `docs/LEGAL_TODO.md`.
+
 ## Fixed in this pass (code)
 - **Billing math**: Paddle `grand_total` is already in minor units (was multiplied by 100 -> invoices 100x too big). Invoice currency no longer coerced to USD.
 - **past_due grace** was inverted (access revoked the moment a renewal failed). Now 14 days AFTER the period end.
@@ -35,7 +91,7 @@ era and declared the product READY. They were stale and are removed.
   three schedules are daily, which is Hobby-compatible.
 
 ## Still BLOCKING launch (cannot be fixed in code)
-1. Legal entity + `[BRACKETED]` placeholders in `legal/*.md` (run `npm run check:launch`). Needs a lawyer / your company details.
+1. Legal entity + `[BRACKETED]` placeholders in `legal/*.md` (run `npm run check:launch`). Needs a lawyer / your company details. The exact tokens and the decisions to confirm are listed in **`docs/LEGAL_TODO.md`** — this is the **only** remaining automated blocker.
 2. Paddle: complete seller verification, create products/prices, set `PADDLE_*` + `NEXT_PUBLIC_PADDLE_*`, `PADDLE_ENV=live`, webhook endpoint. Test the full cycle in sandbox first (checkout, renewal, failed payment, cancel, refund). Only the monthly Pro / Family / Pro Plus prices are sold — lifetime is intentionally not offered.
 3. Email: `EMAIL_PROVIDER=smtp` + domain SPF/DKIM/DMARC. Verification + reset emails currently reach nobody.
 4. Persistent receipt storage (S3/R2 or mounted volume) before re-enabling uploads on Vercel.
@@ -76,7 +132,7 @@ era and declared the product READY. They were stale and are removed.
 - OCR, family sharing and API access: not built (marked "Coming soon"; the Family plan stays hidden). The cost-of-ownership PDF report *is* built.
 - Locales: English, French, Spanish, Portuguese (BR) and German are `ready`; Arabic is translated but `pending` native-speaker review, so it degrades to English in selectors. The RTL chrome itself ships (`dirFor("ar")` = rtl).
 - No annual plans yet (needs Paddle yearly prices + `YEARLY` plan rows).
-- `npm audit` still reports advisories whose fix is a major upgrade (Next 15/16, Tailwind 4, Vitest 5 dev-only).
+- `npm audit` still reports advisories whose fix is a major upgrade (Next 15/16, Tailwind 4, Vitest 5 dev-only). The production tree currently shows 3 (2 high, 1 critical): the Windows-hosted Next.js advisory is **not applicable** on Vercel's Linux runtime; the AVIF RCE one is applicable; plus transitive `postcss`/`source-map-js`. Fixing needs `next@16` (breaking) — schedule a regression pass, never `--force`.
 - ~~The cookie is still named `lg_session` and API keys use `lgk_`~~ Rotated in
   2.4 to `autoeco_session` / `aek_`; the legacy names are still accepted on read
   for one release, so existing sessions and keys keep working.
