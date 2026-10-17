@@ -8,7 +8,7 @@
 
 **Last updated:** 2026-01-01
 
-These Affiliate Program Terms ("Affiliate Terms") govern participation in the AutoEco Affiliate Program (the "Program"), operated by `[LEGAL ENTITY NAME]`. They supplement our [Terms of Service](terms.md). By joining the Program, you ("Affiliate", "you") agree to these Affiliate Terms.
+These Affiliate Program Terms ("Affiliate Terms") govern participation in the AutoEco Affiliate Program (the "Program"), operated by `[LEGAL ENTITY NAME]`. They supplement our [Terms of Service](/terms). By joining the Program, you ("Affiliate", "you") agree to these Affiliate Terms.
 
 ## 1. Enrollment
 

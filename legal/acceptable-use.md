@@ -6,7 +6,7 @@
 
 This Acceptable Use Policy ("AUP") defines what is and is not allowed when using AutoEco (the
 "Service"), operated by `[LEGAL ENTITY NAME]`. It forms part of our
-[Terms of Service](terms.md). By using the Service, you agree to this AUP.
+[Terms of Service](/terms). By using the Service, you agree to this AUP.
 
 ## 1. Purpose
 

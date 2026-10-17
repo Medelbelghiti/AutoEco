@@ -74,7 +74,7 @@ era and declared the product READY. They were stale and are removed.
 - ~~Account enumeration: signup returns 409 for existing emails~~ Fixed in 2.4:
   signup returns the same envelope as a real signup and notifies the owner.
 - OCR, family sharing and API access: not built (marked "Coming soon"; the Family plan stays hidden). The cost-of-ownership PDF report *is* built.
-- Locales: English, French, Spanish, Portuguese (BR) and German are `ready`; Arabic is translated but `pending` native-speaker review, so it degrades to English in selectors. The RTL chrome itself ships (`dirFor("ar")` = rtl).
+- Locales: English and French are `ready`; Spanish, Portuguese (BR), German and Arabic are translated but `pending` native-speaker review, so they are hidden from the selector and degrade to English. The RTL chrome itself ships (`dirFor("ar")` = rtl).
 - No annual plans yet (needs Paddle yearly prices + `YEARLY` plan rows).
 - `npm audit` still reports advisories whose fix is a major upgrade (Next 15/16, Tailwind 4, Vitest 5 dev-only).
 - ~~The cookie is still named `lg_session` and API keys use `lgk_`~~ Rotated in

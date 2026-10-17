@@ -34,9 +34,9 @@ export const DEFAULT_LOCALE: Locale = "en";
 export const LOCALE_STATUS: Record<Locale, "ready" | "pending"> = {
   en: "ready",
   fr: "ready",
-  es: "ready",
-  "pt-BR": "ready",
-  de: "ready",
+  es: "pending",
+  "pt-BR": "pending",
+  de: "pending",
   ar: "pending",
 };
 

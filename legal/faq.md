@@ -82,7 +82,7 @@ billing period — you keep access until then and are not charged again.
 
 Subscriptions can be cancelled any time. Prorated refunds are not issued by default but may be
 considered case by case (for example a duplicate charge or a verified service failure). One-time
-purchases have a refund window as stated in our [Refund Policy](refund-policy.md). Trials are not
+purchases have a refund window as stated in our [Refund Policy](/refund-policy). Trials are not
 charged until they end.
 
 ### 13. Is API access available?
@@ -95,17 +95,17 @@ pricing page or contact `[CONTACT EMAIL]` for documentation.
 Yes, from Settings → Danger zone. Your name and email address are permanently erased and all API
 keys are revoked, and access ends immediately. Anonymized billing and expense records are retained
 because tax and accounting law requires it; they are no longer linked to you. See our
-[Privacy Policy](privacy.md).
+[Privacy Policy](/privacy).
 
 ### 15. Do you sell my data?
 
 No. We do not sell personal data and we do not run advertising or ad tracking. See our
-[Privacy Policy](privacy.md).
+[Privacy Policy](/privacy).
 
 ### 16. Do you offer referral or affiliate programs?
 
 Referral rewards may be offered in the product. The affiliate program is not currently open for
-applications — see the [Affiliate Program Terms](affiliate-terms.md).
+applications — see the [Affiliate Program Terms](/affiliate-terms).
 
 ---
 

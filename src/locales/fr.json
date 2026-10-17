@@ -475,5 +475,6 @@
   "garage.mixed_body": "Devises présentes : {currencies}. AutoEco ne peut pas agréger des totaux entre plusieurs devises. Modifiez vos saisies pour utiliser une seule devise.",
   "twin.breakdown_operating": "Toutes les dépenses enregistrées (FORECAST, flat)",
   "twin.breakdown_forward_fixed": "Frais fixes futurs (FORECAST)",
-  "twin.breakdown_depreciation": "Dépréciation (ESTIMATE)"
+  "twin.breakdown_depreciation": "Dépréciation (ESTIMATE)",
+  "pricing.billing_link": "Paramètres > Facturation"
 }

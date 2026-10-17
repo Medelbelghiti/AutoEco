@@ -5,7 +5,7 @@
 **Last updated:** 2026-01-01
 
 This Refund Policy explains how cancellations and refunds work for AutoEco, operated by
-`[LEGAL ENTITY NAME]`. It forms part of our [Terms of Service](terms.md).
+`[LEGAL ENTITY NAME]`. It forms part of our [Terms of Service](/terms).
 
 ## 1. Subscriptions (Pro, Family, Pro Plus)
 
@@ -43,7 +43,7 @@ This Refund Policy explains how cancellations and refunds work for AutoEco, oper
 
 - Referral credits have no cash value and are not refundable.
 - If a refunded purchase generated an affiliate commission, that commission may be reversed in
-  accordance with the [Affiliate Program Terms](affiliate-terms.md).
+  accordance with the [Affiliate Program Terms](/affiliate-terms).
 
 ## 5. How to Request a Refund
 

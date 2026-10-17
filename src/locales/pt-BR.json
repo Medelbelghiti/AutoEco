@@ -475,5 +475,6 @@
   "garage.mixed_body": "Moedas presentes: {currencies}. O AutoEco não pode agregar totais entre várias moedas. Edite seus registros para usar uma única moeda.",
   "twin.breakdown_operating": "Todas as despesas registradas (FORECAST, plana)",
   "twin.breakdown_forward_fixed": "Custos fixos futuros (FORECAST)",
-  "twin.breakdown_depreciation": "Depreciação (ESTIMATE)"
+  "twin.breakdown_depreciation": "Depreciação (ESTIMATE)",
+  "pricing.billing_link": "Configurações > Cobrança"
 }
