@@ -98,6 +98,19 @@ export function paddleEnvironment(): "sandbox" | "live" {
 }
 
 /**
+ * Shared secret protecting the detailed /api/health report. Sent by monitors
+ * as `Authorization: Bearer <HEALTH_SECRET>`; a request without it gets only
+ * `{ ok: boolean }`.
+ *
+ * Read LIVE from `process.env` so an operator can rotate — or remove it to
+ * disable the detailed view — without a restart. It is never logged, never
+ * placed in a response, and compared in constant time by the route.
+ */
+export function healthSecret(): string {
+  return process.env.HEALTH_SECRET ?? "";
+}
+
+/**
  * Email is considered configured only when a real transport is selected AND
  * reachable. Anything else silently degrades to ConsoleProvider, which
  * "sends" by writing to the server log — meaning verification and password

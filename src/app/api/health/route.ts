@@ -11,17 +11,32 @@
  *  - Returns 200 while a merely *degraded* dependency is missing (email
  *    transport, Paddle credentials, persistent storage). Those are reported
  *    in the body so they are visible without paging anyone.
- *  - Reports only boolean/derived state. NO secrets, keys, hostnames or
- *    connection strings are ever returned.
- *  - `?verbose=1` adds the production configuration warnings (readable
- *    message text, still no secret values).
+ *  - Reports only boolean/derived state. NO secrets, keys, hostnames, bucket
+ *    names, endpoint URLs or connection strings are ever returned.
+ *
+ * Access model:
+ *  - Anonymous (no/incorrect credentials): the body is exactly `{ "ok": true }`
+ *    or `{ "ok": false }`. Nothing else — this endpoint is public and is
+ *    scanned by bots.
+ *  - Authorized (`Authorization: Bearer $HEALTH_SECRET`): the full detailed
+ *    report, including the per-dependency checks and (with `?verbose=1`) the
+ *    production configuration warnings.
+ *  - The shared secret is compared in constant time and is never echoed. When
+ *    `HEALTH_SECRET` is unset the detailed view is disabled for everyone.
+ *
+ * Performance:
+ *  - Every probe is bounded by `PROBE_TIMEOUT_MS` and the four database round
+ *    trips run concurrently, so a single slow query cannot hold the whole
+ *    request open (previously ~3.6s and growing with each added query).
  */
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { db } from "@/lib/db";
 import {
   emailConfigured,
   env,
+  healthSecret,
   paddleConfigured,
   paddleEnvironment,
   paddleWebhookConfigured,
@@ -34,30 +49,186 @@ import { cronConfigured } from "@/lib/cron";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request): Promise<NextResponse> {
-  const url = new URL(req.url);
-  const verbose = url.searchParams.get("verbose") === "1";
+/** Ceiling for a single dependency probe. */
+const PROBE_TIMEOUT_MS = 2_000;
 
-  const checks: Record<string, { ok: boolean; detail?: string }> = {};
+type Check = { ok: boolean; detail?: string };
 
-  // --- Database: the only hard dependency. -----------------------------
-  const startedAt = Date.now();
-  let dbOk = false;
+/** Reject a probe that outlives its budget instead of waiting on it forever. */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("probe timed out")), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
+
+/**
+ * Constant-time comparison of the supplied bearer token with the configured
+ * secret. Both sides are SHA-256 hashed first so the comparison does not
+ * depend on the supplied length (timingSafeEqual requires equal-length
+ * buffers), and an unset secret can never match.
+ */
+function secretMatches(provided: string, expected: string): boolean {
+  if (expected.length === 0) return false;
+  const a = createHash("sha256").update(provided).digest();
+  const b = createHash("sha256").update(expected).digest();
+  return timingSafeEqual(a, b);
+}
+
+function isAuthorized(req: Request): boolean {
+  const expected = healthSecret();
+  if (expected.length === 0) return false;
+  const header = req.headers.get("authorization") ?? "";
+  const prefix = "Bearer ";
+  if (!header.startsWith(prefix)) return false;
+  return secretMatches(header.slice(prefix.length), expected);
+}
+
+async function probeDatabase(): Promise<boolean> {
   try {
-    await db.$queryRaw`SELECT 1`;
-    dbOk = true;
-    checks.database = { ok: true, detail: `${Date.now() - startedAt}ms` };
-  } catch (e) {
-    checks.database = { ok: false, detail: e instanceof Error ? e.message.slice(0, 200) : "unknown" };
+    await withTimeout(db.$queryRaw`SELECT 1`, PROBE_TIMEOUT_MS);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The migration ledger answers "is a migration in flight?".
+ *
+ * Rolled-back rows are deliberately ADVISORY, not a failure: a deployment that
+ * was retried accumulates rolled-back rows alongside a later successful row
+ * for the same migration, so treating them as failures yields a check that can
+ * never go green even though the schema is correct. If a migration genuinely
+ * did not take effect, the `schema` check is what catches it.
+ */
+async function probeMigrations(): Promise<{ check: Check }> {
+  try {
+    const [inFlight, rolledBack] = await Promise.all([
+      withTimeout(
+        db.$queryRaw<Array<{ migration_name: string }>>`
+          SELECT DISTINCT migration_name
+          FROM "_prisma_migrations"
+          WHERE finished_at IS NULL AND rolled_back_at IS NULL
+          LIMIT 20
+        `,
+        PROBE_TIMEOUT_MS
+      ),
+      withTimeout(
+        db.$queryRaw<Array<{ migration_name: string }>>`
+          SELECT DISTINCT migration_name
+          FROM "_prisma_migrations"
+          WHERE rolled_back_at IS NOT NULL
+            AND NOT EXISTS (
+              SELECT 1 FROM "_prisma_migrations" f
+              WHERE f.migration_name = "_prisma_migrations".migration_name
+                AND f.finished_at IS NOT NULL
+                AND f.rolled_back_at IS NULL
+            )
+          LIMIT 20
+        `,
+        PROBE_TIMEOUT_MS
+      ),
+    ]);
+    const detail =
+      inFlight.length > 0
+        ? `migration in flight: ${inFlight.map((r) => r.migration_name).join(", ")}`
+        : rolledBack.length === 0
+          ? "no pending migrations"
+          : `${rolledBack.length} rolled-back migration(s) ignored (advisory only)`;
+    return { check: { ok: inFlight.length === 0, detail } };
+  } catch {
+    // No raw error text: Prisma errors can embed the connection string/host.
+    return { check: { ok: false, detail: "migration ledger unavailable" } };
+  }
+}
+
+/**
+ * Schema drift: does the database actually match the code?
+ *
+ * The Prisma migration ledger is NOT sufficient. A migration can be
+ * `rolled_back` — neither `finished` nor `pending` — leaving the ledger clean
+ * while the column the code queries does not exist. So the schema itself is
+ * interrogated; these columns are the ones whose absence breaks a
+ * customer-facing page.
+ */
+async function probeSchema(): Promise<{ check: Check; broken: boolean }> {
+  const REQUIRED_COLUMNS: Array<{ table: string; column: string; usedBy: string }> = [
+    { table: "Plan", column: "isDemo", usedBy: "/pricing, /settings/billing" },
+  ];
+  try {
+    const rows = await withTimeout(
+      db.$queryRaw<Array<{ table_name: string; column_name: string }>>`
+        SELECT table_name, column_name
+        FROM information_schema.columns
+        WHERE table_schema = current_schema()
+          AND table_name IN (${Prisma.join(REQUIRED_COLUMNS.map((c) => c.table))})
+      `,
+      PROBE_TIMEOUT_MS
+    );
+    const present = new Set(rows.map((r) => `${r.table_name}.${r.column_name}`));
+    const missing = REQUIRED_COLUMNS.filter(
+      (c) => !present.has(`${c.table}.${c.column}`)
+    ).map((c) => `${c.table}.${c.column} (breaks ${c.usedBy})`);
+
+    if (missing.length === 0) {
+      return { check: { ok: true, detail: `${REQUIRED_COLUMNS.length} critical column(s) present` }, broken: false };
+    }
+    return {
+      check: { ok: false, detail: `MISSING: ${missing.join(", ")} — run the pending migration` },
+      broken: true,
+    };
+  } catch {
+    // Non-Postgres (e.g. local SQLite) has no information_schema. The migration
+    // ledger still runs checks; do not fail the probe because introspection is
+    // unavailable. No raw error text (it can embed connection details).
+    return { check: { ok: true, detail: "schema introspection unavailable — ledger check only" }, broken: false };
+  }
+}
+
+export async function GET(req: Request): Promise<NextResponse> {
+  const authorized = isAuthorized(req);
+
+  const dbStartedAt = Date.now();
+  const [dbOk, migrations, schema] = await Promise.all([
+    probeDatabase(),
+    probeMigrations(),
+    probeSchema(),
+  ]);
+  const dbMs = Date.now() - dbStartedAt;
+
+  const healthy = dbOk && !schema.broken;
+
+  // --- Anonymous: a single boolean. Nothing else is disclosed. ----------
+  if (!authorized) {
+    return NextResponse.json(
+      { ok: healthy },
+      { status: healthy ? 200 : 503, headers: { "cache-control": "no-store" } }
+    );
+  }
+
+  // --- Authorized: the full readiness report. ---------------------------
+  const checks: Record<string, Check> = {};
+
+  checks.database = { ok: dbOk, detail: dbOk ? `${dbMs}ms` : "unreachable" };
+  if (!dbOk) {
     await auditLog({ action: "health.database_unreachable" }).catch(() => {});
   }
 
-  // --- Email: degraded, not fatal. -------------------------------------
   const mailReady = emailConfigured();
   checks.email = {
     ok: mailReady,
-    // Deliberately no host/port here: this endpoint is unauthenticated, and
-    // infrastructure hostnames are reconnaissance for anyone scanning it.
+    // Deliberately no host/port here: infrastructure hostnames are
+    // reconnaissance for anyone scanning this endpoint.
     detail: mailReady
       ? "provider=smtp configured"
       : `provider="${env.emailProvider}" is not a real transport — email is being written to the server log only`,
@@ -72,7 +243,6 @@ export async function GET(req: Request): Promise<NextResponse> {
     }).catch(() => {});
   }
 
-  // --- Payments. --------------------------------------------------------
   checks.paddle = {
     ok: paddleConfigured(),
     detail: paddleConfigured()
@@ -81,13 +251,14 @@ export async function GET(req: Request): Promise<NextResponse> {
   };
   checks.paddleClientToken = {
     ok: Boolean(env.paddleClientToken),
-    detail: env.paddleClientToken ? "present" : "NEXT_PUBLIC_PADDLE_CLIENT_TOKEN missing — Paddle.js cannot open a checkout",
+    detail: env.paddleClientToken
+      ? "present"
+      : "NEXT_PUBLIC_PADDLE_CLIENT_TOKEN missing — Paddle.js cannot open a checkout",
   };
   // Stripe is gone as of 2.2 and is no longer reported here.
 
-  // --- Scheduled jobs: without the shared secret every /api/cron/* route
-  // --- fails closed (503), so expiry, trial reminders and purges silently
-  // --- stop running. Degraded, not fatal: the request-serving app is fine.
+  // Without the shared secret every /api/cron/* route fails closed (503), so
+  // expiry, trial reminders and purges silently stop running.
   checks.cron = {
     ok: cronConfigured(),
     detail: cronConfigured()
@@ -95,8 +266,8 @@ export async function GET(req: Request): Promise<NextResponse> {
       : "CRON_SECRET unset or shorter than 16 chars — every /api/cron/* route returns 503",
   };
 
-  // --- Error monitoring: optional. Local-only is the expected default, so it
-  // --- is never a failure — the detail is what makes a missing DSN visible.
+  // Error monitoring is optional. Local-only is the expected default, so it is
+  // never a failure — the detail is what makes a missing DSN visible.
   checks.errorMonitoring = {
     ok: true,
     detail: env.sentryDsn
@@ -104,60 +275,17 @@ export async function GET(req: Request): Promise<NextResponse> {
       : "local only — errors go to the platform log and the AuditLog table (set SENTRY_DSN to also forward)",
   };
 
-  // --- Migrations: the ledger answers "is a migration in flight?", while the
-  // --- information_schema check above answers "does the code match the DB?".
-  // --- Only the former is a failure here.
-  //
-  // Rolled-back rows are deliberately ADVISORY, not a failure. A deployment
-  // that was retried accumulates rolled-back rows alongside a later successful
-  // row for the same migration; treating those as failures produces a health
-  // check that can never go green even though the schema is correct. If a
-  // migration genuinely did not take effect, the `schema` check above is what
-  // catches it — by looking for the actual missing column.
-  try {
-    const inFlight = await db.$queryRaw<Array<{ migration_name: string }>>`
-      SELECT DISTINCT migration_name
-      FROM "_prisma_migrations"
-      WHERE finished_at IS NULL AND rolled_back_at IS NULL
-      LIMIT 20
-    `;
-    const rolledBack = await db.$queryRaw<Array<{ migration_name: string }>>`
-      SELECT DISTINCT migration_name
-      FROM "_prisma_migrations"
-      WHERE rolled_back_at IS NOT NULL
-        AND NOT EXISTS (
-          SELECT 1 FROM "_prisma_migrations" f
-          WHERE f.migration_name = "_prisma_migrations".migration_name
-            AND f.finished_at IS NOT NULL
-            AND f.rolled_back_at IS NULL
-        )
-      LIMIT 20
-    `;
+  checks.migrations = migrations.check;
 
-    const detail =
-      inFlight.length > 0
-        ? `${inFlight.length} migration(s) failed or never finished: ${inFlight
-            .map((p) => p.migration_name)
-            .join(", ")}`
-        : rolledBack.length > 0
-          ? `no failed migrations (advisory: ${rolledBack.length} rolled-back attempt(s) never re-applied, ignored because the schema check above is authoritative)`
-          : "no failed migrations";
-
-    checks.migrations = { ok: inFlight.length === 0, detail };
-  } catch (e) {
-    // `_prisma_migrations` is unavailable (e.g. a shadow database).
-    checks.migrations = { ok: false, detail: e instanceof Error ? e.message.slice(0, 200) : "unknown" };
-  }
-
-  // Object storage is durable; local disk on a serverless host is not. That is a
-  // data-loss risk rather than a crash, so it is reported but never fatal.
+  // Object storage: degraded, not fatal. The bucket name and endpoint host are
+  // deliberately omitted even from this authorized report.
   const driver = storageDriver();
   if (driver === "s3") {
     const missing = s3MissingConfig();
     checks.storage = {
       ok: missing.length === 0,
       detail: missing.length === 0
-        ? `s3 driver, bucket ${env.s3Bucket}${env.s3Endpoint ? ` via ${env.s3Endpoint}` : ""}`
+        ? "s3 driver configured (bucket + endpoint withheld)"
         : `s3 driver selected but missing ${missing.join(", ")}`,
     };
   } else {
@@ -176,74 +304,24 @@ export async function GET(req: Request): Promise<NextResponse> {
       : "internal only — no third-party forwarding configured (expected default)",
   };
 
-  // --- Schema drift: does the database actually match the code? ---------
-  //
-  // The Prisma migration ledger is NOT sufficient. A migration can be
-  // `rolled_back` — which is neither `finished` nor `pending` — leaving the
-  // ledger clean while the column the code queries does not exist. That is the
-  // exact current state of this deployment, and the ledger-only check reported
-  // "no pending migrations" while /pricing returned HTTP 500.
-  //
-  // So the schema itself is interrogated. These columns are the ones whose
-  // absence breaks a customer-facing page, so they are worth a per-request
-  // information_schema lookup.
-  const REQUIRED_COLUMNS: Array<{ table: string; column: string; usedBy: string }> = [
-    { table: "Plan", column: "isDemo", usedBy: "/pricing, /settings/billing" },
-  ];
-  try {
-    const rows = await db.$queryRaw<Array<{ table_name: string; column_name: string }>>`
-      SELECT table_name, column_name
-      FROM information_schema.columns
-      WHERE table_schema = current_schema()
-        AND table_name IN (${Prisma.join(REQUIRED_COLUMNS.map((c) => c.table))})
-    `;
-    const present = new Set(rows.map((r) => `${r.table_name}.${r.column_name}`));
-    const missing = REQUIRED_COLUMNS.filter(
-      (c) => !present.has(`${c.table}.${c.column}`)
-    ).map((c) => `${c.table}.${c.column} (breaks ${c.usedBy})`);
+  checks.schema = schema.check;
 
-    checks.schema = {
-      ok: missing.length === 0,
-      detail:
-        missing.length === 0
-          ? `${REQUIRED_COLUMNS.length} critical column(s) present`
-          : `MISSING: ${missing.join(", ")} — run \`prisma migrate deploy\``,
-    };
-  } catch (e) {
-    // Non-Postgres (SQLite local dev) has no information_schema.
-    checks.schema = {
-      ok: true,
-      detail: `schema introspection unavailable on this engine (${
-        e instanceof Error ? e.message.slice(0, 80) : "unknown"
-      }) — ledger check only`,
-    };
-  }
+  const degraded = Object.entries(checks)
+    .filter(([, c]) => !c.ok)
+    .map(([name]) => name);
 
-  const failing = Object.entries(checks)
-    .filter(([, v]) => !v.ok)
-    .map(([k]) => k);
-
-  /**
-   * Schema drift is FATAL, unlike the other checks.
-   *
-   * A missing column means real pages are serving HTTP 500 right now (this is
-   * the live state of the current deployment: /pricing is broken). Reporting
-   * that as a healthy 200 would let an uptime monitor stay green through a
-   * broken storefront, which is precisely the failure mode a health endpoint
-   * exists to prevent.
-   */
-  const schemaBroken = checks.schema?.ok === false;
-
+  const verbose = new URL(req.url).searchParams.get("verbose") === "1";
   const body = {
-    status: !dbOk || schemaBroken ? "unhealthy" : failing.length === 0 ? "ok" : "degraded",
+    ok: healthy,
+    status: healthy ? (degraded.length === 0 ? "ok" : "degraded") : "unhealthy",
     timestamp: new Date().toISOString(),
     checks,
-    degraded: failing,
+    degraded,
     ...(verbose ? { warnings: prodWarnings() } : {}),
   };
 
   return NextResponse.json(body, {
-    status: dbOk && !schemaBroken ? 200 : 503,
+    status: healthy ? 200 : 503,
     headers: { "cache-control": "no-store" },
   });
 }
