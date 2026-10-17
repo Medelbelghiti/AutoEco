@@ -60,9 +60,9 @@ and fuel entries. Receipt images are not included — only their references. Row
 
 ### 9. Is there a free trial?
 
-Paid plans may include a free trial, as shown at sign-up. You are not charged unless payment details
-were provided and you did not cancel before the trial ends; otherwise your account falls back to the
-Free plan. One trial per person.
+Yes. New accounts get a 14-day free trial with expanded limits. No card is required. It starts after
+you verify your email. When it ends, your account returns to the Free plan. You are never charged
+automatically. One trial per person.
 
 ### 10. What plans are available?
 
@@ -82,8 +82,8 @@ billing period — you keep access until then and are not charged again.
 
 Subscriptions can be cancelled any time. Prorated refunds are not issued by default but may be
 considered case by case (for example a duplicate charge or a verified service failure). One-time
-purchases have a refund window as stated in our [Refund Policy](refund-policy.md). Trials are not
-charged until they end.
+purchases have a refund window as stated in our [Refund Policy](/refund-policy). The free trial
+involves no charge, so refunds apply only to paid subscriptions and one-time purchases.
 
 ### 13. Is API access available?
 
@@ -95,17 +95,17 @@ pricing page or contact `[CONTACT EMAIL]` for documentation.
 Yes, from Settings → Danger zone. Your name and email address are permanently erased and all API
 keys are revoked, and access ends immediately. Anonymized billing and expense records are retained
 because tax and accounting law requires it; they are no longer linked to you. See our
-[Privacy Policy](privacy.md).
+[Privacy Policy](/privacy).
 
 ### 15. Do you sell my data?
 
 No. We do not sell personal data and we do not run advertising or ad tracking. See our
-[Privacy Policy](privacy.md).
+[Privacy Policy](/privacy).
 
 ### 16. Do you offer referral or affiliate programs?
 
 Referral rewards may be offered in the product. The affiliate program is not currently open for
-applications — see the [Affiliate Program Terms](affiliate-terms.md).
+applications — see the [Affiliate Program Terms](/affiliate-terms).
 
 ---
 

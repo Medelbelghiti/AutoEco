@@ -98,6 +98,31 @@ export function absoluteUrl(path: string): string {
   return new URL(clean, base.origin).toString();
 }
 
+/**
+ * The single canonical origin shared by SEO (metadataBase, canonical, OG,
+ * sitemap, robots) and every absolute link we email (verification, password
+ * reset, welcome, trial…).
+ *
+ * `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_APP_URL` are two names for the SAME
+ * production origin — set BOTH to the canonical host (for AutoEco:
+ * `https://www.myautoeco.com`). This helper is the only place the origin is
+ * resolved, so the two can never disagree in what we emit. Apex↔www
+ * redirects are an edge/DNS concern and are intentionally NOT handled here.
+ */
+export function appOrigin(): string {
+  return siteOrigin().origin;
+}
+
+/** Absolute password-reset link (same origin as SEO — see `appOrigin`). */
+export function passwordResetUrl(token: string): string {
+  return absoluteUrl(`/reset-password?token=${encodeURIComponent(token)}`);
+}
+
+/** Absolute email-verification link (same origin as SEO — see `appOrigin`). */
+export function emailVerifyUrl(token: string): string {
+  return absoluteUrl(`/verify-email?token=${encodeURIComponent(token)}`);
+}
+
 interface PageMetaInput {
   /** Short title. Do NOT append the brand — the layout template does it. */
   title: string;

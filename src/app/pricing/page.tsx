@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/finance";
 import { safeJsonParse } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/auth";
+import { getT } from "@/lib/server-i18n";
 import { getEntitlements, COMING_SOON_FEATURES, UNAVAILABLE_PLAN_KEYS } from "@/lib/plans";
 import { paddleConfigured } from "@/lib/env";
 import { getPriceIdFor, PADDLE_PLAN_KEYS, isPaddlePlanKey } from "@/lib/paddle";
@@ -66,6 +67,7 @@ const REASSURING = [
 ];
 
 export default async function PricingPage() {
+  const t = getT();
   // Defense in depth: `isDemo` marks rows created by tests. They must
   // never reach a pricing page or a billing flow.
   const plans = await db.plan.findMany({
@@ -110,6 +112,9 @@ export default async function PricingPage() {
           <p className="mt-3 text-charcoal-600 dark:text-charcoal-300 max-w-2xl mx-auto">
             Start free with one vehicle. Upgrade when you want cost-per-kilometer tracking, longer
             forecasts and shareable reports. Cancel whenever you like.
+          </p>
+          <p className="mt-3 text-sm text-charcoal-600 dark:text-charcoal-300 max-w-2xl mx-auto">
+            {t("pricing.trial_note")}
           </p>
         </div>
 
@@ -272,7 +277,7 @@ export default async function PricingPage() {
             </Link>{" "}
             — free, no account needed. Full billing history and invoices live in{" "}
             <Link href="/settings/billing" className="underline">
-              Settings ? Billing
+              {t("pricing.billing_link")}
             </Link>
             .
           </p>

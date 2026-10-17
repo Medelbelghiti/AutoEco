@@ -475,5 +475,7 @@
   "garage.mixed_body": "Currencies present: {currencies}. AutoEco cannot aggregate totals across currencies. Edit your entries to use a single currency.",
   "twin.breakdown_operating": "All recorded expenses (FORECAST, flat)",
   "twin.breakdown_forward_fixed": "Forward fixed (FORECAST)",
-  "twin.breakdown_depreciation": "Depreciation (ESTIMATE)"
+  "twin.breakdown_depreciation": "Depreciation (ESTIMATE)",
+  "pricing.billing_link": "Settings > Billing",
+  "pricing.trial_note": "New accounts get a 14-day free trial with expanded limits. No card required. It starts after you verify your email; when it ends, your account returns to the Free plan. You are never charged automatically."
 }

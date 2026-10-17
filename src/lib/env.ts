@@ -1,9 +1,13 @@
 /** Centralized environment access. Never import this from client components. */
+import { appOrigin } from "./seo";
 
 export const env = {
   databaseUrl: process.env.DATABASE_URL ?? "file:./dev.db",
   authSecret: process.env.AUTH_SECRET ?? "",
-  appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  // Canonical origin, resolved by the one shared helper (`src/lib/seo.ts`) so
+  // SEO and every emailed link can never diverge. Both NEXT_PUBLIC_APP_URL and
+  // NEXT_PUBLIC_SITE_URL must be set to the same canonical host.
+  appUrl: appOrigin(),
 
   // ---- Paddle (production payment provider) ----
   // The API key + webhook secret are server-only.

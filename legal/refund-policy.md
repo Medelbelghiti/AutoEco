@@ -5,7 +5,7 @@
 **Last updated:** 2026-01-01
 
 This Refund Policy explains how cancellations and refunds work for AutoEco, operated by
-`[LEGAL ENTITY NAME]`. It forms part of our [Terms of Service](terms.md).
+`[LEGAL ENTITY NAME]`. It forms part of our [Terms of Service](/terms).
 
 ## 1. Subscriptions (Pro, Family, Pro Plus)
 
@@ -33,17 +33,16 @@ This Refund Policy explains how cancellations and refunds work for AutoEco, oper
 
 ## 3. Free Trial
 
-- If a free trial requires payment details, **you will not be charged until the trial ends**, and
-  only if you have not cancelled before the trial converts to a paid subscription.
-- Cancel any time before the trial ends to avoid any charge.
-- Charges resulting from a completed trial conversion are treated as normal subscription charges
-  under Section 1.
+- The free trial requires no payment details and you are **never charged automatically** when it
+  ends; your account simply returns to the Free plan.
+- Because the free trial involves no charge, this policy's refund provisions apply to **paid
+  subscriptions and one-time purchases only**, not to the free trial.
 
 ## 4. Referral and Affiliate Rewards
 
 - Referral credits have no cash value and are not refundable.
 - If a refunded purchase generated an affiliate commission, that commission may be reversed in
-  accordance with the [Affiliate Program Terms](affiliate-terms.md).
+  accordance with the [Affiliate Program Terms](/affiliate-terms).
 
 ## 5. How to Request a Refund
 
