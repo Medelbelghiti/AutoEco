@@ -15,7 +15,8 @@
  */
 import { NextResponse } from "next/server";
 import { withErrorHandling, ok } from "@/lib/http";
-import { paddleWebhookConfigured, env } from "@/lib/env";
+import { paddleWebhookConfigured } from "@/lib/env";
+import { appOrigin } from "@/lib/seo";
 import {
   verifyWebhookSignature,
   planKeyForPriceId,
@@ -484,7 +485,7 @@ async function onPaymentFailed(payload: PaddleWebhookPayload, eventId: string): 
     });
   }
   if (await tryClaimSideEffect(eventId, "PADDLE_PAYMENT_FAILED_EMAIL")) {
-    await sendEmail({ ...tplPaymentFailed(user.name, env.appUrl, coerceLocale(user.locale)), to: user.email });
+    await sendEmail({ ...tplPaymentFailed(user.name, appOrigin(), coerceLocale(user.locale)), to: user.email });
   }
 }
 

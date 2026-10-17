@@ -10,7 +10,7 @@ import { verifyCaptcha } from "@/lib/captcha";
 import { getClientIp, randomToken, sha256 } from "@/lib/utils";
 import { sendEmail, tplWelcome, tplTrialStarted, tplEmailVerify, tplSignupAttemptNotice } from "@/lib/email";
 import { createNotification } from "@/lib/notifications";
-import { env } from "@/lib/env";
+import { appOrigin, emailVerifyUrl } from "@/lib/seo";
 import { auditLog } from "@/lib/audit";
 import { trackEvent } from "@/lib/analytics";
 import { localeCookieHeader } from "@/lib/server-i18n";
@@ -51,7 +51,7 @@ export const POST = withErrorHandling(async (req) => {
     // this one does not, so a determined attacker can still infer existence
     // from the absence of Set-Cookie. Closing that fully would mean never
     // signing anyone in on signup.
-    await sendEmail({ ...tplSignupAttemptNotice(existing.name, env.appUrl, coerceLocale(existing.locale)), to: existing.email });
+    await sendEmail({ ...tplSignupAttemptNotice(existing.name, appOrigin(), coerceLocale(existing.locale)), to: existing.email });
     await auditLog({ action: "signup.duplicate_email", metadata: { email: body.email }, ip });
     // Same status and same key set as the success payload, but echoing only
     // what the caller already submitted: returning the real id or name here
@@ -94,11 +94,11 @@ export const POST = withErrorHandling(async (req) => {
     },
   });
 
-  const verifyUrl = `${env.appUrl}/verify-email?token=${verifyToken}`;
+  const verifyUrl = emailVerifyUrl(verifyToken);
   await sendEmail({ ...tplEmailVerify(user.name, verifyUrl, body.locale ?? "en"), to: user.email });
-  await sendEmail({ ...tplWelcome(user.name, env.appUrl, body.locale ?? "en"), to: user.email });
+  await sendEmail({ ...tplWelcome(user.name, appOrigin(), body.locale ?? "en"), to: user.email });
   if (trialEndsAt) {
-    await sendEmail({ ...tplTrialStarted(user.name, env.appUrl, trial.trial_duration_days, body.locale ?? "en"), to: user.email });
+    await sendEmail({ ...tplTrialStarted(user.name, appOrigin(), trial.trial_duration_days, body.locale ?? "en"), to: user.email });
   }
 
   await createNotification({

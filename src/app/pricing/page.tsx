@@ -113,6 +113,9 @@ export default async function PricingPage() {
             Start free with one vehicle. Upgrade when you want cost-per-kilometer tracking, longer
             forecasts and shareable reports. Cancel whenever you like.
           </p>
+          <p className="mt-3 text-sm text-charcoal-600 dark:text-charcoal-300 max-w-2xl mx-auto">
+            {t("pricing.trial_note")}
+          </p>
         </div>
 
         {ent && (

@@ -50,9 +50,11 @@ not forecasts of future market conditions.
 
 ## 4. Free Trial
 
-- We may offer a free trial of a paid plan for a limited period, as described at sign-up.
-- At the end of the trial, access reverts to the Free plan unless you have subscribed and not
-  cancelled before the trial ends.
+- New accounts get a 14-day free trial with expanded limits. No card is required. It starts after
+  you verify your email. When it ends, your account returns to the Free plan. You are never charged
+  automatically.
+- The free trial is a free tier, not a trial of a paid plan. Paid subscriptions are separate and
+  only begin if you actively subscribe (see Section 5).
 - Free trials are limited to one per person. Creating multiple accounts to obtain repeated trials is
   prohibited.
 

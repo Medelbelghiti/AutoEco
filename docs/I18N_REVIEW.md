@@ -4,13 +4,13 @@ This document lists all machine-translated strings that **need native review** p
 
 ## 1. Scope and status
 
-- **Locale key set (UI copy):** `en.json` is the superset with **478 keys** (see section breakdown below). Every other locale is verified to match it exactly (no missing, no extra, no empty values, identical `{placeholder}` sets) by `tests/i18n.test.ts`.
+- **Locale key set (UI copy):** `en.json` is the superset with **479 keys** (see section breakdown below). Every other locale is verified to match it exactly (no missing, no extra, no empty values, identical `{placeholder}` sets) by `tests/i18n.test.ts`.
 - **Transactional email copy:** 10 templates (`welcome`, `emailVerify`, `passwordReset`, `signupAttemptNotice`, `trialStarted`, `trialEnding`, `paymentSuccess`, `paymentFailed`, `subscriptionCanceled`, `usageLimitReached`) shipped for the ready locales in `src/lib/email-i18n.ts`. **COMMIT B** adds a full Arabic set (with `dir="rtl"` full-document rendering) that is gated by the same status rule: `EMAIL_READY_LOCALES` is derived from `READY_LOCALES`, and a pending `ar` still receives English copy on the send path.
 - **Scope of this change:** shell/nav, auth, common chrome, dashboard, garage (list + detail), trips (list/new/edit + forms), receipts, assistant, expenses, fuel, insights, financial-twin, scenarios, settings, reports + 7 `error.*` keys + 8 `status.*` keys + 14 `category.*` keys + product emails.
 - **Pending (not translated now):** marketing sub-pages (features/docs/FAQ — partially covered by keys above but page bodies remain English) and the 12 calculators. These remain English where out of the key set.
 - **Locale readiness for selectors:** selectors show ONLY `ready` locales (`LOCALE_STATUS` in `src/lib/i18n.ts`). Only `en` and `fr` are `ready`; `es`, `pt-BR`, `de` and `ar` are translated but held at `pending` (not selectable, still render English in the UI and emails) until a native-speaker review confirms them. `ar` additionally ships full RTL layout (COMMIT B).
 
-### en.json key breakdown by section (478 total)
+### en.json key breakdown by section (479 total)
 
 | Section | Keys |
 |---|---|
@@ -45,7 +45,7 @@ This document lists all machine-translated strings that **need native review** p
 | cta | 4 |
 | brand | 2 |
 | promise | 2 |
-| pricing | 1 |
+| pricing | 2 |
 
 ## 2. Real translation vs copy of English (per locale)
 
@@ -57,12 +57,12 @@ Copies of English (identical and *not* in either set) must be 0 in every ready l
 
 | Locale | Total keys | Identical to English | Identical but excluded (brands/units/codes + native words) | Copies of English (must be 0) | Status |
 |---|---|---|---|---|---|
-| en | 478 | 478 (reference) | — | — | ready |
-| fr | 478 | **12** | 12 | **0** | ready |
-| es | 478 | **9** | 9 | **0** | pending |
-| pt-BR | 478 | **8** | 8 | **0** | pending |
-| de | 478 | **13** | 13 | **0** | pending |
-| ar | 478 | **9** | 9 | **0** | pending |
+| en | 479 | 479 (reference) | — | — | ready |
+| fr | 479 | **12** | 12 | **0** | ready |
+| es | 479 | **9** | 9 | **0** | pending |
+| pt-BR | 479 | **8** | 8 | **0** | pending |
+| de | 479 | **13** | 13 | **0** | pending |
+| ar | 479 | **9** | 9 | **0** | pending |
 
 The identical values are exactly:
 - Brands/products (all ready locales): `AutoEco` (`brand.name`, `diff.autoeco.title`), `Financial Twin` (`hero.badge`, `features.twin.title`, `preview.title`, `nav.financial_twin`), `Ask Your Car` (`dashboard.qa_assistant`, `ask.name`).
@@ -122,7 +122,7 @@ Key areas needing review:
 - Mixed-currency warnings
 
 ### ar (Arabic) — status: **pending (not ready)**
-COMMIT B has replaced the English mirror with a full formal-Modern-Standard-Arabic translation (`ar.json`, 478/478 keys, placeholder parity, no English copies). The RTL layout (logical CSS, mirrored arrows/drawers, `<bdi dir="ltr">` LTR embeds, Arabic-aware font fallbacks) is delivered and `dirFor("ar")` returns `rtl`; the *emails* ship an Arabic set and a `dir="rtl"` UTF-8 document wrapper, all gated behind `LOCALE_STATUS`. `ar` stays **`pending`** — not selectable, still renders English in the UI and sends English emails — until a native-speaker review confirms it. The review can be previewed behind the dev-only `PREVIEW_PENDING_LOCALES=1` env var (screenshots use it; inert in production).
+COMMIT B has replaced the English mirror with a full formal-Modern-Standard-Arabic translation (`ar.json`, 479/479 keys, placeholder parity, no English copies). The RTL layout (logical CSS, mirrored arrows/drawers, `<bdi dir="ltr">` LTR embeds, Arabic-aware font fallbacks) is delivered and `dirFor("ar")` returns `rtl`; the *emails* ship an Arabic set and a `dir="rtl"` UTF-8 document wrapper, all gated behind `LOCALE_STATUS`. `ar` stays **`pending`** — not selectable, still renders English in the UI and sends English emails — until a native-speaker review confirms it. The review can be previewed behind the dev-only `PREVIEW_PENDING_LOCALES=1` env var (screenshots use it; inert in production).
 
 Identical to English: **9, all excluded (brands/codes: `AutoEco`, `Financial Twin`, `Ask Your Car`, `ACTUAL`); 0 copies of English.**
 

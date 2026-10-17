@@ -51,4 +51,26 @@ describe("plan marketing bullets", () => {
       expect(JSON.parse((match as RegExpExecArray)[1])).toEqual(plan.features);
     }
   });
+
+  it("only writes the features column, keyed by plan key, with fixed values", () => {
+    const sql = migrationSql("update_plan_features")
+      .split("\n")
+      .filter((line) => !line.trim().startsWith("--"))
+      .join("\n");
+    const statements = sql
+      .split(";")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    expect(statements.length).toBe(PLANS.length);
+    for (const stmt of statements) {
+      // Exactly the `features` column is written, rows matched by plan key.
+      expect(stmt).toMatch(/^UPDATE "Plan" SET "features" = '[^']*' WHERE "key" = '[a-z_]+'$/);
+      // Never price, limits, flags or active state.
+      expect(stmt).not.toMatch(/"priceCents"|"maxVehicles"|"active"|"enable[A-Za-z]+"/);
+    }
+    // Idempotent: literal values only, no subqueries or expressions that could
+    // drift between runs.
+    expect(sql).not.toMatch(/SELECT|COALESCE|\|\|/);
+  });
 });

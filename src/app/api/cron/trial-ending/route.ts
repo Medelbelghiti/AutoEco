@@ -24,7 +24,7 @@ import { coerceLocale } from "@/lib/i18n";
 import { createNotification } from "@/lib/notifications";
 import { auditLog } from "@/lib/audit";
 import { captureException } from "@/lib/error-capture";
-import { env } from "@/lib/env";
+import { appOrigin } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -79,7 +79,7 @@ async function handle(req: Request): Promise<NextResponse> {
       summary.notified++;
 
       const result = await sendEmail({
-        ...tplTrialEnding(user.name, daysLeft, env.appUrl, coerceLocale(user.locale)),
+        ...tplTrialEnding(user.name, daysLeft, appOrigin(), coerceLocale(user.locale)),
         to: user.email,
       });
       if (result.ok) summary.emailed++;

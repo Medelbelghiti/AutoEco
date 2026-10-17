@@ -476,5 +476,6 @@
   "twin.breakdown_operating": "Todas as despesas registradas (FORECAST, plana)",
   "twin.breakdown_forward_fixed": "Custos fixos futuros (FORECAST)",
   "twin.breakdown_depreciation": "Depreciação (ESTIMATE)",
-  "pricing.billing_link": "Configurações > Cobrança"
+  "pricing.billing_link": "Configurações > Cobrança",
+  "pricing.trial_note": "Novas contas ganham um teste gratuito de 14 dias com limites ampliados. Não é necessário cartão. Ele começa depois que você verifica seu e-mail; ao terminar, sua conta volta ao plano Free. Você nunca é cobrado automaticamente."
 }
