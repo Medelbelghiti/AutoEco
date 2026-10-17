@@ -120,7 +120,7 @@ The parity test (`tests/i18n.test.ts`) treats the following as allowed to be ide
 
 Everything else identical to English was translated instead of allowlisted, e.g. `trips.note` → fr `Remarque`, `trips.purpose_personal` → es `Particular` (`Pessoal` pt, `Privat` de), `common.optional` → de `(fakultativ)`, `nav.docs` → fr `Documentation`, `nav.admin` → fr `Administration`, es `Administración`, pt `Administração`, de `Verwaltung`.
 
-Plan names (`Pro`, `Pro Plus`, `Family`, `Free`) are proper nouns and remain untranslated; they do not currently appear as bare values in the locale files. No other phrase may be silently identical to English for a `ready` locale (enforced by a failing test, not a warning). `ar` carries a full real translation (COMMIT B) but stays `pending` in `LOCALE_STATUS` until a native-speaker review is confirmed — see `docs/I18N_REVIEW.md` §Arabic.
+Plan names (`Pro`, `Pro Plus`, `Family`, `Free`) are proper nouns and remain untranslated; they do not currently appear as bare values in the locale files. No other phrase may be silently identical to English for a `ready` locale (enforced by a failing test, not a warning). Only `en` and `fr` are `ready`; `es`, `pt-BR`, `de` and `ar` carry full real translations but stay `pending` in `LOCALE_STATUS` until a native-speaker review is confirmed — see `docs/I18N_REVIEW.md`.
 
 ## 6. Risky strings (must receive heightened review)
 High-risk domains: billing/subscription, trial, refund, tax wording, legal/eligibility language, plan limits, security/2FA, data deletion, mixed-currency warnings, PDF disclaimers. These appear in settings/billing, emails, reports/PDF. Each is listed per locale in `docs/I18N_REVIEW.md` with confidence.

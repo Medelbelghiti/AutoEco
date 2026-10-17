@@ -11,8 +11,8 @@ bound by these Terms.
 ## 1. Acceptance of Terms
 
 By creating an account, accessing, or using the Service, you confirm that you have read,
-understood, and agree to these Terms, our [Privacy Policy](privacy.md), and our
-[Acceptable Use Policy](acceptable-use.md). If you do not agree, do not use the Service.
+understood, and agree to these Terms, our [Privacy Policy](/privacy), and our
+[Acceptable Use Policy](/acceptable-use). If you do not agree, do not use the Service.
 
 ## 2. Description of the Service
 
@@ -45,14 +45,16 @@ not forecasts of future market conditions.
 - You must be at least 18 years old (or the age of legal majority in your jurisdiction) to create an
   account.
 - One person may not maintain multiple accounts to obtain repeated trials or to bypass plan limits
-  (see our [Acceptable Use Policy](acceptable-use.md)).
+  (see our [Acceptable Use Policy](/acceptable-use)).
 - You must notify us promptly at `[CONTACT EMAIL]` of any unauthorized use of your account.
 
 ## 4. Free Trial
 
-- We may offer a free trial of a paid plan for a limited period, as described at sign-up.
-- At the end of the trial, access reverts to the Free plan unless you have subscribed and not
-  cancelled before the trial ends.
+- New accounts get a 14-day free trial with expanded limits. No card is required. It starts after
+  you verify your email. When it ends, your account returns to the Free plan. You are never charged
+  automatically.
+- The free trial is a free tier, not a trial of a paid plan. Paid subscriptions are separate and
+  only begin if you actively subscribe (see Section 5).
 - Free trials are limited to one per person. Creating multiple accounts to obtain repeated trials is
   prohibited.
 
@@ -60,15 +62,15 @@ not forecasts of future market conditions.
 
 - Paid plans are billed in advance on a recurring monthly basis through our payment processor,
   Paddle.
+- **Paddle is the Merchant of Record** for paid plans. Your purchase is made with Paddle, and
+  Paddle's buyer terms and privacy policy apply to the payment transaction.
 - Subscriptions renew automatically unless cancelled. You may cancel at any time from Settings;
   cancellation takes effect at the end of the current billing period, and you retain access until
   then.
 - Prices are stated on our pricing page and shown again at checkout. We may change prices with
   reasonable advance notice; changes apply to subsequent billing periods.
 - Applicable taxes (for example VAT) may be added based on your billing location.
-- Where a one-time purchase is offered, it grants access to the top paid tier for as long as the
-  Service is offered, subject to the plan's fair-use limits shown in the product.
-- Refunds are governed by our [Refund Policy](refund-policy.md).
+- Refunds are governed by our [Refund Policy](/refund-policy).
 
 ## 6. Plans, Limits and Quotas
 
@@ -84,12 +86,12 @@ not forecasts of future market conditions.
 - You can export your data as CSV at any time from Settings. You can delete your account and data
   from Settings at any time.
 - We do not sell your data and do not use your financial records for advertising.
-- See our [Privacy Policy](privacy.md) for what happens to your data on deletion, including the
+- See our [Privacy Policy](/privacy) for what happens to your data on deletion, including the
   anonymized financial records we are required to retain for tax and accounting purposes.
 
 ## 8. Acceptable Use
 
-You must comply with our [Acceptable Use Policy](acceptable-use.md) at all times, including the
+You must comply with our [Acceptable Use Policy](/acceptable-use) at all times, including the
 prohibitions on scraping, bypassing quotas, and unauthorized automated access.
 
 ## 9. Intellectual Property

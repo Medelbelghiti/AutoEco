@@ -1,4 +1,4 @@
-import { readFileSync } from "fs";
+import { readFileSync, readdirSync } from "fs";
 import { join } from "path";
 import { describe, it, expect } from "vitest";
 import {
@@ -133,8 +133,11 @@ describe("no unfinished translations in ready locales", () => {
   const root = join(__dirname, "..", "src", "locales");
   const en = loadJson(join(root, "en.json"));
 
+  // Only locales that a native speaker has reviewed are selectable. es, pt-BR,
+  // de and ar ship translations but stay pending until that review happens.
+  const READY = new Set<string>(["en", "fr"]);
   for (const loc of LOCALES) {
-    const expectedStatus = loc === "ar" ? "pending" : "ready";
+    const expectedStatus = READY.has(loc) ? "ready" : "pending";
     it(`${loc} is marked ${expectedStatus} in LOCALE_STATUS`, () => {
       expect(LOCALE_STATUS[loc]).toBe(expectedStatus);
     });
@@ -195,6 +198,50 @@ describe("locale files are free of mojibake", () => {
       expect(bad, `${file}.json mojibake`).toEqual([]);
     });
   }
+});
+
+describe("JSX source is free of mojibake", () => {
+  const srcRoot = join(__dirname, "..", "src");
+
+  function tsxFiles(dir: string): string[] {
+    const out: string[] = [];
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) out.push(...tsxFiles(full));
+      else if (entry.name.endsWith(".tsx")) out.push(full);
+    }
+    return out;
+  }
+
+  // A JSX text node is the literal copy between two tags, i.e. outside any
+  // `{...}` expression. Comments are stripped first so examples in comments do
+  // not false-positive. This is exactly the text a reader sees on the page.
+  function jsxTextNodes(source: string): string[] {
+    const stripped = source
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/^[ \t]*\/\/.*$/gm, "");
+    const nodes: string[] = [];
+    const re = />([^<>{}]*)</g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(stripped))) nodes.push(m[1]);
+    return nodes;
+  }
+
+  // "Word ? Word" is a lost glyph: the pricing page once rendered a literal
+  // "Settings ? Billing" after a separator was mis-encoded. Ternary operators
+  // live inside `{}` expressions, so they never reach this scan.
+  const LOST_GLYPH = /[A-Za-z0-9]\s+\?\s+[A-Za-z0-9]/;
+
+  it("no .tsx text node contains a mid-string '?' glyph", () => {
+    const bad: string[] = [];
+    for (const file of tsxFiles(srcRoot)) {
+      for (const node of jsxTextNodes(readFileSync(file, "utf8"))) {
+        const hit = node.match(LOST_GLYPH);
+        if (hit) bad.push(`${file}: ${JSON.stringify(hit[0])}`);
+      }
+    }
+    expect(bad, "JSX mojibake").toEqual([]);
+  });
 });
 
 describe("English is the safe fallback", () => {
@@ -333,7 +380,10 @@ describe("trips count plural forms across locales", () => {
     de: { 0: "0 Fahrten", 1: "1 Fahrt", 2: "2 Fahrten", 5: "5 Fahrten" },
   };
 
-  for (const loc of ["fr", "es", "pt-BR", "de"] as const) {
+  const readyWithTrips = (["fr", "es", "pt-BR", "de"] as const).filter(
+    (l) => LOCALE_STATUS[l] === "ready"
+  );
+  for (const loc of readyWithTrips) {
     it(`${loc} renders 0/1/2/5 with the correct singular/plural form`, () => {
       const t = translator(loc);
       for (const count of counts) {
@@ -351,7 +401,7 @@ describe("trips count plural forms across locales", () => {
   }
 
   it("uses the 'other' form for 2 and 5 in every ready locale", () => {
-    for (const loc of ["fr", "es", "pt-BR", "de"] as const) {
+    for (const loc of READY_LOCALES) {
       for (const count of [2, 5]) {
         const forms = { one: "ONE", other: "OTHER" };
         expect(plural(loc, count, forms)).toBe("OTHER");
@@ -413,7 +463,7 @@ describe("API error codes map to translated text", () => {
 });
 
 describe("enum translation leaves unknown values alone", () => {
-  const t = translator("es");
+  const t = translator("fr");
 
   it("translates a known enum", () => {
     expect(translateEnum(t, "status.", "ACTIVE")).toBe(t("status.active"));
@@ -492,7 +542,7 @@ describe("email copy is localized with English fallback", () => {
 
   it("ships real copy for exactly the ready locales, derived from READY_LOCALES", () => {
     expect(EMAIL_READY_LOCALES).toEqual(READY_LOCALES);
-    expect(EMAIL_READY_LOCALES).toEqual(["en", "fr", "es", "pt-BR", "de"]);
+    expect(EMAIL_READY_LOCALES).toEqual(["en", "fr"]);
     // Arabic is modularized and translated, but the readiness gate guards it.
     expect(LOCALE_STATUS.ar).toBe("pending");
     expect(EMAIL_READY_LOCALES).not.toContain("ar");

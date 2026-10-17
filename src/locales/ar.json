@@ -475,5 +475,7 @@
   "garage.mixed_body": "العملات المتاحة: {currencies}. لا تستطيع AutoEco جمع الإجماليات عبر عملات مختلفة. عدّل قيودك لاستخدام عملة واحدة.",
   "twin.breakdown_operating": "كل المصروفات المسجلة (FORECAST، ثابت)",
   "twin.breakdown_forward_fixed": "التكاليف الثابتة المستقبلية (FORECAST)",
-  "twin.breakdown_depreciation": "الاستهلاك (ESTIMATE)"
+  "twin.breakdown_depreciation": "الاستهلاك (ESTIMATE)",
+  "pricing.billing_link": "الإعدادات > الفوترة",
+  "pricing.trial_note": "تحصل الحسابات الجديدة على تجربة مجانية لمدة 14 يومًا بحدود موسّعة. لا حاجة إلى بطاقة. تبدأ بعد تأكيد بريدك الإلكتروني، وعند انتهائها يعود حسابك إلى خطة Free. ولا يتم تحصيل أي مبلغ منك تلقائيًا."
 }

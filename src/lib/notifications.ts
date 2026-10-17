@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { sendEmail, tplUsageLimitReached } from "./email";
-import { env } from "./env";
+import { appOrigin } from "./seo";
 import { coerceLocale } from "./i18n";
 
 export type NotificationType =
@@ -66,7 +66,7 @@ export async function notifyQuotaLimitReached(params: {
     if (!user || user.deletedAt) return;
 
     await sendEmail({
-      ...tplUsageLimitReached(user.name, label, env.appUrl, coerceLocale(user.locale)),
+      ...tplUsageLimitReached(user.name, label, appOrigin(), coerceLocale(user.locale)),
       to: user.email,
     });
   } catch {

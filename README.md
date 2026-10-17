@@ -27,7 +27,7 @@ safe to drive.
 | Receipts | Upload and store receipt images (quota-limited per plan). OCR/auto-scanning is not implemented yet. |
 | Data export | Download vehicles, fuel entries and expenses as CSV from Settings. |
 | API | Hashed, revocable, rate-limited API keys on the highest plan. |
-| i18n | English, French, Spanish, Portuguese (BR) and German; Arabic translated but pending native-speaker review (`LOCALE_STATUS` in `src/lib/i18n.ts`). |
+| i18n | English and French are `ready`; Spanish, Portuguese (BR), German and Arabic are translated but `pending` native-speaker review, so they are hidden from the selector and fall back to English (`LOCALE_STATUS` in `src/lib/i18n.ts`). |
 
 ### Ask Your Car
 

@@ -72,33 +72,33 @@ runSuite("Profile locale persistence (real DB)", () => {
   }
 
   run("PATCH stores a ready locale on the profile", async () => {
-    const user = await makeUser("set-ready", "fr");
+    const user = await makeUser("set-ready", "en");
     await auth.createSession(user.id);
 
     const res = await route.PATCH(
       new Request("https://autoeco.test/api/profile", {
         method: "PATCH",
-        body: JSON.stringify({ locale: "es" }),
+        body: JSON.stringify({ locale: "fr" }),
         headers: { "content-type": "application/json" },
       }),
       undefined
     );
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.locale).toBe("es");
+    expect(body.locale).toBe("fr");
 
     const stored = await prisma.user.findUnique({ where: { id: user.id } });
-    expect(stored?.locale).toBe("es");
+    expect(stored?.locale).toBe("fr");
   });
 
   run("GET returns the locale that was persisted", async () => {
-    const user = await makeUser("get-ready", "pt-BR");
+    const user = await makeUser("get-ready", "fr");
     await auth.createSession(user.id);
 
     const res = await route.GET(new Request("https://autoeco.test/api/profile"), undefined);
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.locale).toBe("pt-BR");
+    expect(body.locale).toBe("fr");
   });
 
   run("a pending locale (ar) is rejected as a stored value", async () => {

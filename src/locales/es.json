@@ -475,5 +475,7 @@
   "garage.mixed_body": "Divisas presentes: {currencies}. AutoEco no puede agregar totales entre varias divisas. Edite sus registros para usar una sola divisa.",
   "twin.breakdown_operating": "Todos los gastos registrados (FORECAST, plano)",
   "twin.breakdown_forward_fixed": "Costes fijos futuros (FORECAST)",
-  "twin.breakdown_depreciation": "Depreciación (ESTIMATE)"
+  "twin.breakdown_depreciation": "Depreciación (ESTIMATE)",
+  "pricing.billing_link": "Ajustes > Facturación",
+  "pricing.trial_note": "Las cuentas nuevas obtienen una prueba gratuita de 14 días con límites ampliados. No se requiere tarjeta. Comienza después de verificar tu correo electrónico; al finalizar, tu cuenta vuelve al plan Free. Nunca se te cobra automáticamente."
 }

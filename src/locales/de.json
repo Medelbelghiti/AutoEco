@@ -475,5 +475,7 @@
   "garage.mixed_body": "Vorhandene Währungen: {currencies}. AutoEco kann keine Summen über mehrere Währungen hinweg bilden. Bearbeiten Sie Ihre Einträge, um eine einzige Währung zu verwenden.",
   "twin.breakdown_operating": "Alle erfassten Ausgaben (FORECAST, konstant)",
   "twin.breakdown_forward_fixed": "Zukünftige Fixkosten (FORECAST)",
-  "twin.breakdown_depreciation": "Wertminderung (ESTIMATE)"
+  "twin.breakdown_depreciation": "Wertminderung (ESTIMATE)",
+  "pricing.billing_link": "Einstellungen > Abrechnung",
+  "pricing.trial_note": "Neue Konten erhalten einen 14-tägigen kostenlosen Test mit erweiterten Limits. Keine Karte erforderlich. Er beginnt nach der Bestätigung Ihrer E-Mail-Adresse; danach fällt Ihr Konto auf den Free-Tarif zurück. Sie werden nie automatisch belastet."
 }
