@@ -6,12 +6,12 @@
 // to "Content-Security-Policy" to enforce.
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://cdn.paddle.com https://challenges.cloudflare.com",
+  "script-src 'self' 'unsafe-inline' https://cdn.paddle.com https://challenges.cloudflare.com https://www.paypal.com https://www.sandbox.paypal.com https://www.paypalobjects.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.paddle.com https://challenges.cloudflare.com",
-  "frame-src https://*.paddle.com https://challenges.cloudflare.com",
+  "connect-src 'self' https://*.paddle.com https://challenges.cloudflare.com https://www.paypal.com https://www.sandbox.paypal.com https://api-m.paypal.com https://api-m.sandbox.paypal.com",
+  "frame-src 'self' https://*.paddle.com https://challenges.cloudflare.com https://www.paypal.com https://www.sandbox.paypal.com",
   "form-action 'self'",
   "base-uri 'self'",
   "object-src 'none'",

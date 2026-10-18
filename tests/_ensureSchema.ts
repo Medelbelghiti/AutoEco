@@ -130,3 +130,57 @@ export async function ensurePdfReportSchema(prisma: PrismaClient): Promise<void>
     }
   }
 }
+
+/**
+ * PayPal "Founder Lifetime" additive schema: the `PaymentOrder` table and the
+ * dedicated `lifetime` plan row. Mirrors
+ * `prisma/migrations/20261018120000_add_payment_order_and_lifetime_plan`.
+ * Idempotent and additive, so the PayPal tests stay self-contained when
+ * `prisma migrate deploy` has not been run against the test database.
+ */
+export async function ensurePaymentOrderSchema(prisma: PrismaClient): Promise<void> {
+  const stmts = [
+    `CREATE TABLE IF NOT EXISTS "PaymentOrder" (
+      "id" TEXT NOT NULL,
+      "userId" TEXT NOT NULL,
+      "provider" TEXT NOT NULL,
+      "providerOrderId" TEXT NOT NULL,
+      "providerCaptureId" TEXT,
+      "status" TEXT NOT NULL DEFAULT 'created',
+      "amountMinor" INTEGER NOT NULL,
+      "currency" TEXT NOT NULL,
+      "lastEventAt" TIMESTAMP(3),
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "capturedAt" TIMESTAMP(3),
+      "refundedAt" TIMESTAMP(3),
+      CONSTRAINT "PaymentOrder_pkey" PRIMARY KEY ("id")
+    )`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "PaymentOrder_providerOrderId_key" ON "PaymentOrder"("providerOrderId")`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "PaymentOrder_providerCaptureId_key" ON "PaymentOrder"("providerCaptureId")`,
+    `CREATE INDEX IF NOT EXISTS "PaymentOrder_userId_status_idx" ON "PaymentOrder"("userId", "status")`,
+    `CREATE INDEX IF NOT EXISTS "PaymentOrder_status_idx" ON "PaymentOrder"("status")`,
+    `INSERT INTO "Plan" (
+      "id","key","name","description","priceCents","currency","billingPeriod",
+      "maxVehicles","maxExpensesPerMonth","maxTripsPerMonth",
+      "aiReceiptScansPerMonth","aiConversationsPerMonth","reportRetentionDays",
+      "forecastHorizonMonths","enableAdvancedScenarios","enableShareableReports",
+      "enablePdfReports","enableFamilySharing","enableApiAccess","features",
+      "sortOrder","isDemo","createdAt","updatedAt"
+    ) VALUES (
+      'plan_lifetime_founder','lifetime','Founder Lifetime','One payment, lifetime access.',
+      9900,'USD','LIFETIME',
+      5,1000,500,
+      50,100,365,
+      60,true,true,
+      true,false,false,'["Up to 5 vehicles","Ask Your Car","Financial Twin","What-if scenarios"]',
+      90,false,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+    ) ON CONFLICT ("key") DO NOTHING`,
+  ];
+  for (const sql of stmts) {
+    try {
+      await prisma.$executeRawUnsafe(sql);
+    } catch {
+      // ignored
+    }
+  }
+}

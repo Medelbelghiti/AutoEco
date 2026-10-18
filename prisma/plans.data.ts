@@ -20,7 +20,7 @@ export interface PlanDefinition {
   name: string;
   description: string;
   priceCents: number;
-  billingPeriod: "FREE" | "MONTHLY" | "YEARLY";
+  billingPeriod: "FREE" | "MONTHLY" | "YEARLY" | "LIFETIME";
   maxVehicles: number;
   maxExpensesPerMonth: number;
   maxTripsPerMonth: number;
@@ -36,6 +36,44 @@ export interface PlanDefinition {
   features: string[];
   sortOrder: number;
 }
+
+/**
+ * The one-time "Founder Lifetime" plan.
+ *
+ * Deliberately NOT part of `PLANS`:
+ *   - it is not a subscription and must never appear in the public pricing
+ *     grid or the Paddle price-id mapping, and
+ *   - `tests/plans-features.test.ts` asserts the `update_plan_features`
+ *     migration contains exactly `PLANS.length` UPDATE statements; adding a
+ *     fourth entry to `PLANS` without a matching migration statement would
+ *     break that invariant.
+ *
+ * It grants exactly the Pro limits and monthly quotas. `priceCents` is
+ * deliberately non-zero: `getEntitlements()` refuses to honour a paid plan
+ * via the stale `User.planId` pointer alone (`fallback.priceCents === 0`),
+ * and a zero here would let a bare pointer grant lifetime access.
+ */
+export const LIFETIME_PLAN: PlanDefinition = {
+  key: "lifetime",
+  name: "Founder Lifetime",
+  description: "One payment, lifetime access.",
+  priceCents: 9900,
+  billingPeriod: "LIFETIME",
+  maxVehicles: 5,
+  maxExpensesPerMonth: 1000,
+  maxTripsPerMonth: 500,
+  aiReceiptScansPerMonth: 50,
+  aiConversationsPerMonth: 100,
+  reportRetentionDays: 365,
+  forecastHorizonMonths: 60,
+  enableAdvancedScenarios: true,
+  enableShareableReports: true,
+  enablePdfReports: true,
+  enableFamilySharing: false,
+  enableApiAccess: false,
+  features: ["Up to 5 vehicles", "Ask Your Car", "Financial Twin", "What-if scenarios"],
+  sortOrder: 90,
+};
 
 export const PLANS: PlanDefinition[] = [
   {

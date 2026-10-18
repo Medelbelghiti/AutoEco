@@ -6,6 +6,10 @@ import { getEntitlements } from "@/lib/plans";
 import { formatMoney } from "@/lib/finance";
 import { paddleConfigured } from "@/lib/env";
 import { getPriceIdFor, PADDLE_PLAN_KEYS, isPaddlePlanKey } from "@/lib/paddle";
+import { paypalConfigured, paypalSdkClientId, lifetimePriceMinor, lifetimeCurrency } from "@/lib/paypal";
+import { lifetimeGrantAvailable } from "@/lib/paypal-billing";
+import { PayPalLifetimeButton } from "@/components/PayPalLifetimeButton";
+import { getT } from "@/lib/server-i18n";
 import { BillingClient } from "./Client";
 
 const PERIOD_SUFFIX: Record<string, string> = {
@@ -59,6 +63,12 @@ export default async function BillingPage() {
   }
 
   const providerEnabled = paddleBillingEnabled;
+
+  const t = getT();
+  // The one-time Founder Lifetime offer, shown only when fully configured, a
+  // slot is available and the user does not already hold it.
+  const showLifetime =
+    paypalConfigured() && ent.subscriptionStatus !== "lifetime" && (await lifetimeGrantAvailable());
 
   const statusTone =
     ent.subscriptionStatus === "active" || ent.subscriptionStatus === "lifetime"
@@ -135,6 +145,31 @@ export default async function BillingPage() {
           email={user.email}
         />
       </section>
+
+      {showLifetime && (
+        <section className="card border-emerald-500 ring-1 ring-emerald-500/40" aria-labelledby="lifetime-heading">
+          <p id="lifetime-heading" className="font-semibold">{t("lifetime.title")}</p>
+          <p className="text-sm text-charcoal-500 mt-1">{t("lifetime.subtitle")}</p>
+          <p className="mt-2">
+            <span className="text-2xl font-extrabold">
+              {formatMoney(lifetimePriceMinor(), lifetimeCurrency())}
+            </span>
+            <span className="text-sm text-charcoal-500"> {t("lifetime.price_note")}</span>
+          </p>
+          <p className="text-xs text-charcoal-500 mt-1">{t("lifetime.includes")}</p>
+          <div className="mt-3 max-w-xs">
+            {user.emailVerifiedAt ? (
+              <PayPalLifetimeButton
+                clientId={paypalSdkClientId()}
+                currency={lifetimeCurrency()}
+                label={t("lifetime.cta")}
+              />
+            ) : (
+              <p className="text-sm text-charcoal-500">{t("lifetime.verified_only")}</p>
+            )}
+          </div>
+        </section>
+      )}
 
       <section className="card" aria-labelledby="plans-heading">
         <p id="plans-heading" className="font-semibold">Change plan</p>

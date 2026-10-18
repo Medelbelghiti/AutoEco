@@ -15,8 +15,12 @@ export const COMING_SOON_FEATURES = {
   apiAccess: true, // API-key auth exists in lib/api-keys.ts but no route uses it
 } as const;
 
-/** Plans whose headline feature is not built; hidden from pricing and checkout. */
-export const UNAVAILABLE_PLAN_KEYS: string[] = ["family"];
+/**
+ * Plans that must not appear in the public pricing grid or the settings plan
+ * picker. `family` has an unbuilt headline feature; `lifetime` is a one-time
+ * purchase surfaced by its own dedicated card, never as a recurring plan.
+ */
+export const UNAVAILABLE_PLAN_KEYS: string[] = ["family", "lifetime"];
 
 export interface Entitlements {
   planKey: string;
