@@ -82,6 +82,7 @@ model User {
   auditLogs         AuditLog[]
   subscriptions     Subscription[]
   invoices          Invoice[]
+  paymentOrders     PaymentOrder[]
   apiKeys           ApiKey[]
   couponRedemptions CouponRedemption[]
 
@@ -195,6 +196,38 @@ model RefundAdjustment {
   createdAt     DateTime @default(now())
 
   @@index([transactionId])
+}
+
+// ---------------------------- PayPal one-time orders ----------------------------
+// One row per PayPal order created for the one-time "Founder Lifetime"
+// purchase. `providerOrderId` (the PayPal order id) is UNIQUE and is the
+// idempotency anchor: both the capture endpoint and the webhook resolve a
+// grant through it, so a redelivered event or a double capture can never
+// grant twice. NO card data is ever stored here — only PayPal's own ids,
+// amounts and state.
+model PaymentOrder {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Payment provider slug. Only "paypal" today.
+  provider          String
+  // PayPal order id (the `id` returned by create-order). UNIQUE: the anchor.
+  providerOrderId   String    @unique
+  // PayPal capture id (from the capture response or the webhook). UNIQUE when
+  // present; null until a capture is seen.
+  providerCaptureId String?   @unique
+  // created | captured | partially_refunded | refunded | denied
+  status            String    @default("created")
+  amountMinor       Int
+  currency          String
+  // create_time of the last provider event applied (out-of-order guard).
+  lastEventAt       DateTime?
+  createdAt         DateTime  @default(now())
+  capturedAt        DateTime?
+  refundedAt        DateTime?
+
+  @@index([userId, status])
+  @@index([status])
 }
 
 model Invoice {

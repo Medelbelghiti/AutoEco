@@ -477,5 +477,12 @@
   "twin.breakdown_forward_fixed": "Zukünftige Fixkosten (FORECAST)",
   "twin.breakdown_depreciation": "Wertminderung (ESTIMATE)",
   "pricing.billing_link": "Einstellungen > Abrechnung",
-  "pricing.trial_note": "Neue Konten erhalten einen 14-tägigen kostenlosen Test mit erweiterten Limits. Keine Karte erforderlich. Er beginnt nach der Bestätigung Ihrer E-Mail-Adresse; danach fällt Ihr Konto auf den Free-Tarif zurück. Sie werden nie automatisch belastet."
+  "pricing.trial_note": "Neue Konten erhalten einen 14-tägigen kostenlosen Test mit erweiterten Limits. Keine Karte erforderlich. Er beginnt nach der Bestätigung Ihrer E-Mail-Adresse; danach fällt Ihr Konto auf den Free-Tarif zurück. Sie werden nie automatisch belastet.",
+  "lifetime.title": "Gründer auf Lebenszeit",
+  "lifetime.subtitle": "Eine Zahlung, lebenslanger Zugriff.",
+  "lifetime.price_note": "Einmalige Zahlung. Kein Abo, keine Verlängerung.",
+  "lifetime.includes": "Dieselben Limits und monatlichen Kontingente wie der Pro-Tarif.",
+  "lifetime.cta": "Gründer-Lebenszeit holen",
+  "lifetime.verified_only": "Bestätigen Sie Ihre E-Mail-Adresse vor dem Kauf.",
+  "lifetime.current": "Sie haben lebenslangen Zugriff."
 }

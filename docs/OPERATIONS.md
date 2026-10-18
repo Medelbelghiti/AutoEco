@@ -122,3 +122,65 @@ The trial does grant Ask Your Car (25 grounded questions/month:
 `src/lib/plans.ts`, gated by `ent.aiConversationsPerMonth` in
 `src/app/api/ai/route.ts`). The same wording is used on `/pricing`, in the FAQ,
 the Terms (§4) and the Refund Policy (§3).
+
+## PayPal — one-time "Founder Lifetime"
+
+A single one-time purchase that grants **lifetime** access with the **same
+limits and monthly quotas as the Pro plan**. It is billed by PayPal, NOT by
+Paddle (Paddle stays the subscription provider and is untouched by this
+feature).
+
+### Configuration (server side only)
+
+| Variable | Meaning |
+| --- | --- |
+| `BILLING_ENABLED` | Feature flag. **Default `false`.** Only `"true"` enables it. |
+| `PAYPAL_ENV` | `"sandbox"` (default) or `"live"`. |
+| `PAYPAL_CLIENT_ID` | Public app client id (sent to the browser). |
+| `PAYPAL_CLIENT_SECRET` | **Secret.** Never logged, never sent to the client. |
+| `PAYPAL_WEBHOOK_ID` | Webhook id used to verify signatures. |
+| `LIFETIME_PRICE_MINOR` | Price in minor units (`9900` = USD 99.00). |
+| `LIFETIME_CURRENCY` | ISO 4217 code (`USD`). |
+| `LIFETIME_MAX_GRANTS` | Grant cap. The **code default is `0` = disabled**; the configured cap is supplied here. |
+
+**Fail closed.** If billing is disabled OR any PayPal credential, the price or
+the currency is missing, the feature is OFF: no endpoint creates an order, no
+button is rendered and the webhook returns 503. There is no partial mode.
+
+### Webhook
+
+- URL: `https://<domain>/api/paypal/webhook`
+- Subscribed events: `PAYMENT.CAPTURE.COMPLETED`,
+  `PAYMENT.CAPTURE.REFUNDED`, `PAYMENT.CAPTURE.REVERSED`,
+  `PAYMENT.CAPTURE.DENIED`.
+- The signature is verified through PayPal's own
+  `POST /v1/notifications/verify-webhook-signature` and **fails closed**.
+- Delivery is de-duplicated by event id through the shared `WebhookEvent`
+  state machine, and every grant/refund is applied through a conditional claim
+  on the stored `PaymentOrder`, so replays and out-of-order deliveries are
+  idempotent. Unknown orders/users are audited and answered `200`.
+
+### Entitlement & refund rules
+
+- Access is granted ONLY by a verified event (or a server-side re-check in the
+  capture endpoint), never by a client claim.
+- Grants are capped at `LIFETIME_MAX_GRANTS`; the cap is enforced under a row
+  lock so two concurrent captures cannot both take the last slot.
+- A **full** refund (or a reversal) revokes lifetime access and drops the user
+  to Free when nothing else is active. A **partial** refund keeps access and
+  records the partial state and amount.
+- No card data is ever read or stored — only PayPal's own order/capture ids,
+  amounts and status.
+
+### Turning it on (ordered)
+
+1. Create a PayPal Business app; note the client id and secret.
+2. In the app, add a webhook to `https://<domain>/api/paypal/webhook` with the
+   four events above and copy its **Webhook ID**.
+3. Set `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID`,
+   `LIFETIME_PRICE_MINOR`, `LIFETIME_CURRENCY`, `LIFETIME_MAX_GRANTS` and
+   `PAYPAL_ENV=sandbox` in the deployment environment.
+4. Deploy, then run a **sandbox** purchase end to end.
+5. Only when the sandbox round trip succeeds, set `BILLING_ENABLED="true"`.
+6. Switch to `PAYPAL_ENV=live` with live credentials only when ready to take
+   real money.

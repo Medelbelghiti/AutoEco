@@ -477,5 +477,12 @@
   "twin.breakdown_forward_fixed": "Costes fijos futuros (FORECAST)",
   "twin.breakdown_depreciation": "Depreciación (ESTIMATE)",
   "pricing.billing_link": "Ajustes > Facturación",
-  "pricing.trial_note": "Las cuentas nuevas obtienen una prueba gratuita de 14 días con límites ampliados. No se requiere tarjeta. Comienza después de verificar tu correo electrónico; al finalizar, tu cuenta vuelve al plan Free. Nunca se te cobra automáticamente."
+  "pricing.trial_note": "Las cuentas nuevas obtienen una prueba gratuita de 14 días con límites ampliados. No se requiere tarjeta. Comienza después de verificar tu correo electrónico; al finalizar, tu cuenta vuelve al plan Free. Nunca se te cobra automáticamente.",
+  "lifetime.title": "Fundador de por vida",
+  "lifetime.subtitle": "Un solo pago, acceso de por vida.",
+  "lifetime.price_note": "Pago único. Sin suscripción ni renovación.",
+  "lifetime.includes": "Mismos límites y cuotas mensuales que el plan Pro.",
+  "lifetime.cta": "Obtener Fundador de por vida",
+  "lifetime.verified_only": "Verifica tu correo electrónico antes de comprar.",
+  "lifetime.current": "Tienes acceso de por vida."
 }

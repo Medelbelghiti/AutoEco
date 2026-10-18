@@ -10,6 +10,9 @@ import { getT } from "@/lib/server-i18n";
 import { getEntitlements, COMING_SOON_FEATURES, UNAVAILABLE_PLAN_KEYS } from "@/lib/plans";
 import { paddleConfigured } from "@/lib/env";
 import { getPriceIdFor, PADDLE_PLAN_KEYS, isPaddlePlanKey } from "@/lib/paddle";
+import { paypalConfigured, paypalSdkClientId, lifetimePriceMinor, lifetimeCurrency } from "@/lib/paypal";
+import { lifetimeGrantAvailable } from "@/lib/paypal-billing";
+import { PayPalLifetimeButton } from "@/components/PayPalLifetimeButton";
 import { pageMeta } from "@/lib/seo";
 import { PricingCheckout } from "./Checkout";
 
@@ -102,6 +105,12 @@ export default async function PricingPage() {
 
   const highlightKey = ent && ent.planKey !== "trial" ? ent.planKey : "pro";
   const featured = plans.find((p) => p.key === highlightKey) ?? plans.find((p) => p.priceCents > 0) ?? null;
+
+  // The one-time Founder Lifetime offer is shown ONLY when it is fully
+  // configured, a slot is still available and the visitor does not already
+  // hold it. Never advertise a grant the server would refuse.
+  const showLifetime =
+    paypalConfigured() && !(ent?.isLifetime ?? false) && (await lifetimeGrantAvailable());
 
   return (
     <MarketingShell>
@@ -259,6 +268,41 @@ export default async function PricingPage() {
             );
           })}
         </div>
+
+        {showLifetime && (
+          <div className="card mt-8 border-emerald-500 ring-1 ring-emerald-500/40" aria-labelledby="lifetime-heading">
+            <div className="flex flex-wrap items-start justify-between gap-6">
+              <div className="min-w-[16rem] flex-1">
+                <p id="lifetime-heading" className="text-lg font-bold">{t("lifetime.title")}</p>
+                <p className="text-sm text-charcoal-500 mt-1">{t("lifetime.subtitle")}</p>
+                <p className="mt-3">
+                  <span className="text-3xl font-extrabold">
+                    {formatMoney(lifetimePriceMinor(), lifetimeCurrency())}
+                  </span>
+                  <span className="text-sm font-medium text-charcoal-500"> {t("lifetime.price_note")}</span>
+                </p>
+                <p className="text-xs text-charcoal-500 mt-1">{t("lifetime.includes")}</p>
+              </div>
+              <div className="w-full sm:w-64">
+                {user ? (
+                  user.emailVerifiedAt ? (
+                    <PayPalLifetimeButton
+                      clientId={paypalSdkClientId()}
+                      currency={lifetimeCurrency()}
+                      label={t("lifetime.cta")}
+                    />
+                  ) : (
+                    <p className="text-sm text-charcoal-500">{t("lifetime.verified_only")}</p>
+                  )
+                ) : (
+                  <Link href="/signup?plan=lifetime" className="btn btn-accent w-full">
+                    {t("lifetime.cta")}
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="card mt-8">
           <p className="font-semibold">Good to know</p>

@@ -477,5 +477,12 @@
   "twin.breakdown_forward_fixed": "Custos fixos futuros (FORECAST)",
   "twin.breakdown_depreciation": "Depreciação (ESTIMATE)",
   "pricing.billing_link": "Configurações > Cobrança",
-  "pricing.trial_note": "Novas contas ganham um teste gratuito de 14 dias com limites ampliados. Não é necessário cartão. Ele começa depois que você verifica seu e-mail; ao terminar, sua conta volta ao plano Free. Você nunca é cobrado automaticamente."
+  "pricing.trial_note": "Novas contas ganham um teste gratuito de 14 dias com limites ampliados. Não é necessário cartão. Ele começa depois que você verifica seu e-mail; ao terminar, sua conta volta ao plano Free. Você nunca é cobrado automaticamente.",
+  "lifetime.title": "Fundador Vitalício",
+  "lifetime.subtitle": "Um pagamento, acesso vitalício.",
+  "lifetime.price_note": "Pagamento único. Sem assinatura nem renovação.",
+  "lifetime.includes": "Mesmos limites e cotas mensais do plano Pro.",
+  "lifetime.cta": "Obter Fundador Vitalício",
+  "lifetime.verified_only": "Verifique seu e-mail antes de comprar.",
+  "lifetime.current": "Você tem acesso vitalício."
 }

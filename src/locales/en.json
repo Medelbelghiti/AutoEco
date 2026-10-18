@@ -477,5 +477,12 @@
   "twin.breakdown_forward_fixed": "Forward fixed (FORECAST)",
   "twin.breakdown_depreciation": "Depreciation (ESTIMATE)",
   "pricing.billing_link": "Settings > Billing",
-  "pricing.trial_note": "New accounts get a 14-day free trial with expanded limits. No card required. It starts after you verify your email; when it ends, your account returns to the Free plan. You are never charged automatically."
+  "pricing.trial_note": "New accounts get a 14-day free trial with expanded limits. No card required. It starts after you verify your email; when it ends, your account returns to the Free plan. You are never charged automatically.",
+  "lifetime.title": "Founder Lifetime",
+  "lifetime.subtitle": "One payment, lifetime access.",
+  "lifetime.price_note": "One-time payment. No subscription, no renewal.",
+  "lifetime.includes": "Same limits and monthly quotas as the Pro plan.",
+  "lifetime.cta": "Get Founder Lifetime",
+  "lifetime.verified_only": "Verify your email before purchasing.",
+  "lifetime.current": "You have lifetime access."
 }
