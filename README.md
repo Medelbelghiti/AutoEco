@@ -67,7 +67,7 @@ Landing page → Free calculators (no signup) → Signup → Dashboard
 | Language | TypeScript (strict) |
 | Database | Prisma 5 — SQLite (dev) / PostgreSQL (prod) |
 | Auth | Custom JWT (`jose`) in `HttpOnly` cookies + bcryptjs |
-| Payments | Paddle (primary) — client-side Paddle.js checkout, server-verified webhooks |
+| Payments | PayPal (one-time lifetime checkout, feature-flagged); no active subscription processor |
 | Styling | Tailwind CSS |
 | Email | Nodemailer (`console` default, or SMTP) |
 | Exports | CSV (hand-rolled) |
@@ -154,8 +154,7 @@ See `.env.example`. The core app — tracking, cost engine, calculators, export 
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | for SMTP | Email delivery |
 | `OPENAI_API_KEY` | no | Optional LLM phrasing layer for Ask Your Car |
 
-Paddle.js refuses to open a live checkout unless `NEXT_PUBLIC_PADDLE_ENV=live`, so sandbox by
-default is a safety feature, not an oversight.
+Payments are processed by PayPal. We do not store your card details.
 
 ---
 
@@ -175,10 +174,9 @@ npm run build
 1. Set `NODE_ENV=production`.
 2. Set `NEXT_PUBLIC_APP_URL` to the public HTTPS origin.
 3. Set `AUTH_SECRET` to 32+ random bytes. The app refuses to boot in production without it.
-4. Configure Paddle: API key, webhook secret, seller id, price ids, and `PADDLE_ENV=live` /
-   `NEXT_PUBLIC_PADDLE_ENV=live` when you are ready to charge real money.
-5. Point a Paddle webhook at `https://yourdomain.com/api/paddle/webhook` and subscribe it to
-   subscription and transaction events.
+4. Payments: configure PayPal only after the sandbox round trip in
+   `docs/OPERATIONS.md`. Payments are processed by PayPal. We do not store your card details.
+5. Leave `BILLING_ENABLED` off until that sandbox round trip succeeds.
 6. Configure SMTP (`EMAIL_PROVIDER=smtp`) — otherwise all transactional email is only logged.
 7. `npm run build` (runs migrations via `scripts/build-with-migrate.js`).
 8. `npm run prisma:seed` on first run (idempotent).
@@ -229,8 +227,8 @@ npm run build
 
 * Receipt OCR is not implemented yet; uploaded receipt images are stored but not parsed. Ask Your Car quotas are per plan and reset monthly.
 * The default email provider is `console`. Configure SMTP for production.
-* Paid plans require Paddle to be configured; without it the pricing page shows real prices but
-  checkout is unavailable rather than pretending to work.
+* No subscription processor is configured: the pricing page shows real prices but checkout is
+  unavailable rather than pretending to work.
 * Financial projections are estimates from your own averages. They are labeled as estimates
   throughout the UI.
 

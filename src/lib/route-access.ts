@@ -45,7 +45,6 @@ export const PUBLIC_PREFIXES = [
   "/privacy",
   "/acceptable-use",
   "/refund-policy",
-  "/affiliate-terms",
 ];
 
 /**

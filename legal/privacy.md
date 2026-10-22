@@ -27,9 +27,7 @@ password in plain text.
 - Receipt images you upload for scanning;
 - Generated reports, forecasts and scenarios.
 
-**Billing data.** Paid plans are processed by our payment processor, Paddle. They receive your
-payment details and return subscription status, invoices and transaction identifiers.
-**We do not store full card numbers.**
+**Billing data.** Payments are processed by PayPal. We do not store your card details.
 
 **Technical data.** IP address, user agent, request timestamps, authentication events, failed login
 attempts, and audit logs used to operate, secure and debug the Service.
@@ -78,8 +76,7 @@ We use a deliberately small set of cookies:
 
 We share data only as needed to operate the Service:
 
-- **Payment processing:** Paddle, our payment processor, handles payments and
-  returns subscription and invoice status.
+- **Payment processing:** Payments are processed by PayPal. We do not store your card details.
 - **Email delivery:** our SMTP provider, for transactional email such as password reset and
   billing notices.
 - **Infrastructure:** database hosting, application hosting and email delivery, acting as
@@ -119,7 +116,7 @@ Subject to applicable law (including GDPR), you have the right to:
 - **Lodge a complaint** with your local data protection authority.
 
 To exercise these rights, use the in-product export and delete features, or contact
-`[PRIVACY EMAIL]`. We may need to verify your identity before acting on a request.
+`support@myautoeco.com`. We may need to verify your identity before acting on a request.
 
 ## 7. Security Measures
 
@@ -147,6 +144,6 @@ email with reasonable advance notice. The "Last updated" date reflects the lates
 
 ## 11. Contact
 
-Privacy questions and data requests: `[PRIVACY EMAIL]`
+Privacy questions and data requests: `support@myautoeco.com`
 
 Data Controller: `[LEGAL ENTITY NAME]` — `[REGISTERED ADDRESS]`

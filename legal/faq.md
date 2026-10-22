@@ -88,7 +88,7 @@ involves no charge, so refunds apply only to paid subscriptions and one-time pur
 ### 13. Is API access available?
 
 Yes, on the Pro Plus plan. API keys are hashed at rest, revocable, and rate limited. Check the
-pricing page or contact `[CONTACT EMAIL]` for documentation.
+pricing page or contact `support@myautoeco.com` for documentation.
 
 ### 14. Can I delete my account and my data?
 
@@ -105,8 +105,8 @@ No. We do not sell personal data and we do not run advertising or ad tracking. S
 ### 16. Do you offer referral or affiliate programs?
 
 Referral rewards may be offered in the product. The affiliate program is not currently open for
-applications — see the [Affiliate Program Terms](/affiliate-terms).
+applications.
 
 ---
 
-Still have questions? Contact us at `[CONTACT EMAIL]`.
+Still have questions? Contact us at `support@myautoeco.com`.

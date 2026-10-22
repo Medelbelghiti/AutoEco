@@ -98,7 +98,6 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
               { href: "/privacy", label: t("legal.privacy") },
               { href: "/acceptable-use", label: t("legal.aup") },
               { href: "/refund-policy", label: t("legal.refund") },
-              { href: "/affiliate-terms", label: t("legal.affiliate") },
             ]}
           />
           <FooterCol
