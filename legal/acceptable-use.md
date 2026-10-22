@@ -84,7 +84,7 @@ Service or other users.
 
 ## 5. Reporting Violations
 
-To report abuse of the Service, contact `[ABUSE EMAIL]` with relevant details.
+To report abuse of the Service, contact `support@myautoeco.com` with relevant details.
 
 ## 6. Changes to This Policy
 

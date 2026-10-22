@@ -121,6 +121,16 @@ export function emailConfigured(): boolean {
 }
 
 /**
+ * Optional Reply-To address applied to every outgoing message. Read LIVE from
+ * `process.env` so an operator can set or clear it without a restart. An empty
+ * value means the Reply-To header is omitted entirely.
+ */
+export function emailReplyTo(): string | undefined {
+  const value = (process.env.EMAIL_REPLY_TO ?? "").trim();
+  return value || undefined;
+}
+
+/**
  * Soft production misconfigurations. These must NOT crash the app — a
  * missing SMTP host should degrade visibility, not take the whole site
  * down — but they are surfaced on /api/health, the admin dashboard and the

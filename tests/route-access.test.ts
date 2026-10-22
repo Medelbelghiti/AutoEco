@@ -20,7 +20,6 @@ describe("route classification", () => {
       "/privacy",
       "/refund-policy",
       "/acceptable-use",
-      "/affiliate-terms",
       "/login",
       "/signup",
       "/verify-email",

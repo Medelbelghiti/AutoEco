@@ -46,7 +46,7 @@ not forecasts of future market conditions.
   account.
 - One person may not maintain multiple accounts to obtain repeated trials or to bypass plan limits
   (see our [Acceptable Use Policy](/acceptable-use)).
-- You must notify us promptly at `[CONTACT EMAIL]` of any unauthorized use of your account.
+- You must notify us promptly at `support@myautoeco.com` of any unauthorized use of your account.
 
 ## 4. Free Trial
 
@@ -60,10 +60,8 @@ not forecasts of future market conditions.
 
 ## 5. Subscriptions & Billing
 
-- Paid plans are billed in advance on a recurring monthly basis through our payment processor,
-  Paddle.
-- **Paddle is the Merchant of Record** for paid plans. Your purchase is made with Paddle, and
-  Paddle's buyer terms and privacy policy apply to the payment transaction.
+- Payments are processed by PayPal. We do not store your card details.
+- Founder Lifetime: [LIFETIME DEFINITION]
 - Subscriptions renew automatically unless cancelled. You may cancel at any time from Settings;
   cancellation takes effect at the end of the current billing period, and you retain access until
   then.
@@ -143,6 +141,6 @@ changes constitutes acceptance of the updated Terms.
 
 ## 14. Contact
 
-Questions about these Terms: `[CONTACT EMAIL]`
+Questions about these Terms: `support@myautoeco.com`
 
 `[LEGAL ENTITY NAME]` — `[REGISTERED ADDRESS]`

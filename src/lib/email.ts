@@ -1,5 +1,5 @@
 import nodemailer, { type Transporter } from "nodemailer";
-import { env } from "./env";
+import { emailReplyTo, env } from "./env";
 import { auditLog } from "./audit";
 import { renderEmailCopy } from "./email-i18n";
 import { coerceLocale, type Locale } from "./i18n";
@@ -14,6 +14,23 @@ export type EmailMessage = {
 export interface EmailProvider {
   send(msg: EmailMessage): Promise<{ ok: boolean; error?: string }>;
   getName(): string;
+}
+
+/**
+ * SMTP envelope/header options for one message. `replyTo` is only present when
+ * `EMAIL_REPLY_TO` is set, so a missing value omits the header rather than
+ * sending an empty one.
+ */
+export function buildSmtpMailOptions(msg: EmailMessage) {
+  const replyTo = emailReplyTo();
+  return {
+    from: env.emailFrom,
+    to: msg.to,
+    subject: msg.subject,
+    html: msg.html,
+    text: msg.text,
+    ...(replyTo ? { replyTo } : {}),
+  };
 }
 
 class ConsoleProvider implements EmailProvider {
@@ -59,13 +76,7 @@ class SmtpProvider implements EmailProvider {
   }
   async send(msg: EmailMessage): Promise<{ ok: boolean; error?: string }> {
     try {
-      await this.getTransporter().sendMail({
-        from: env.emailFrom,
-        to: msg.to,
-        subject: msg.subject,
-        html: msg.html,
-        text: msg.text,
-      });
+      await this.getTransporter().sendMail(buildSmtpMailOptions(msg));
       await auditLog({
         action: "email.sent",
         metadata: { provider: "smtp", to: maskEmail(msg.to), subject: msg.subject },

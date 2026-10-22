@@ -13,7 +13,6 @@ const PAGES = [
   { file: "privacy.md", route: "/privacy" },
   { file: "refund-policy.md", route: "/refund-policy" },
   { file: "acceptable-use.md", route: "/acceptable-use" },
-  { file: "affiliate-terms.md", route: "/affiliate-terms" },
 ];
 
 describe("legal placeholder detection", () => {

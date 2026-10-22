@@ -154,8 +154,9 @@ export default async function PricingPage() {
           <div className="card mt-6 border-amber-300 bg-amber-50 text-sm dark:bg-amber-900/10 dark:border-amber-800">
             <p className="font-semibold text-amber-800 dark:text-amber-200">Checkout is not configured yet.</p>
             <p className="mt-1 text-amber-700 dark:text-amber-200/80">
-              The plans and prices below are the real configured plans. Paid checkout becomes available once
-              the Paddle environment variables are set on the server. The free plan works right now.
+              The plans and prices below are the real configured plans. Paid checkout is not currently
+              available. Payments are processed by PayPal. We do not store your card details. The free
+              plan works right now.
             </p>
           </div>
         )}

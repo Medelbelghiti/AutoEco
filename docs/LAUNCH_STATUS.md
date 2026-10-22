@@ -36,7 +36,7 @@ era and declared the product READY. They were stale and are removed.
 
 ## Still BLOCKING launch (cannot be fixed in code)
 1. Legal entity + `[BRACKETED]` placeholders in `legal/*.md` (run `npm run check:launch`). Needs a lawyer / your company details.
-2. Paddle: complete seller verification, create products/prices, set `PADDLE_*` + `NEXT_PUBLIC_PADDLE_*`, `PADDLE_ENV=live`, webhook endpoint. Test the full cycle in sandbox first (checkout, renewal, failed payment, cancel, refund). Only the monthly Pro / Family / Pro Plus prices are sold — lifetime is intentionally not offered.
+2. Payments: Paddle was rejected and is not used. Do not configure `PADDLE_*`. Payments are processed by PayPal. We do not store your card details. Complete the sandbox round trip before enabling `BILLING_ENABLED`.
 3. Email: `EMAIL_PROVIDER=smtp` + domain SPF/DKIM/DMARC. Verification + reset emails currently reach nobody.
 4. Persistent receipt storage (S3/R2 or mounted volume) before re-enabling uploads on Vercel.
 5. Custom domain; update `NEXT_PUBLIC_APP_URL`.
@@ -75,7 +75,7 @@ era and declared the product READY. They were stale and are removed.
   signup returns the same envelope as a real signup and notifies the owner.
 - OCR, family sharing and API access: not built (marked "Coming soon"; the Family plan stays hidden). The cost-of-ownership PDF report *is* built.
 - Locales: English and French are `ready`; Spanish, Portuguese (BR), German and Arabic are translated but `pending` native-speaker review, so they are hidden from the selector and degrade to English. The RTL chrome itself ships (`dirFor("ar")` = rtl).
-- No annual plans yet (needs Paddle yearly prices + `YEARLY` plan rows).
+- No annual plans yet.
 - `npm audit` still reports advisories whose fix is a major upgrade (Next 15/16, Tailwind 4, Vitest 5 dev-only).
 - ~~The cookie is still named `lg_session` and API keys use `lgk_`~~ Rotated in
   2.4 to `autoeco_session` / `aek_`; the legacy names are still accepted on read

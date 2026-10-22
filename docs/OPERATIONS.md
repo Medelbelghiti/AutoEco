@@ -101,6 +101,14 @@ Because both SEO and the mailers read the same helper, a mismatch between
 `APP_URL` and `SITE_URL` cannot produce a canonical `myautoeco.com` URL next to a
 reset link on a different host. `tests/canonical-origin.test.ts` pins this.
 
+### Reply-To
+
+Set `EMAIL_REPLY_TO` to a monitored mailbox (for example
+`support@myautoeco.com`) to add a `Reply-To` header to every outgoing message.
+When it is empty the header is omitted, and replies go to `EMAIL_FROM` as
+before. Read live from `process.env`; no redeploy is needed to change it.
+`tests/email-reply-to.test.ts` covers both states.
+
 ### Apex ↔ www
 
 The apex domain (`myautoeco.com`) redirecting to `www` is an **edge / DNS**
@@ -126,9 +134,8 @@ the Terms (§4) and the Refund Policy (§3).
 ## PayPal — one-time "Founder Lifetime"
 
 A single one-time purchase that grants **lifetime** access with the **same
-limits and monthly quotas as the Pro plan**. It is billed by PayPal, NOT by
-Paddle (Paddle stays the subscription provider and is untouched by this
-feature).
+limits and monthly quotas as the Pro plan**. Payments are processed by
+PayPal. We do not store your card details.
 
 ### Configuration (server side only)
 
