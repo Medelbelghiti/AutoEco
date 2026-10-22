@@ -165,6 +165,30 @@ export function prodWarnings(): string[] {
       "CRON_SECRET is unset or shorter than 16 characters — every /api/cron/* route returns 503, so subscription expiry, trial-ending email and account purges will not run."
     );
   }
+  // No payment provider at all: visitors can browse the pricing page but
+  // cannot buy anything. This is the "nothing is for sale" state and is the
+  // single most expensive misconfiguration to miss, so it is called out even
+  // though both providers are individually warned about above.
+  const paddleActive = Boolean(
+    env.paddleApiKey && env.paddleWebhookSecret && env.paddleSellerId
+  );
+  const paypalActive =
+    (process.env.BILLING_ENABLED ?? "").toLowerCase() === "true" &&
+    Boolean(
+      process.env.PAYPAL_CLIENT_ID &&
+        process.env.PAYPAL_CLIENT_SECRET &&
+        process.env.PAYPAL_WEBHOOK_ID
+    );
+  if (!paddleActive && !paypalActive) {
+    w.push(
+      "No payment provider is active: Paddle is unconfigured and PayPal lifetime is off (BILLING_ENABLED). The pricing page shows no checkout — visitors cannot subscribe or buy."
+    );
+  }
+  if (!env.sentryDsn) {
+    w.push(
+      "SENTRY_DSN is unset — production errors stay in the platform log only (no alerting, no grouping, no source-mapped stack traces)."
+    );
+  }
   return w;
 }
 
