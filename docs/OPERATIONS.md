@@ -184,3 +184,69 @@ button is rendered and the webhook returns 503. There is no partial mode.
 5. Only when the sandbox round trip succeeds, set `BILLING_ENABLED="true"`.
 6. Switch to `PAYPAL_ENV=live` with live credentials only when ready to take
    real money.
+
+## Backups and restore
+
+The production database is the only durable asset: every vehicle, expense,
+fuel entry, invoice and webhook state machine row lives there. Nothing else
+(objects, files) is durable — receipts are only stored when an S3/R2 bucket is
+configured, and that bucket needs its own versioning.
+
+### What backs up what
+
+| Asset | Where it lives | Backup |
+| --- | --- | --- |
+| Postgres (Neon) | Neon project | Neon's **point-in-time restore** (default: 7 days on Free, configurable on paid) + daily encrypted snapshots |
+| Receipt objects | S3 / R2 bucket | Enable **versioning** + lifecycle rules; the provider's own replication is the backup |
+| Env vars (secrets) | Vercel project settings | Not backed up by Vercel — keep an offline copy (see below) |
+| Source | GitHub | Already durable |
+
+### Weekly offsite dump (belt and braces)
+
+Point-in-time restore is not a substitute for a copy you control. Run this on a
+schedule (local shell, or a GitHub Action with the DB URL as a secret):
+
+```sh
+# Full logical dump (schema + data). Compressed, timestamped.
+pg_dump "$DIRECT_URL" --no-owner --no-privileges --compress=9 \
+  -f "autoeco-$(date +%Y-%m-%d).dump"
+
+# Sanity: the dump must list the tables you expect.
+pg_restore --list "autoeco-$(date +%Y-%m-%d).dump" | grep -c 'TABLE DATA'
+```
+
+`pg_dump` comes with any Postgres client (`brew install libpq`,
+`apt install postgresql-client`). Point it at `DATABASE_URL` **or**
+`DIRECT_URL` — for Neon, use `DIRECT_URL`, since `DATABASE_URL` is the
+pooled connection and is slower for a bulk dump.
+
+Store the dumps somewhere that is not the database provider (encrypted object
+storage, or a private repo with a short retention). Test a restore quarterly.
+
+### Restore
+
+```sh
+# 1. Restore into a scratch database first — never straight into production.
+createdb autoeco_restore
+pg_restore --no-owner --no-privileges -d autoeco_restore autoeco-2026-10-18.dump
+
+# 2. Verify row counts against the live database before touching anything.
+psql "$RESTORE_URL" -c 'SELECT count(*) FROM "User";'
+psql "$DATABASE_URL" -c 'SELECT count(*) FROM "User";'
+
+# 3. Only then point DATABASE_URL / DIRECT_URL at the restored database,
+#    or promote the scratch database and update Vercel. Redeploy afterwards
+#    so every function picks up the new connection string.
+```
+
+After a restore, run `GET /api/health` with `HEALTH_SECRET`: it checks the
+migration ledger and the schema, so a half-restored or drifted database is
+reported instead of silently serving errors.
+
+### Secrets
+
+Vercel env vars are not versioned. Keep an offline, encrypted copy of
+`AUTH_SECRET`, `CRON_SECRET`, `HEALTH_SECRET`, the Paddle/PayPal secrets
+and the SMTP credentials, and rotate them if the copy is ever exposed. A lost
+`AUTH_SECRET` logs every user out (sessions are JWTs) — it is recoverable by
+generating a new one, but do it deliberately, not by accident.
