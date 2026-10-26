@@ -31,7 +31,7 @@ const FAQS = [
   },
   {
     q: "What are the plans?",
-    a: "Free (1 vehicle), Pro ($6.99/month, up to 5 vehicles) and Pro Plus ($19.99/month, up to 50 vehicles). Receipt scanning, family sharing and API access are on the roadmap and are not sold yet.",
+    a: "Free (1 vehicle). Pro (lifetime) is available as a single one-time purchase with Pro limits and quotas; pricing comes from the configured offer. Receipt scanning, family sharing and API access are on the roadmap and are not sold yet.",
   },
   {
     q: "Is there a free trial?",

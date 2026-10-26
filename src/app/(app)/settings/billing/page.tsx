@@ -1,21 +1,15 @@
 import Link from "next/link";
-import { UNAVAILABLE_PLAN_KEYS } from "@/lib/plans";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getEntitlements } from "@/lib/plans";
 import { formatMoney } from "@/lib/finance";
 import { paddleConfigured } from "@/lib/env";
-import { getPriceIdFor, PADDLE_PLAN_KEYS, isPaddlePlanKey } from "@/lib/paddle";
 import { paypalConfigured, paypalSdkClientId, lifetimePriceMinor, lifetimeCurrency } from "@/lib/paypal";
 import { lifetimeGrantAvailable } from "@/lib/paypal-billing";
 import { PayPalLifetimeButton } from "@/components/PayPalLifetimeButton";
 import { getT } from "@/lib/server-i18n";
 import { BillingClient } from "./Client";
-
-const PERIOD_SUFFIX: Record<string, string> = {
-  MONTHLY: "/mo",
-  YEARLY: "/yr",
-};
+import { LIFETIME_PLAN_NAME, lifetimeOfferState } from "@/lib/lifetime-offer";
 
 /**
  * What to show as the invoice reference. `number` is set by Lemon only, and the
@@ -43,32 +37,20 @@ export default async function BillingPage() {
     orderBy: { createdAt: "desc" },
     take: 50,
   });
-  // `isDemo` marks test-created rows — they must never appear in a billing flow.
-  const plans = await db.plan.findMany({
-    where: { active: true, isDemo: false, key: { notIn: UNAVAILABLE_PLAN_KEYS } },
-    orderBy: { sortOrder: "asc" },
-  });
   const paddleBillingEnabled = paddleConfigured();
-
-  // Resolve Paddle price ids server-side so we never expose them in source.
-  const paddlePriceIds: Record<string, string> = {};
-  for (const p of plans) {
-    if (p.priceCents === 0) continue;
-    if (!isPaddlePlanKey(p.key)) continue;
-    try {
-      paddlePriceIds[p.key] = getPriceIdFor(p.key);
-    } catch {
-      // price id not configured for this plan
-    }
-  }
-
   const providerEnabled = paddleBillingEnabled;
 
   const t = getT();
-  // The one-time Founder Lifetime offer, shown only when fully configured, a
-  // slot is available and the user does not already hold it.
-  const showLifetime =
-    paypalConfigured() && ent.subscriptionStatus !== "lifetime" && (await lifetimeGrantAvailable());
+  const configured = paypalConfigured();
+  const grantAvailable = configured ? await lifetimeGrantAvailable() : false;
+  const state = lifetimeOfferState({
+    isLifetime: ent.isLifetime || ent.subscriptionStatus === "lifetime",
+    configured,
+    grantAvailable,
+    isSignedIn: true,
+    isVerified: Boolean(user.emailVerifiedAt),
+  });
+  const showLifetime = state === "ready" || state === "verify";
 
   const statusTone =
     ent.subscriptionStatus === "active" || ent.subscriptionStatus === "lifetime"
@@ -86,14 +68,11 @@ export default async function BillingPage() {
         <h1 className="text-2xl font-bold mt-2">Billing</h1>
       </div>
 
-      {!providerEnabled && (
+      {!providerEnabled && !configured && (
         <div className="card border-amber-300 bg-amber-50 text-sm dark:bg-amber-900/10 dark:border-amber-800" role="status">
-          <p className="font-semibold text-amber-800 dark:text-amber-200">Paid plans are not configured on this server.</p>
+          <p className="font-semibold text-amber-800 dark:text-amber-200">Billing is not enabled.</p>
           <p className="mt-1 text-amber-700 dark:text-amber-200/80">
-            Set <code>PADDLE_API_KEY</code>, <code>PADDLE_WEBHOOK_SECRET</code>, <code>PADDLE_SELLER_ID</code> and at
-            least one of <code>PADDLE_PRO_PRICE_ID</code> / <code>PADDLE_FAMILY_PRICE_ID</code> /
-            <code> PADDLE_BUSINESS_PRICE_ID</code> to enable checkout. Your current free plan works fully in the
-            meantime.
+            Paid checkout is not available right now. The free plan works fully in the meantime.
           </p>
         </div>
       )}
@@ -146,85 +125,48 @@ export default async function BillingPage() {
         />
       </section>
 
-      {showLifetime && (
+      {(state === "active" || state === "ready" || state === "verify") && (
         <section className="card border-emerald-500 ring-1 ring-emerald-500/40" aria-labelledby="lifetime-heading">
-          <p id="lifetime-heading" className="font-semibold">{t("lifetime.title")}</p>
+          <p id="lifetime-heading" className="font-semibold">{LIFETIME_PLAN_NAME}</p>
           <p className="text-sm text-charcoal-500 mt-1">{t("lifetime.subtitle")}</p>
-          <p className="mt-2">
-            <span className="text-2xl font-extrabold">
-              {formatMoney(lifetimePriceMinor(), lifetimeCurrency())}
-            </span>
-            <span className="text-sm text-charcoal-500"> {t("lifetime.price_note")}</span>
-          </p>
+          {state !== "active" && (
+            <p className="mt-2">
+              <span className="text-2xl font-extrabold">
+                {formatMoney(lifetimePriceMinor(), lifetimeCurrency())}
+              </span>
+              <span className="text-sm text-charcoal-500"> {t("lifetime.price_note")}</span>
+            </p>
+          )}
           <p className="text-xs text-charcoal-500 mt-1">{t("lifetime.includes")}</p>
           <div className="mt-3 max-w-xs">
-            {user.emailVerifiedAt ? (
+            {state === "active" && (
+              <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">{t("lifetime.current")}</p>
+            )}
+            {state === "verify" && (
+              <p className="text-sm text-charcoal-500">{t("lifetime.verified_only")}</p>
+            )}
+            {state === ("unavailable" as typeof state) && (
+              <p className="text-sm text-charcoal-500">{t("pricing.unavailable")}</p>
+            )}
+            {state === "ready" && (
               <PayPalLifetimeButton
                 clientId={paypalSdkClientId()}
                 currency={lifetimeCurrency()}
                 label={t("lifetime.cta")}
               />
-            ) : (
-              <p className="text-sm text-charcoal-500">{t("lifetime.verified_only")}</p>
             )}
           </div>
         </section>
       )}
 
       <section className="card" aria-labelledby="plans-heading">
-        <p id="plans-heading" className="font-semibold">Change plan</p>
-        {plans.length === 0 ? (
-          <p className="text-sm text-charcoal-500 mt-2">No plans are available right now.</p>
-        ) : (
-          <div className="grid sm:grid-cols-2 gap-3 mt-3">
-            {plans.map((p) => {
-              const isCurrent = p.key === ent.planKey;
-              const isFree = p.priceCents === 0;
-              const priceId = paddlePriceIds[p.key];
-              const purchasable = !isFree && paddleBillingEnabled && !!priceId;
-              return (
-                <div
-                  key={p.id}
-                  className={`border border-charcoal-200 dark:border-charcoal-700 rounded-md p-3 text-sm ${
-                    isCurrent ? "border-emerald-500 bg-emerald-50/50 dark:bg-emerald-900/10" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-bold">{p.name}</p>
-                    {isCurrent && <span className="badge badge-ok">Current</span>}
-                  </div>
-                  <p className="text-charcoal-500">
-                    {formatMoney(p.priceCents, p.currency)}
-                    {PERIOD_SUFFIX[p.billingPeriod] ?? ""}
-                  </p>
-                  <p className="text-xs text-charcoal-500 mt-1">
-                    {p.maxVehicles} vehicle{p.maxVehicles === 1 ? "" : "s"} · {p.maxExpensesPerMonth} expenses/mo ·{" "}
-                    {p.aiConversationsPerMonth} AI questions/mo
-                  </p>
-                  {isFree && isCurrent ? (
-                    <p className="mt-3 text-xs text-charcoal-500">
-                      This is your current plan.{" "}
-                      <Link href="/features" className="underline">
-                        See what&apos;s included
-                      </Link>
-                      .
-                    </p>
-                  ) : (
-                    <BillingClient
-                      isPlanPicker
-                      planName={p.name}
-                      planKey={p.key}
-                      priceId={purchasable ? priceId : ""}
-                      userId={user.id}
-                      email={user.email}
-                      disabled={isCurrent}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <p id="plans-heading" className="font-semibold">{t("settings.plans")}</p>
+        <p className="text-sm text-charcoal-500 mt-2">{t("pricing.one_offer")}</p>
+        <div className="mt-3">
+          <Link href="/pricing" className="btn btn-secondary">
+            {t("nav.pricing")}
+          </Link>
+        </div>
       </section>
 
       <section className="card" aria-labelledby="invoices-heading">
