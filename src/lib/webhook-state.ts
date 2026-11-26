@@ -1,7 +1,7 @@
 /**
  * Webhook state machine + side-effect idempotency.
  *
- * This module is provider-neutral. The Paddle webhook handler uses these
+ * This module is provider-neutral. The Whop webhook handler uses these
  * primitives to guarantee:
  *
  *   - at-most-once execution of business effects under concurrency

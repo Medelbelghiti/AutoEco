@@ -1,43 +1,26 @@
 "use client";
 
-import { PaddleButton } from "@/components/PaddleButton";
+import { WhopCheckoutButton } from "@/components/WhopCheckoutButton";
 
 interface Props {
-  /** Empty string when no Paddle price is configured for this plan. */
-  priceId: string;
-  planKey: string;
+  planKey: "pro" | "pro_plus";
   planName: string;
-  userId: string;
-  email: string;
-  /** False when the server has no working Paddle configuration. */
+  /** False when the server has no working Whop configuration for this plan. */
   checkoutReady: boolean;
 }
 
 /**
  * Thin client wrapper so the pricing grid itself stays a server component.
- * All price ids are resolved server-side; nothing is hardcoded here.
+ * Plan ids are resolved server-side; nothing is hardcoded here.
  */
-export function PricingCheckout({
-  priceId,
-  planKey,
-  planName,
-  userId,
-  email,
-  checkoutReady,
-}: Props) {
+export function PricingCheckout({ planKey, planName, checkoutReady }: Props) {
   return (
-    <PaddleButton
-      priceId={priceId}
-      userId={userId}
+    <WhopCheckoutButton
       planKey={planKey}
-      email={email}
       label={`Choose ${planName}`}
       className="btn btn-accent w-full"
-      unavailableHint={
-        checkoutReady
-          ? undefined
-          : "Paid checkout is not configured on this server yet. The free plan is fully available."
-      }
+      disabled={!checkoutReady}
+      unavailableHint="Paid checkout is not configured on this server yet. The free plan is fully available."
     />
   );
 }

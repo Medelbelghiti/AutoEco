@@ -11,7 +11,7 @@
  *   - Only "unsafe" methods are inspected. GET/HEAD/OPTIONS can never mutate.
  *   - A request with NO `Origin` header is allowed: that is not a
  *     browser-initiated cross-site write — it is a server-to-server webhook
- *     (Paddle, PayPal), a cron job or curl. Those are authenticated by
+ *     (Whop), a cron job or curl. Those are authenticated by
  *     signature/secret, not by the browser, and would otherwise all break.
  *   - An `Origin` whose host differs from the requested host is refused. A
  *     malformed origin (including the literal `null` emitted by sandboxed

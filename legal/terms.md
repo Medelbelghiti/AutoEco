@@ -60,7 +60,7 @@ not forecasts of future market conditions.
 
 ## 5. Subscriptions & Billing
 
-- Payments are processed by PayPal. We do not store your card details.
+- Payments are processed by Whop. We do not store your card details.
 - Founder Lifetime: [LIFETIME DEFINITION]
 - Subscriptions renew automatically unless cancelled. You may cancel at any time from Settings;
   cancellation takes effect at the end of the current billing period, and you retain access until

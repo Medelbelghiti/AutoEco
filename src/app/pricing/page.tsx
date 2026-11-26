@@ -8,11 +8,9 @@ import { safeJsonParse } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/auth";
 import { getT } from "@/lib/server-i18n";
 import { getEntitlements, COMING_SOON_FEATURES, UNAVAILABLE_PLAN_KEYS } from "@/lib/plans";
-import { paddleConfigured } from "@/lib/env";
-import { getPriceIdFor, PADDLE_PLAN_KEYS, isPaddlePlanKey } from "@/lib/paddle";
-import { paypalConfigured, paypalSdkClientId, lifetimePriceMinor, lifetimeCurrency } from "@/lib/paypal";
-import { lifetimeGrantAvailable } from "@/lib/paypal-billing";
-import { PayPalLifetimeButton } from "@/components/PayPalLifetimeButton";
+import { whopConfigured, whopPlanPurchasable, LIFETIME_PLAN_KEY } from "@/lib/whop";
+import { lifetimeGrantAvailable } from "@/lib/whop-billing";
+import { WhopCheckoutButton } from "@/components/WhopCheckoutButton";
 import { pageMeta } from "@/lib/seo";
 import { PricingCheckout } from "./Checkout";
 
@@ -78,20 +76,7 @@ export default async function PricingPage() {
     orderBy: { sortOrder: "asc" },
   });
 
-  const billingLive = paddleConfigured();
-
-  // Resolve Paddle price ids server-side so nothing is hardcoded in source.
-  // Only plans with a configured price can actually be purchased.
-  const priceIds: Record<string, string> = {};
-  for (const p of plans) {
-    if (p.priceCents === 0) continue;
-    if (!isPaddlePlanKey(p.key)) continue;
-    try {
-      priceIds[p.key] = getPriceIdFor(p.key);
-    } catch {
-      // Price id not configured for this plan — surfaced in the UI below.
-    }
-  }
+  const billingLive = whopConfigured();
 
   // Signed-in visitors see their real plan state and can buy immediately.
   const user = await getCurrentUser();
@@ -109,8 +94,11 @@ export default async function PricingPage() {
   // The one-time Founder Lifetime offer is shown ONLY when it is fully
   // configured, a slot is still available and the visitor does not already
   // hold it. Never advertise a grant the server would refuse.
-  const showLifetime =
-    paypalConfigured() && !(ent?.isLifetime ?? false) && (await lifetimeGrantAvailable());
+  const showLifetime = !(ent?.isLifetime ?? false) && (await lifetimeGrantAvailable());
+  // The price shown is the seeded Plan row; the Whop plan must charge the same.
+  const lifetimePlan = showLifetime
+    ? await db.plan.findUnique({ where: { key: LIFETIME_PLAN_KEY }, select: { priceCents: true, currency: true } })
+    : null;
 
   return (
     <MarketingShell>
@@ -155,7 +143,7 @@ export default async function PricingPage() {
             <p className="font-semibold text-amber-800 dark:text-amber-200">Checkout is not configured yet.</p>
             <p className="mt-1 text-amber-700 dark:text-amber-200/80">
               The plans and prices below are the real configured plans. Paid checkout is not currently
-              available. Payments are processed by PayPal. We do not store your card details. The free
+              available. Payments are processed by Whop. We do not store your card details. The free
               plan works right now.
             </p>
           </div>
@@ -165,8 +153,8 @@ export default async function PricingPage() {
           {plans.map((p) => {
             const isFree = p.priceCents === 0;
             const isCurrent = ent?.planKey === p.key;
-            const priceId = priceIds[p.key];
-            const purchasable = !isFree && billingLive && !!priceId;
+            const checkoutKey = p.key === "pro" || p.key === "pro_plus" ? p.key : null;
+            const purchasable = !isFree && checkoutKey !== null && whopPlanPurchasable(p.key);
             const features = safeJsonParse<string[]>(p.features, []);
             const suffix = PERIOD_SUFFIX[p.billingPeriod] ?? "";
 
@@ -250,15 +238,8 @@ export default async function PricingPage() {
                         Start free
                       </Link>
                     )
-                  ) : user ? (
-                    <PricingCheckout
-                      priceId={purchasable ? priceId : ""}
-                      planKey={p.key}
-                      planName={p.name}
-                      userId={user.id}
-                      email={user.email}
-                      checkoutReady={purchasable}
-                    />
+                  ) : user && checkoutKey ? (
+                    <PricingCheckout planKey={checkoutKey} planName={p.name} checkoutReady={purchasable} />
                   ) : (
                     <Link href={`/signup?plan=${p.key}`} className="btn btn-accent w-full">
                       Sign up to choose {p.name}
@@ -270,7 +251,7 @@ export default async function PricingPage() {
           })}
         </div>
 
-        {showLifetime && (
+        {showLifetime && lifetimePlan && (
           <div className="card mt-8 border-emerald-500 ring-1 ring-emerald-500/40" aria-labelledby="lifetime-heading">
             <div className="flex flex-wrap items-start justify-between gap-6">
               <div className="min-w-[16rem] flex-1">
@@ -278,7 +259,7 @@ export default async function PricingPage() {
                 <p className="text-sm text-charcoal-500 mt-1">{t("lifetime.subtitle")}</p>
                 <p className="mt-3">
                   <span className="text-3xl font-extrabold">
-                    {formatMoney(lifetimePriceMinor(), lifetimeCurrency())}
+                    {formatMoney(lifetimePlan.priceCents, lifetimePlan.currency)}
                   </span>
                   <span className="text-sm font-medium text-charcoal-500"> {t("lifetime.price_note")}</span>
                 </p>
@@ -287,11 +268,7 @@ export default async function PricingPage() {
               <div className="w-full sm:w-64">
                 {user ? (
                   user.emailVerifiedAt ? (
-                    <PayPalLifetimeButton
-                      clientId={paypalSdkClientId()}
-                      currency={lifetimeCurrency()}
-                      label={t("lifetime.cta")}
-                    />
+                    <WhopCheckoutButton planKey="lifetime" label={t("lifetime.cta")} className="btn btn-accent w-full" />
                   ) : (
                     <p className="text-sm text-charcoal-500">{t("lifetime.verified_only")}</p>
                   )

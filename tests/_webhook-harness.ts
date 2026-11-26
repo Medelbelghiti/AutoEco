@@ -6,10 +6,10 @@
  * a fresh claim, a stale worker holding the old token cannot finalize, retries
  * move FAILED → PROCESSED) live in `webhook-state`, not in a provider handler.
  *
- * This harness reproduces the claim → apply → finalize sequence that the Paddle
+ * This harness reproduces the claim → apply → finalize sequence that the Whop
  * webhook route performs, so those guarantees stay covered against the real
  * primitives. The provider handler itself is covered end to end in
- * `tests/paddle.test.ts`.
+ * `tests/whop-billing.test.ts`.
  */
 import { claim, reclaimStale, markProcessed, markFailed } from "@/lib/webhook-state";
 

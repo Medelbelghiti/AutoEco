@@ -42,7 +42,7 @@ export interface PlanDefinition {
  *
  * Deliberately NOT part of `PLANS`:
  *   - it is not a subscription and must never appear in the public pricing
- *     grid or the Paddle price-id mapping, and
+ *     grid as a recurring plan (it is sold by its own Whop one-time plan), and
  *   - `tests/plans-features.test.ts` asserts the `update_plan_features`
  *     migration contains exactly `PLANS.length` UPDATE statements; adding a
  *     fourth entry to `PLANS` without a matching migration statement would

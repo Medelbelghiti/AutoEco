@@ -1,17 +1,18 @@
 /** @type {import('next').NextConfig} */
 // Content-Security-Policy, shipped as REPORT-ONLY first. Next.js injects inline
-// scripts and Paddle.js opens an iframe + XHR, so an enforcing policy written
-// without a browser to test against could silently break checkout. Watch the
+// scripts, so an enforcing policy written without a browser to test against
+// could silently break the app. Checkout is a full-page redirect to Whop's
+// hosted page, so no payment script, frame or XHR origin is needed here. Watch the
 // browser console / a report endpoint for a week, then rename the header key
 // to "Content-Security-Policy" to enforce.
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://cdn.paddle.com https://challenges.cloudflare.com https://www.paypal.com https://www.sandbox.paypal.com https://www.paypalobjects.com",
+  "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.paddle.com https://challenges.cloudflare.com https://www.paypal.com https://www.sandbox.paypal.com https://api-m.paypal.com https://api-m.sandbox.paypal.com",
-  "frame-src 'self' https://*.paddle.com https://challenges.cloudflare.com https://www.paypal.com https://www.sandbox.paypal.com",
+  "connect-src 'self' https://challenges.cloudflare.com",
+  "frame-src 'self' https://challenges.cloudflare.com",
   "form-action 'self'",
   "base-uri 'self'",
   "object-src 'none'",

@@ -36,7 +36,7 @@ era and declared the product READY. They were stale and are removed.
 
 ## Still BLOCKING launch (cannot be fixed in code)
 1. Legal entity + `[BRACKETED]` placeholders in `legal/*.md` (run `npm run check:launch`). Needs a lawyer / your company details.
-2. Payments: Paddle was rejected and is not used. Do not configure `PADDLE_*`. Payments are processed by PayPal. We do not store your card details. Complete the sandbox round trip before enabling `BILLING_ENABLED`.
+2. Payments: **Whop** (since 2.5) replaces Paddle (rejected) and PayPal (never switched on). Configure the `WHOP_*` variables and run the sandbox round trip in `docs/OPERATIONS.md` before setting `WHOP_ENV=live`. Payments are processed by Whop. We do not store your card details.
 3. Email: `EMAIL_PROVIDER=smtp` + domain SPF/DKIM/DMARC. Verification + reset emails currently reach nobody.
 4. Persistent receipt storage (S3/R2 or mounted volume) before re-enabling uploads on Vercel.
 5. Custom domain; update `NEXT_PUBLIC_APP_URL`.

@@ -4,7 +4,7 @@
  * Referenced by `report-uri /api/csp-report` and by the `Reporting-Endpoints`
  * header in `next.config.mjs`. While the policy ships as Report-Only, this
  * endpoint is how you find out whether flipping it to enforcing would break
- * Paddle checkout, Turnstile, or the Next.js inline scripts.
+ * Turnstile or the Next.js inline scripts.
  *
  * Only report CONTENT is logged. The body is attacker-controlled, so it is
  * truncated and never reflected back in the response.

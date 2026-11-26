@@ -170,7 +170,8 @@ runSuite("observability: /api/health (real DB)", () => {
   it("never discloses the secret, S3 endpoint, bucket name or credentials", async () => {
     const extra = [
       process.env.AUTH_SECRET,
-      process.env.PADDLE_WEBHOOK_SECRET,
+      process.env.WHOP_WEBHOOK_SECRET,
+      process.env.WHOP_API_KEY,
       process.env.CRON_SECRET,
     ].filter((v): v is string => Boolean(v));
 

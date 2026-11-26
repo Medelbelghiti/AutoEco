@@ -52,6 +52,9 @@ model User {
   // and for the Paddle Customer Portal). Always nullable so legacy
   // Stripe-only users remain compatible.
   paddleCustomerId String?   @unique
+  // Whop user id (`user_...`), learned from the first Whop webhook. Fallback
+  // correlation key when a payload carries no `metadata.userId`.
+  whopUserId       String?   @unique
   planId           String?
   plan             Plan?     @relation("UserPlan", fields: [planId], references: [id])
   trialEndsAt      DateTime?
@@ -165,6 +168,8 @@ model Subscription {
   lemonSubscriptionId  String?   @unique
   // Paddle subscription id. Always nullable.
   paddleSubscriptionId String?   @unique
+  // Whop membership id (`mem_...`). The payment provider since 2.5. Always nullable.
+  whopMembershipId     String?   @unique
   status               String // active | trialing | past_due | canceled | incomplete | unpaid | lifetime
   currentPeriodStart   DateTime?
   currentPeriodEnd     DateTime?
@@ -179,26 +184,30 @@ model Subscription {
 }
 
 // ----------------------------- Refund adjustments -----------------------------
-// One row per approved Paddle `refund` adjustment that we applied. The unique
+// One row per successful provider refund that we applied. The unique
 // `adjustmentId` makes refund handling idempotent across the
-// `adjustment.created` + `adjustment.updated` pair, and across webhook retries.
+// `refund.created` + `refund.updated` pair, and across webhook retries.
+// Whop: adjustmentId = Whop refund id, transactionId = Whop payment id (pay_...).
+// Rows written by the retired Paddle integration keep their adj_/txn_ ids.
 model RefundAdjustment {
   id            String   @id @default(cuid())
-  // Paddle adjustment id (adj_...). UNIQUE: the same adjustment is applied once.
+  // Provider refund id. UNIQUE: the same refund is applied once.
   adjustmentId  String   @unique
-  // Paddle transaction id (txn_...) the refund belongs to.
+  // Provider payment id the refund belongs to (Whop `pay_...`).
   transactionId String
   // Refunded amount in the transaction currency's minor units.
   amountCents   Int
   currency      String
-  // Paddle adjustment type: "full" | "partial".
+  // "full" | "partial".
   type          String
   createdAt     DateTime @default(now())
 
   @@index([transactionId])
 }
 
-// ---------------------------- PayPal one-time orders ----------------------------
+// ------------------------- Legacy PayPal one-time orders -------------------------
+// RETIRED: PayPal was replaced by Whop in 2.5; nothing writes this table any
+// more. It is kept so historic rows survive. Original description:
 // One row per PayPal order created for the one-time "Founder Lifetime"
 // purchase. `providerOrderId` (the PayPal order id) is UNIQUE and is the
 // idempotency anchor: both the capture endpoint and the webhook resolve a
@@ -247,6 +256,12 @@ model Invoice {
   // Paddle's transaction timestamp, used to order payments deterministically
   // (webhook arrival order is not reliable).
   paddleBilledAt       DateTime?
+  // Whop payment id (`pay_...`). UNIQUE: one invoice row per Whop payment.
+  whopPaymentId        String?   @unique
+  // Whop membership this payment belongs to (renewals share it).
+  whopMembershipId     String?
+  // Whop's `paid_at`, used to find the latest payment of a membership.
+  whopPaidAt           DateTime?
   number          String?
   amountCents     Int
   currency        String    @default("usd")
@@ -260,6 +275,7 @@ model Invoice {
 
   @@index([userId])
   @@index([paddleSubscriptionId, paddleBilledAt])
+  @@index([whopMembershipId, whopPaidAt])
 }
 
 model WebhookEvent {

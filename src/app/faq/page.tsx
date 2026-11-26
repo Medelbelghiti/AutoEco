@@ -51,7 +51,7 @@ const FAQS = [
   },
   {
     q: "Is my data shared?",
-    a: "No. Your vehicle and financial data is private by default. We never share it with third parties. Payments are processed by PayPal. We do not store your card details.",
+    a: "No. Your vehicle and financial data is private by default. We never share it with third parties. Payments are processed by Whop. We do not store your card details.",
   },
 ];
 

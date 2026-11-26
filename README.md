@@ -67,7 +67,7 @@ Landing page → Free calculators (no signup) → Signup → Dashboard
 | Language | TypeScript (strict) |
 | Database | Prisma 5 — SQLite (dev) / PostgreSQL (prod) |
 | Auth | Custom JWT (`jose`) in `HttpOnly` cookies + bcryptjs |
-| Payments | PayPal (one-time lifetime checkout, feature-flagged); no active subscription processor |
+| Payments | Whop (hosted checkout: Pro, Pro Plus subscriptions and one-time Founder Lifetime) |
 | Styling | Tailwind CSS |
 | Email | Nodemailer (`console` default, or SMTP) |
 | Exports | CSV (hand-rolled) |
@@ -142,19 +142,19 @@ See `.env.example`. The core app — tracking, cost engine, calculators, export 
 | `DIRECT_URL` | production | NON-pooled Neon connection string, used only by `prisma migrate` (falls back to `DATABASE_URL` in scripts, CI and local) |
 | `AUTH_SECRET` | yes | 32+ byte random hex for session signing |
 | `NEXT_PUBLIC_APP_URL` | yes | Public base URL (emails, redirects, sitemap, robots) |
-| `PADDLE_API_KEY` | for paid plans | Paddle API key (server only) |
-| `PADDLE_WEBHOOK_SECRET` | for paid plans | Paddle webhook signing secret |
-| `PADDLE_SELLER_ID` | for paid plans | Paddle seller id |
-| `PADDLE_PRO_PRICE_ID` | for the Pro plan | Paddle price id |
-| `PADDLE_FAMILY_PRICE_ID` | for the Family plan | Paddle price id |
-| `PADDLE_BUSINESS_PRICE_ID` | for Pro Plus | Paddle price id for the top tier |
-| `PADDLE_ENV` / `NEXT_PUBLIC_PADDLE_ENV` | no | `sandbox` (default) or `live` |
-| `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` | for browser checkout | Paddle.js client token (public) |
+| `WHOP_API_KEY` | for paid plans | Whop company API key (server only) |
+| `WHOP_WEBHOOK_SECRET` | for paid plans | Whop webhook signing secret (`ws_...`) |
+| `WHOP_COMPANY_ID` | for paid plans | Whop company id (`biz_...`) |
+| `WHOP_PRO_PLAN_ID` | for the Pro plan | Whop plan id (`plan_...`) |
+| `WHOP_PRO_PLUS_PLAN_ID` | for Pro Plus | Whop plan id |
+| `WHOP_LIFETIME_PLAN_ID` | for Founder Lifetime | Whop one-time plan id |
+| `WHOP_ENV` | no | `sandbox` (default) or `live` |
+| `LIFETIME_MAX_GRANTS` | for Founder Lifetime | Lifetime cap (`0` = offer off) |
 | `EMAIL_PROVIDER` | no | `console` (default) or `smtp` |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | for SMTP | Email delivery |
 | `OPENAI_API_KEY` | no | Optional LLM phrasing layer for Ask Your Car |
 
-Payments are processed by PayPal. We do not store your card details.
+Payments are processed by Whop. We do not store your card details.
 
 ---
 
@@ -174,9 +174,9 @@ npm run build
 1. Set `NODE_ENV=production`.
 2. Set `NEXT_PUBLIC_APP_URL` to the public HTTPS origin.
 3. Set `AUTH_SECRET` to 32+ random bytes. The app refuses to boot in production without it.
-4. Payments: configure PayPal only after the sandbox round trip in
-   `docs/OPERATIONS.md`. Payments are processed by PayPal. We do not store your card details.
-5. Leave `BILLING_ENABLED` off until that sandbox round trip succeeds.
+4. Payments: configure Whop (`WHOP_*`) with `WHOP_ENV=sandbox` first and run the sandbox
+   round trip in `docs/OPERATIONS.md`. Payments are processed by Whop. We do not store your card details.
+5. Switch to live Whop keys and `WHOP_ENV=live` only after that round trip succeeds.
 6. Configure SMTP (`EMAIL_PROVIDER=smtp`) — otherwise all transactional email is only logged.
 7. `npm run build` (runs migrations via `scripts/build-with-migrate.js`).
 8. `npm run prisma:seed` on first run (idempotent).
@@ -203,8 +203,8 @@ npm run build
 * Sessions can be revoked everywhere at once: Settings → Security → **Sign out of all devices**
   bumps `User.sessionVersion`, invalidating every issued JWT (including the current device).
   The action is `POST`-only; a `GET` is refused to avoid a logout CSRF.
-* Paddle webhook signatures are verified with a constant-time HMAC compare plus a timestamp
-  tolerance check.
+* Whop webhook signatures (Standard Webhooks) are verified with a constant-time HMAC compare
+  plus a 5-minute timestamp tolerance check, and de-duplicated by `webhook-id`.
 * Unexpected API errors are logged server-side and returned to the client only as
   `Something went wrong. Reference: ref_xxx` — never with internals.
 * Secrets live only in environment variables. `assertProdOnBoot()` refuses to start a production

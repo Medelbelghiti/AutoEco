@@ -144,6 +144,7 @@ async function handle(req: Request): Promise<NextResponse> {
         data: {
           paddleCustomerId: null,
           stripeCustomerId: null,
+          whopUserId: null,
           // The deletion route already blanked these; enforce it here so a
           // partially-failed earlier run is repaired on the next pass.
           name: null,

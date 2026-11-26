@@ -64,6 +64,17 @@ export async function ensurePaddleSchema(prisma: PrismaClient): Promise<void> {
     )`,
     `CREATE UNIQUE INDEX IF NOT EXISTS "RefundAdjustment_adjustmentId_key" ON "RefundAdjustment"("adjustmentId")`,
     `CREATE INDEX IF NOT EXISTS "RefundAdjustment_transactionId_idx" ON "RefundAdjustment"("transactionId")`,
+    // Whop identifiers (migration 20261126000000_add_whop_identifiers). Every
+    // billing test goes through this helper, so they are added here too.
+    `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "whopUserId" TEXT`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "User_whopUserId_key" ON "User"("whopUserId")`,
+    `ALTER TABLE "Subscription" ADD COLUMN IF NOT EXISTS "whopMembershipId" TEXT`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "Subscription_whopMembershipId_key" ON "Subscription"("whopMembershipId")`,
+    `ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "whopPaymentId" TEXT`,
+    `ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "whopMembershipId" TEXT`,
+    `ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "whopPaidAt" TIMESTAMP(3)`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "Invoice_whopPaymentId_key" ON "Invoice"("whopPaymentId")`,
+    `CREATE INDEX IF NOT EXISTS "Invoice_whopMembershipId_whopPaidAt_idx" ON "Invoice"("whopMembershipId", "whopPaidAt")`,
   ];
   for (const sql of stmts) {
     try {
