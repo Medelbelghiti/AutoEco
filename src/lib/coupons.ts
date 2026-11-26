@@ -6,12 +6,12 @@
  * purchase only, minimum purchase.
  *
  * What this module deliberately does NOT do any more: mirror coupons into the
- * billing provider. There are no Stripe subscribers, and Paddle applies a
- * discount through its own API at checkout, so creating a "provider coupon" as
+ * billing provider. There are no Stripe subscribers, and Whop applies a
+ * discount (promo code) on its own hosted checkout, so creating a "provider coupon" as
  * a side effect of validation was both a Stripe dependency and a write on a
  * read path.
  *
- * Not yet wired into checkout: the Paddle overlay owns discount entry, so these
+ * Not yet wired into checkout: the Whop hosted checkout owns discount entry, so these
  * rules are not enforced at purchase time yet. Callers must keep treating a
  * `valid: true` result as a precondition to be checked by the checkout flow,
  * not as a discount that has been applied.

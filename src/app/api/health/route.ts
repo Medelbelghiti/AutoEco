@@ -9,7 +9,7 @@
  *    second case real pages are serving HTTP 500 right now, and a monitor that
  *    saw 200 would stay green through a broken storefront.
  *  - Returns 200 while a merely *degraded* dependency is missing (email
- *    transport, Paddle credentials, persistent storage). Those are reported
+ *    transport, Whop credentials, persistent storage). Those are reported
  *    in the body so they are visible without paging anyone.
  *  - Reports only boolean/derived state. NO secrets, keys, hostnames, bucket
  *    names, endpoint URLs or connection strings are ever returned.
@@ -37,15 +37,13 @@ import {
   emailConfigured,
   env,
   healthSecret,
-  paddleConfigured,
-  paddleEnvironment,
-  paddleWebhookConfigured,
   prodWarnings,
 } from "@/lib/env";
 import { auditLog } from "@/lib/audit";
 import { externalAnalyticsConfigured } from "@/lib/analytics";
 import { storageDriver, s3MissingConfig } from "@/lib/storage";
 import { cronConfigured } from "@/lib/cron";
+import { whopConfigured, whopEnvironment, whopWebhookConfigured } from "@/lib/whop";
 
 export const dynamic = "force-dynamic";
 
@@ -243,19 +241,15 @@ export async function GET(req: Request): Promise<NextResponse> {
     }).catch(() => {});
   }
 
-  checks.paddle = {
-    ok: paddleConfigured(),
-    detail: paddleConfigured()
-      ? `configured (${paddleEnvironment()}, seller set, ${paddleWebhookConfigured() ? "webhook secret set" : "WEBHOOK SECRET MISSING"})`
-      : "server-side Paddle credentials incomplete — checkout will be reported as unavailable",
+  checks.whop = {
+    ok: whopConfigured(),
+    detail: whopConfigured()
+      ? `configured (${whopEnvironment()}, company set, webhook secret set)`
+      : whopWebhookConfigured()
+        ? "Whop API key, company id or plan ids incomplete — checkout will be reported as unavailable"
+        : "Whop credentials incomplete (WEBHOOK SECRET MISSING) — checkout will be reported as unavailable",
   };
-  checks.paddleClientToken = {
-    ok: Boolean(env.paddleClientToken),
-    detail: env.paddleClientToken
-      ? "present"
-      : "NEXT_PUBLIC_PADDLE_CLIENT_TOKEN missing — Paddle.js cannot open a checkout",
-  };
-  // Stripe is gone as of 2.2 and is no longer reported here.
+  // Stripe (2.2), Paddle and PayPal (2.5) are gone and are no longer reported here.
 
   // Without the shared secret every /api/cron/* route fails closed (503), so
   // expiry, trial reminders and purges silently stop running.

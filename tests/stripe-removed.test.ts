@@ -1,6 +1,6 @@
 /**
  * Stripe is fully removed (Task 7). The schema keeps two legacy columns
- * (`stripeCustomerId`, `stripeInvoiceId`) that the Paddle code nulls/writes,
+ * (`stripeCustomerId`, `stripeInvoiceId`) that the payment code nulls/writes,
  * but no Stripe dependency, module, route or import may return. This is a
  * guard against a well-meaning "restore the old provider" change.
  */

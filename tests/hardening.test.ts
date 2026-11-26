@@ -4,25 +4,26 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { bytesMatchMime } from "@/lib/storage";
 import { SUPPORTED_CURRENCIES } from "@/lib/currency";
-import { paddleAmountToCents, normalizeInvoiceCurrency } from "@/lib/paddle";
+import { whopMoneyToMinor, readCurrency } from "@/lib/whop";
 import { getClientIp } from "@/lib/utils";
 
-describe("Paddle amounts are already in minor units", () => {
-  it("does not multiply by 100", () => {
-    expect(paddleAmountToCents("699")).toBe(699);
-    expect(paddleAmountToCents("1999")).toBe(1999);
-    expect(paddleAmountToCents(1299)).toBe(1299);
+describe("Whop amounts are major units and are converted exactly", () => {
+  it("converts the Money object without float rounding", () => {
+    expect(whopMoneyToMinor({ amount: "6.99", currency: "usd", decimals: 2 })).toBe(699);
+    expect(whopMoneyToMinor({ amount: "19.99", currency: "usd", decimals: 2 })).toBe(1999);
+    expect(whopMoneyToMinor({ amount: "0.29", currency: "usd", decimals: 2 })).toBe(29);
+    expect(whopMoneyToMinor(12.99)).toBe(1299);
   });
-  it("is safe on garbage", () => {
-    expect(paddleAmountToCents(undefined)).toBe(0);
-    expect(paddleAmountToCents("abc")).toBe(0);
-    expect(paddleAmountToCents("-5")).toBe(0);
+  it("refuses garbage instead of recording a wrong amount", () => {
+    expect(whopMoneyToMinor(undefined)).toBeNull();
+    expect(whopMoneyToMinor({ amount: "abc" })).toBeNull();
+    expect(whopMoneyToMinor("-5")).toBeNull();
   });
   it("keeps the real currency instead of coercing to USD", () => {
-    expect(normalizeInvoiceCurrency("brl")).toBe("BRL");
-    expect(normalizeInvoiceCurrency("INR")).toBe("INR");
-    expect(normalizeInvoiceCurrency("not-a-code")).toBe("USD");
-    expect(normalizeInvoiceCurrency(undefined)).toBe("USD");
+    expect(readCurrency({ amount: "1.00", currency: "brl" })).toBe("BRL");
+    expect(readCurrency("INR")).toBe("INR");
+    expect(readCurrency("not-a-code")).toBe("USD");
+    expect(readCurrency(undefined)).toBe("USD");
   });
 });
 

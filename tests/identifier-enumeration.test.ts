@@ -10,7 +10,7 @@
  *   4. The CSP report sink accepts reports without reflecting the body back.
  *
  * Real DB, real route handlers, mocked `next/headers` cookie jar and mocked
- * `fetch`, so the Paddle API is never contacted.
+ * `fetch`, so the Whop API is never contacted.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import crypto from "crypto";

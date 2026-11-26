@@ -1,5 +1,6 @@
 /** Centralized environment access. Never import this from client components. */
 import { appOrigin } from "./seo";
+import { whopConfigured, whopEnvironment } from "./whop";
 
 export const env = {
   databaseUrl: process.env.DATABASE_URL ?? "file:./dev.db",
@@ -9,17 +10,8 @@ export const env = {
   // NEXT_PUBLIC_SITE_URL must be set to the same canonical host.
   appUrl: appOrigin(),
 
-  // ---- Paddle (production payment provider) ----
-  // The API key + webhook secret are server-only.
-  paddleApiKey: process.env.PADDLE_API_KEY ?? "",
-  paddleWebhookSecret: process.env.PADDLE_WEBHOOK_SECRET ?? "",
-  paddleSellerId: process.env.PADDLE_SELLER_ID ?? "",
-  paddleProPriceId: process.env.PADDLE_PRO_PRICE_ID ?? "",
-  paddleFamilyPriceId: process.env.PADDLE_FAMILY_PRICE_ID ?? "",
-  paddleBusinessPriceId: process.env.PADDLE_BUSINESS_PRICE_ID ?? "",
-  // The Paddle.js client-side token (browser). NEXT_PUBLIC_ so it ends up
-  // in the client bundle; do NOT put the API key here.
-  paddleClientToken: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN ?? "",
+  // Payments (Whop) are configured in `src/lib/whop.ts`, which reads its
+  // variables live so billing can be switched off without a redeploy.
 
   emailProvider: process.env.EMAIL_PROVIDER ?? "console",
   emailFrom: process.env.EMAIL_FROM ?? "AutoEco <no-reply@example.com>",
@@ -57,45 +49,6 @@ export const env = {
 
   isProd: process.env.NODE_ENV === "production",
 };
-
-/**
- * Paddle is configured when the API key, webhook secret, seller id, and
- * at least one price id are all present. The client token is checked
- * separately because it lives on the browser side.
- */
-export function paddleConfigured(): boolean {
-  return Boolean(
-    env.paddleApiKey &&
-      env.paddleWebhookSecret &&
-      env.paddleSellerId &&
-      (env.paddleProPriceId || env.paddleFamilyPriceId || env.paddleBusinessPriceId)
-  );
-}
-
-export function paddleWebhookConfigured(): boolean {
-  return Boolean(env.paddleWebhookSecret);
-}
-
-/**
- * Live-mode detection. Paddle live keys start with `pdl_live_apikey_`,
- * sandbox keys start with `pdl_sdbx_apikey_` (newer) or `pdl_test_apikey_`
- * (older). We only treat live keys as live.
- */
-export function paddleIsLive(): boolean {
-  return env.paddleApiKey.includes("pdl_live_apikey_");
-}
-
-/**
- * Default Paddle environment for Paddle.js.
- *
- * Default = "sandbox" (safe). Set PADDLE_ENV=live in Vercel ONLY when
- * you are ready to charge real money. The check is double-guarded: the
- * runtime PaddleButton will also re-check via NEXT_PUBLIC_PADDLE_ENV and
- * refuse to open a real-mode checkout unless explicitly configured.
- */
-export function paddleEnvironment(): "sandbox" | "live" {
-  return process.env.PADDLE_ENV === "live" ? "live" : "sandbox";
-}
 
 /**
  * Shared secret protecting the detailed /api/health report. Sent by monitors
@@ -152,14 +105,9 @@ export function prodWarnings(): string[] {
       `EMAIL_FROM="${env.emailFrom}" still points at example.com — transactional email will be rejected or undeliverable.`
     );
   }
-  if (paddleConfigured() && env.paddleClientToken === "") {
+  if (whopConfigured() && whopEnvironment() === "sandbox") {
     w.push(
-      "NEXT_PUBLIC_PADDLE_CLIENT_TOKEN is empty — the Paddle.js checkout cannot open in the browser even though the server is configured."
-    );
-  }
-  if (paddleEnvironment() === "sandbox" && paddleConfigured()) {
-    w.push(
-      "PADDLE_ENV is not \"live\" — checkouts run against Paddle sandbox and no real money is charged."
+      "WHOP_ENV is not \"live\" — checkouts run against the Whop sandbox and no real money is charged."
     );
   }
   if (!env.captchaProvider) {
@@ -177,21 +125,10 @@ export function prodWarnings(): string[] {
   }
   // No payment provider at all: visitors can browse the pricing page but
   // cannot buy anything. This is the "nothing is for sale" state and is the
-  // single most expensive misconfiguration to miss, so it is called out even
-  // though both providers are individually warned about above.
-  const paddleActive = Boolean(
-    env.paddleApiKey && env.paddleWebhookSecret && env.paddleSellerId
-  );
-  const paypalActive =
-    (process.env.BILLING_ENABLED ?? "").toLowerCase() === "true" &&
-    Boolean(
-      process.env.PAYPAL_CLIENT_ID &&
-        process.env.PAYPAL_CLIENT_SECRET &&
-        process.env.PAYPAL_WEBHOOK_ID
-    );
-  if (!paddleActive && !paypalActive) {
+  // single most expensive misconfiguration to miss.
+  if (!whopConfigured()) {
     w.push(
-      "No payment provider is active: Paddle is unconfigured and PayPal lifetime is off (BILLING_ENABLED). The pricing page shows no checkout — visitors cannot subscribe or buy."
+      "No payment provider is active: Whop is not configured (WHOP_API_KEY, WHOP_WEBHOOK_SECRET, WHOP_COMPANY_ID and a WHOP_*_PLAN_ID). The pricing page shows no checkout — visitors cannot subscribe or buy."
     );
   }
   if (!env.sentryDsn) {
@@ -221,11 +158,9 @@ export function assertProdSafety(): string[] {
   if (!authSecret || authSecret.length < 32) {
     problems.push("AUTH_SECRET must be set to a strong random value (32+ bytes) in production");
   }
-  if (env.paddleApiKey && !env.paddleApiKey.startsWith("pdl_sdbx_") && (process.env.PADDLE_WEBHOOK_SECRET ?? "").length < 16) {
-    problems.push("PADDLE_WEBHOOK_SECRET appears too short");
-  }
-  if (env.paddleApiKey && env.paddleApiKey.startsWith("pdl_sdbx_")) {
-    problems.push("A Paddle SANDBOX API key is configured in production");
+  const whopSecret = (process.env.WHOP_WEBHOOK_SECRET ?? "").trim();
+  if (whopSecret && whopSecret.length < 16) {
+    problems.push("WHOP_WEBHOOK_SECRET appears too short");
   }
   return problems;
 }
@@ -234,7 +169,7 @@ export function assertProdSafety(): string[] {
  * Throws on boot in production if required secrets are missing.
  * Safe to call from `instrumentation.ts` or any module-level init.
  *
- * Soft misconfigurations (email, Paddle sandbox mode, CAPTCHA) are logged
+ * Soft misconfigurations (email, Whop sandbox mode, CAPTCHA) are logged
  * via `prodWarnings()` but never throw — they must not take the site down.
  */
 let _asserted = false;

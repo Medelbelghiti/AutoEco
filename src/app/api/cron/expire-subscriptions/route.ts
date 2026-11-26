@@ -4,8 +4,8 @@
  * Vercel Cron triggers this with a GET (a POST is kept for manual/curl use).
  * Both are guarded by the same `CRON_SECRET` bearer check.
  *
- * Paddle is the source of truth for subscription state, but it will not
- * re-deliver a webhook we already acknowledged. If `subscription.past_due`
+ * Whop is the source of truth for subscription state, but it will not
+ * re-deliver a webhook we already acknowledged. If a `membership.updated`
  * was lost, or a customer simply never re-pays, the local row would stay
  * `active` forever.
  *

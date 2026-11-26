@@ -1,23 +1,21 @@
 "use client";
 
 /**
- * BillingClient — opens the Paddle.js checkout for the selected price.
+ * BillingClient — plan picker + subscription controls.
  *
- * We deliberately do NOT use server-side checkout redirects. Paddle's
- * recommended pattern is to open the checkout in the browser via
- * Paddle.js; the server-side webhook (`/api/paddle/webhook`) is then the
- * authoritative source of entitlement.
+ * "Switch to …" starts a Whop hosted checkout (via `/api/billing/checkout`);
+ * the signed webhook (`/api/whop/webhook`) is the authoritative source of
+ * entitlement. When a new plan activates, the webhook schedules the previous
+ * membership to end at its period end, so nobody is billed twice.
  *
- * The "Manage billing" action opens the Paddle Customer Portal (also
- * client-side) which lets users cancel / update card / download
- * invoices. We never expose Paddle API credentials to the browser.
- *
- * Cancel / resume go through the server routes so the state change is
- * recorded in our own database and reflected by `getEntitlements()`.
+ * "Manage billing" opens Whop's own membership page (payment method,
+ * receipts). Cancel / resume go through our server routes so the change is
+ * recorded in our database and reflected by `getEntitlements()`. No Whop
+ * credential ever reaches the browser.
  */
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { PaddleButton } from "@/components/PaddleButton";
+import { WhopCheckoutButton } from "@/components/WhopCheckoutButton";
 
 interface Props {
   hasSubscription?: boolean;
@@ -26,12 +24,10 @@ interface Props {
   isPlanPicker?: boolean;
   planName?: string;
   disabled?: boolean;
-  /** Paddle price id resolved server-side via the env mapping. */
-  priceId?: string;
-  userId?: string;
-  planKey?: string;
-  /** Optional user email to prefill on the checkout. */
-  email?: string;
+  /** Internal plan key the checkout is for. */
+  planKey?: "pro" | "pro_plus";
+  /** False when this plan has no Whop plan configured on the server. */
+  purchasable?: boolean;
 }
 
 export function BillingClient(props: Props) {
@@ -43,8 +39,7 @@ export function BillingClient(props: Props) {
     setB(true);
     setMsg(null);
     try {
-      // Paddle.js cannot open the customer portal; the server creates an
-      // authenticated portal session with the API key.
+      // The server looks up Whop's management URL with the API key.
       const r = await fetch("/api/billing/portal", { method: "POST" });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || typeof j?.url !== "string") {
@@ -102,16 +97,19 @@ export function BillingClient(props: Props) {
     const label = props.disabled ? "Your current plan" : `Switch to ${props.planName}`;
     return (
       <div className="mt-3">
-        <PaddleButton
-          priceId={props.priceId ?? ""}
-          userId={props.userId}
-          planKey={props.planKey}
-          email={props.email}
-          disabled={props.disabled}
-          label={label}
-          className={`w-full text-sm ${props.disabled ? "btn btn-secondary" : "btn btn-accent"}`}
-          unavailableHint="No Paddle price id is configured for this plan yet."
-        />
+        {props.planKey ? (
+          <WhopCheckoutButton
+            planKey={props.planKey}
+            disabled={props.disabled || !props.purchasable}
+            label={label}
+            className={`w-full text-sm ${props.disabled ? "btn btn-secondary" : "btn btn-accent"}`}
+            unavailableHint={props.disabled ? undefined : "Checkout is not configured for this plan yet."}
+          />
+        ) : (
+          <button type="button" disabled className="btn btn-secondary w-full text-sm">
+            {label}
+          </button>
+        )}
         {msg && <p className="text-xs text-rose-600 mt-1" role="alert">{msg}</p>}
       </div>
     );

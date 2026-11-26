@@ -27,7 +27,7 @@ password in plain text.
 - Receipt images you upload for scanning;
 - Generated reports, forecasts and scenarios.
 
-**Billing data.** Payments are processed by PayPal. We do not store your card details.
+**Billing data.** Payments are processed by Whop. We do not store your card details.
 
 **Technical data.** IP address, user agent, request timestamps, authentication events, failed login
 attempts, and audit logs used to operate, secure and debug the Service.
@@ -76,7 +76,7 @@ We use a deliberately small set of cookies:
 
 We share data only as needed to operate the Service:
 
-- **Payment processing:** Payments are processed by PayPal. We do not store your card details.
+- **Payment processing:** Payments are processed by Whop. We do not store your card details.
 - **Email delivery:** our SMTP provider, for transactional email such as password reset and
   billing notices.
 - **Infrastructure:** database hosting, application hosting and email delivery, acting as

@@ -4,7 +4,7 @@
  *
  * `next/headers` is mocked with an in-memory cookie jar so the real
  * `createSession` / `getCurrentUser` pair can be exercised outside a request
- * scope. `fetch` is mocked: the Paddle API is never contacted.
+ * scope. `fetch` is mocked: the Whop API is never contacted.
  */
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { PrismaClient } from "@prisma/client";
@@ -39,10 +39,10 @@ vi.mock("@/lib/email", async (importOriginal) => {
 const SESSION_COOKIE = "autoeco_session";
 const LEGACY_SESSION_COOKIE = "lg_session";
 process.env.AUTH_SECRET = "phase1-auth-secret-0123456789abcdef0123456789";
-// `@/lib/env` snapshots process.env at import time, and paddleRequest refuses to
-// call the provider at all without an API key. Without this the deletion test
-// would 502 before ever reaching fetch, proving nothing about ordering.
-process.env.PADDLE_API_KEY = "pdl_sdbx_apikey_phase1_fake";
+// whopRequest refuses to call the provider at all without an API key. Without
+// this the deletion test would 502 before ever reaching fetch, proving
+// nothing about ordering.
+process.env.WHOP_API_KEY = "whop_test_apikey_phase1_fake";
 
 const run = DB_OK ? it : it.skip;
 const runSuite = DB_OK ? describe : describe.skip;
@@ -57,7 +57,7 @@ runSuite("Phase 1 — sessions, enumeration and deletion", () => {
     await ensurePaddleSchema(prisma);
     // Seed the canonical plans in THIS file. The `free` plan is used as
     // `planId` below, and vitest runs test files in parallel: relying on
-    // another file (e.g. `paddle-billing.test.ts`) to have seeded it first
+    // another file (e.g. `whop-billing.test.ts`) to have seeded it first
     // made test 7 flaky — a missing `free` row produced `planId: ""` and a
     // `Subscription_planId_fkey` violation. Owning the fixture removes the
     // ordering dependence entirely.
@@ -252,17 +252,17 @@ runSuite("Phase 1 — sessions, enumeration and deletion", () => {
     expect(tokens).toBe(3);
   });
 
-  run("7. account deletion cancels Paddle first and aborts if the provider fails", async () => {
+  run("7. account deletion cancels Whop first and aborts if the provider fails", async () => {
     const uid = await makeUser("delete", "delete-me-please-1");
     // Unique per run: a hard-coded id is a shared fixture, so one run whose
     // cleanup did not complete would collide on the unique index next time.
-    const paddleSubId = `sub_phase1_delete_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const membershipId = `mem_phase1_delete_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     await prisma.subscription.create({
       data: {
         userId: uid,
         planId: freePlanId,
         status: "active",
-        paddleSubscriptionId: paddleSubId,
+        whopMembershipId: membershipId,
         currentPeriodEnd: new Date(Date.now() + 86_400_000),
       },
     });
@@ -290,14 +290,14 @@ runSuite("Phase 1 — sessions, enumeration and deletion", () => {
       const failed = await DELETE(req(), undefined);
       expect(failed.status).toBe(502);
       expect(providerCalls).toHaveLength(1);
-      expect(providerCalls[0]).toContain(`/subscriptions/${paddleSubId}/cancel`);
+      expect(providerCalls[0]).toContain(`/memberships/${membershipId}/cancel`);
       // Cancelled before anonymisation, and the account survived intact.
       expect(stateAtProviderCall).toBe(true);
 
       const stillThere = await prisma.user.findUniqueOrThrow({ where: { id: uid } });
       expect(stillThere.deletedAt).toBeNull();
       expect(stillThere.email).toBe(`phase1-delete@autoeco.test`);
-      expect(stillThere.paddleCustomerId).toBeNull();
+      expect(stillThere.whopUserId).toBeNull();
 
       // --- provider succeeds ---
       providerCalls = [];

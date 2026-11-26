@@ -55,7 +55,7 @@ export async function getFreePlan(): Promise<Plan | null> {
 
 /**
  * Grace period for a `past_due` subscription (failed renewal payment).
- * Paddle will keep retrying; we keep access during dunning but not
+ * Whop will keep retrying; we keep access during dunning but not
  * indefinitely. Without a bound, a permanently failed card would grant paid
  * access forever.
  */

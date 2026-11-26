@@ -57,7 +57,7 @@ describe("route classification", () => {
     // middleware only ever sets headers on them.
     expect(isPublicPath("/api")).toBe(true);
     expect(isPublicPath("/api/track")).toBe(true);
-    expect(isPublicPath("/api/paypal/webhook")).toBe(true);
+    expect(isPublicPath("/api/whop/webhook")).toBe(true);
   });
 
   it("does not let the public '/' entry open up unrelated top-level routes", () => {

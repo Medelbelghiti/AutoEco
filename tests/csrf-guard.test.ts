@@ -37,7 +37,7 @@ describe("same-origin write check", () => {
   });
 
   it("allows requests with no Origin header — webhooks, cron and curl", () => {
-    // Paddle and PayPal deliver server-to-server and never send an Origin.
+    // Whop delivers webhooks server-to-server and never sends an Origin.
     // Refusing these would break every webhook on the platform.
     expect(isCrossOriginWrite("POST", null, HOST)).toBe(false);
     expect(isCrossOriginWrite("POST", "", HOST)).toBe(false);

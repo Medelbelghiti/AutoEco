@@ -15,8 +15,8 @@ describe("production AUTH_SECRET fail-fast", () => {
   const SAVED: Record<string, string | undefined> = {
     NODE_ENV: process.env.NODE_ENV,
     AUTH_SECRET: process.env.AUTH_SECRET,
-    PADDLE_API_KEY: process.env.PADDLE_API_KEY,
-    PADDLE_WEBHOOK_SECRET: process.env.PADDLE_WEBHOOK_SECRET,
+    WHOP_API_KEY: process.env.WHOP_API_KEY,
+    WHOP_WEBHOOK_SECRET: process.env.WHOP_WEBHOOK_SECRET,
   };
 
   afterEach(() => {
@@ -43,8 +43,8 @@ describe("production AUTH_SECRET fail-fast", () => {
   it("accepts a strong AUTH_SECRET in production", () => {
     nodeEnv.NODE_ENV = "production";
     process.env.AUTH_SECRET = "0123456789abcdef0123456789abcdef";
-    process.env.PADDLE_API_KEY = "";
-    process.env.PADDLE_WEBHOOK_SECRET = "";
+    process.env.WHOP_API_KEY = "";
+    process.env.WHOP_WEBHOOK_SECRET = "";
     expect(assertProdSafety()).toEqual([]);
   });
 

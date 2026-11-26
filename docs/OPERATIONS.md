@@ -9,7 +9,7 @@ Liveness + configuration readiness probe. Safe to hit from uptime monitors.
 - **Healthy** (database reachable and schema matches the code): `200`.
 - **Unhealthy** (database unreachable, or a required `information_schema`
   column is missing): `503`.
-- **Degraded** (email transport, Paddle credentials, cron secret, storage not
+- **Degraded** (email transport, Whop credentials, cron secret, storage not
   configured): still `200` — the app serves requests fine; the missing
   dependency is listed in the detailed report.
 
@@ -131,66 +131,86 @@ The trial does grant Ask Your Car (25 grounded questions/month:
 `src/app/api/ai/route.ts`). The same wording is used on `/pricing`, in the FAQ,
 the Terms (§4) and the Refund Policy (§3).
 
-## PayPal — one-time "Founder Lifetime"
+## Payments — Whop
 
-A single one-time purchase that grants **lifetime** access with the **same
-limits and monthly quotas as the Pro plan**. Payments are processed by
-PayPal. We do not store your card details.
+Whop sells the two recurring plans (**Pro**, **Pro Plus**) and the one-time
+**Founder Lifetime** (same limits and monthly quotas as Pro). It replaced
+Paddle (rejected) and PayPal (never switched on) in 2.5. Payments are
+processed by Whop. We do not store your card details.
 
 ### Configuration (server side only)
 
 | Variable | Meaning |
 | --- | --- |
-| `BILLING_ENABLED` | Feature flag. **Default `false`.** Only `"true"` enables it. |
-| `PAYPAL_ENV` | `"sandbox"` (default) or `"live"`. |
-| `PAYPAL_CLIENT_ID` | Public app client id (sent to the browser). |
-| `PAYPAL_CLIENT_SECRET` | **Secret.** Never logged, never sent to the client. |
-| `PAYPAL_WEBHOOK_ID` | Webhook id used to verify signatures. |
-| `LIFETIME_PRICE_MINOR` | Price in minor units (`9900` = USD 99.00). |
-| `LIFETIME_CURRENCY` | ISO 4217 code (`USD`). |
-| `LIFETIME_MAX_GRANTS` | Grant cap. The **code default is `0` = disabled**; the configured cap is supplied here. |
+| `WHOP_API_KEY` | **Secret.** Company API key (Developer → API keys). Needs the checkout configuration, membership and payment permissions. |
+| `WHOP_WEBHOOK_SECRET` | **Secret.** The webhook signing secret (`ws_...`), shown once. |
+| `WHOP_COMPANY_ID` | Company id (`biz_...`). |
+| `WHOP_PRO_PLAN_ID` | Whop plan id (`plan_...`) for Pro — 6.99 USD every 30 days. |
+| `WHOP_PRO_PLUS_PLAN_ID` | Whop plan id for Pro Plus — 19.99 USD every 30 days. |
+| `WHOP_LIFETIME_PLAN_ID` | Whop plan id for Founder Lifetime — 99.00 USD one-time. |
+| `WHOP_ENV` | `"sandbox"` (default) or `"live"`. Only `live` uses `api.whop.com`. |
+| `LIFETIME_MAX_GRANTS` | Lifetime cap. **Default `0` = lifetime offer off.** Set the same stock on the Whop plan. |
 
-**Fail closed.** If billing is disabled OR any PayPal credential, the price or
-the currency is missing, the feature is OFF: no endpoint creates an order, no
-button is rendered and the webhook returns 503. There is no partial mode.
+**Fail closed.** Without the API key, webhook secret, company id and at least
+one plan id, no checkout is shown anywhere and `/api/billing/checkout` answers
+503. A plan whose id is empty is simply not sold. Prices shown on the site
+come from the seeded `Plan` rows, so the Whop plan prices must match them.
+
+### Flow
+
+1. The buyer clicks a plan; `POST /api/billing/checkout` (verified email
+   required) creates a Whop checkout configuration with
+   `metadata = { userId, planKey }` and returns its hosted `purchase_url`.
+2. The buyer pays on Whop and is sent back to `/settings/billing?checkout=success`.
+3. Whop copies the metadata onto the membership and payments, and the webhook
+   grants access. Nothing else ever grants access.
 
 ### Webhook
 
-- URL: `https://<domain>/api/paypal/webhook`
-- Subscribed events: `PAYMENT.CAPTURE.COMPLETED`,
-  `PAYMENT.CAPTURE.REFUNDED`, `PAYMENT.CAPTURE.REVERSED`,
-  `PAYMENT.CAPTURE.DENIED`.
-- The signature is verified through PayPal's own
-  `POST /v1/notifications/verify-webhook-signature` and **fails closed**.
-- Delivery is de-duplicated by event id through the shared `WebhookEvent`
-  state machine, and every grant/refund is applied through a conditional claim
-  on the stored `PaymentOrder`, so replays and out-of-order deliveries are
-  idempotent. Unknown orders/users are audited and answered `200`.
+- URL: `https://<domain>/api/whop/webhook`
+- Events: `membership.activated`, `membership.updated`,
+  `membership.deactivated`, `payment.succeeded`, `payment.failed`,
+  `refund.created`, `refund.updated`.
+- Standard Webhooks signature (`webhook-id`, `webhook-timestamp`,
+  `webhook-signature`), HMAC-SHA256 keyed with the literal `ws_...` secret,
+  5-minute replay window. Invalid → `401`, audited.
+- De-duplicated by `webhook-id` through the shared `WebhookEvent` state
+  machine; side effects (emails, notifications) fire once.
+- Out-of-order deliveries are ignored using the membership's `updated_at`.
+- Whop retries failed deliveries for ~3 days and disables an endpoint that
+  keeps failing; re-enable it in the dashboard and reconcile from the API.
 
 ### Entitlement & refund rules
 
-- Access is granted ONLY by a verified event (or a server-side re-check in the
-  capture endpoint), never by a client claim.
-- Grants are capped at `LIFETIME_MAX_GRANTS`; the cap is enforced under a row
-  lock so two concurrent captures cannot both take the last slot.
-- A **full** refund (or a reversal) revokes lifetime access and drops the user
-  to Free when nothing else is active. A **partial** refund keeps access and
-  records the partial state and amount.
-- No card data is ever read or stored — only PayPal's own order/capture ids,
-  amounts and status.
+- Membership status mapping: `active`/`trialing` → access; `canceling` →
+  access until the period end; `past_due`/`unresolved` → bounded grace;
+  `canceled`/`expired` (and `completed` for recurring plans) → Free. A
+  one-time lifetime membership (`active`/`completed`) → lifetime.
+- A plan we do not sell never grants anything (audited as
+  `whop.webhook.unmapped_plan`).
+- Changing plan creates a new Whop membership; when it activates, the previous
+  recurring membership is set to end at its period end, so nobody is billed
+  twice (`whop.switch.*` audit rows).
+- Refunds: only `succeeded` refunds count, each applied once. A full refund
+  of a lifetime payment revokes lifetime; a full refund of the latest payment
+  of a subscription ends it immediately at Whop; partial refunds and refunds
+  of older payments keep access.
+- Account deletion cancels active Whop memberships first and aborts if Whop
+  refuses.
+- No card data is ever read or stored — only Whop's ids, amounts and status.
 
 ### Turning it on (ordered)
 
-1. Create a PayPal Business app; note the client id and secret.
-2. In the app, add a webhook to `https://<domain>/api/paypal/webhook` with the
-   four events above and copy its **Webhook ID**.
-3. Set `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID`,
-   `LIFETIME_PRICE_MINOR`, `LIFETIME_CURRENCY`, `LIFETIME_MAX_GRANTS` and
-   `PAYPAL_ENV=sandbox` in the deployment environment.
-4. Deploy, then run a **sandbox** purchase end to end.
-5. Only when the sandbox round trip succeeds, set `BILLING_ENABLED="true"`.
-6. Switch to `PAYPAL_ENV=live` with live credentials only when ready to take
-   real money.
+1. In the Whop dashboard, create one product with three plans (Pro monthly
+   6.99, Pro Plus monthly 19.99, Founder Lifetime one-time 99.00 with stock =
+   `LIFETIME_MAX_GRANTS`). Copy the three `plan_...` ids and the `biz_...` id.
+2. Create an API key and a webhook to `https://<domain>/api/whop/webhook`
+   with the seven events above; copy the `ws_...` secret.
+3. Set the `WHOP_*` variables and `LIFETIME_MAX_GRANTS` in Vercel, with
+   `WHOP_ENV=sandbox` first (sandbox keys from sandbox.whop.com).
+4. Deploy (the build applies the `add_whop_identifiers` migration) and run one
+   sandbox purchase, one cancel, and one refund end to end.
+5. Switch to live keys, live plan ids and `WHOP_ENV=live`.
 
 ## Backups and restore
 
@@ -253,7 +273,7 @@ reported instead of silently serving errors.
 ### Secrets
 
 Vercel env vars are not versioned. Keep an offline, encrypted copy of
-`AUTH_SECRET`, `CRON_SECRET`, `HEALTH_SECRET`, the Paddle/PayPal secrets
+`AUTH_SECRET`, `CRON_SECRET`, `HEALTH_SECRET`, the Whop secrets
 and the SMTP credentials, and rotate them if the copy is ever exposed. A lost
 `AUTH_SECRET` logs every user out (sessions are JWTs) — it is recoverable by
 generating a new one, but do it deliberately, not by accident.
